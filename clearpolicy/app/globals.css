@@ -11,7 +11,7 @@ html, body {
 }
 
 body {
-  @apply text-gray-900 antialiased;
+  @apply text-gray-900 antialiased transition-colors duration-300 ease-out;
   /* Subtle gradient field that enhances glass surfaces */
   background-color: #f8fafc; /* fallback */
   background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.06), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.06), transparent 50%);
@@ -100,6 +100,21 @@ body {
     transition-duration: 150ms !important;
     transition-timing-function: ease-out !important;
   }
+}
+
+/* Lightweight animations and microinteractions */
+@keyframes typing { from { width: 0 } to { width: 100% } }
+@keyframes blink { 50% { border-color: transparent } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
+
+@layer utilities {
+  .typewriter { border-right: 2px solid rgba(2, 6, 23, 0.5); white-space: nowrap; overflow: hidden }
+  .typewriter-dark { border-right: 2px solid rgba(248, 250, 252, 0.6) }
+  .animate-typing { animation: typing 3.8s steps(36, end) infinite alternate; }
+  .animate-blink { animation: blink 1s step-end infinite; }
+  .animate-fade-in-up { animation: fadeInUp 600ms ease-out both; }
+  .lift { transition: transform 300ms ease-out, box-shadow 300ms ease-out; will-change: transform; }
+  .lift:hover { transform: translateY(-2px); }
 }
 
 

@@ -7,15 +7,17 @@ export default function Header() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [dark, setDark] = useState(false);
-  // Initialize theme from localStorage or system
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("cp_theme");
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const nextDark = saved ? saved === 'dark' : prefersDark;
+    const stored = typeof window !== "undefined" ? localStorage.getItem("cp_theme") : null;
+    const prefersDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const nextDark = stored ? stored === "dark" : prefersDark;
     setDark(nextDark);
-    document.documentElement.classList.toggle('dark', nextDark);
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle('dark', nextDark);
+    }
   }, []);
+
   return (
     <header className="glass-nav sticky top-0 z-50">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
@@ -58,10 +60,11 @@ export default function Header() {
           type="button"
           className="liquid-button px-3 py-2 text-sm"
           aria-pressed={dark}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => {
             const next = !dark; setDark(next);
             document.documentElement.classList.toggle('dark', next);
-            localStorage.setItem('cp_theme', next ? 'dark' : 'light');
+            try { localStorage.setItem("cp_theme", next ? "dark" : "light"); } catch {}
           }}
         >
           {dark ? "Light" : "Dark"}

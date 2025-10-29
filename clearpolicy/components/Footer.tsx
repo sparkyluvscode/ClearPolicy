@@ -1,20 +1,17 @@
 export default function Footer() {
   return (
-    <footer className="mt-10 border-t border-gray-200 dark:border-gray-800 py-8">
-      <div className="mx-auto max-w-6xl px-4 text-sm text-gray-600 dark:text-gray-400 grid gap-4 md:grid-cols-3">
-        <div>
-          <div className="font-medium text-gray-900 dark:text-gray-100">ClearPolicy</div>
-          <div className="mt-1">Clarity on every ballot.</div>
+    <footer className="mt-8">
+      <div className="glass-floating mx-auto max-w-6xl rounded-2xl px-4 py-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-gray-700 dark:text-gray-300">© {new Date().getFullYear()} ClearPolicy</div>
+          <div className="flex items-center gap-4 text-sm">
+            <a href="#" className="text-accent hover:underline focus-ring rounded">Contact</a>
+            <a href="#" className="text-accent hover:underline focus-ring rounded">FAQ</a>
+            <a href="#" className="text-accent hover:underline focus-ring rounded">Privacy</a>
+          </div>
         </div>
-        <nav className="space-y-1">
-          <a href="#about" className="hover:underline">About</a>
-          <div><a href="mailto:team@clearpolicy.app" className="hover:underline">Contact</a></div>
-          <div><a href="#privacy" className="hover:underline">Privacy</a></div>
-        </nav>
-        <div className="text-xs">Sources include Open States and Congress.gov. Neutral, sourced, accessible.</div>
+        <div className="mt-3 text-xs text-gray-500">Made in California</div>
       </div>
     </footer>
   );
 }
-
-
