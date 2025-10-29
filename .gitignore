@@ -28,3 +28,11 @@ logs/
 *.log
 *.log.*
 coverage/
+
+# Editors & tool state
+.vscode/
+.idea/
+.cursor/
+
+# Env backups (catch all variants)
+.env*
