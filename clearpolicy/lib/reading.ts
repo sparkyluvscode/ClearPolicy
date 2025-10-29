@@ -30,6 +30,11 @@ export function simplify(text: string, level: "5" | "8" | "12") {
       .map((s) => capWords(s, 12));
     // Limit to at most two sentences for 5th-grade
     sentences = sentences.slice(0, 2);
+    // Add simple analogy when helpful
+    const joined = sentences.join(" ");
+    const analogy = pickAnalogy(joined);
+    out = analogy ? `${joined} ${analogy}` : joined;
+    return ensurePeriod(out);
   }
   out = sentences.join(" ");
   return ensurePeriod(out);
@@ -82,6 +87,15 @@ function simplifyTerms(s: string): string {
   let out = s;
   for (const [re, rep] of replacements) out = out.replace(re, rep);
   return out;
+}
+
+function pickAnalogy(text: string): string | null {
+  const t = text.toLowerCase();
+  if (/budget|tax|revenue/.test(t)) return "It is like a family budget: rules for how money can be used.";
+  if (/advertis|disclos/.test(t)) return "Think of a label on a product: this adds labels to ads so people know who paid.";
+  if (/theft|crime|penal|sentenc/.test(t)) return "It is like changing school rules about consequences to make them more fair.";
+  if (/water|energy|environment/.test(t)) return "This is like house rules to save water and power, but for the state.";
+  return null;
 }
 
 

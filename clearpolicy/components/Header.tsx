@@ -7,6 +7,7 @@ export default function Header() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [dark, setDark] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("cp_theme") : null;
@@ -16,18 +17,26 @@ export default function Header() {
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle('dark', nextDark);
     }
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
-    <header className="glass-nav sticky top-0 z-50">
+    <header className={`glass-nav sticky top-0 z-50 ${scrolled ? "shadow-glass-lg" : ""}`}>
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
         <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-100 focus-ring rounded px-1" aria-label="ClearPolicy home">
           {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
         </Link>
-        <nav className="hidden md:flex items-center gap-4 text-sm">
-          <Link href="#about" className="text-gray-700 dark:text-gray-300 hover:underline focus-ring rounded px-1">What is this?</Link>
+        <nav className="hidden md:flex items-center gap-4 text-sm ml-1">
+          <Link href="/demo" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Demo</Link>
+          <Link href="/about" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">About</Link>
+          <Link href="/impact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Impact</Link>
+          <Link href="/privacy" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Privacy</Link>
+          <Link href="/contact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Contact</Link>
           <div className="relative group">
-            <button className="text-gray-700 dark:text-gray-300 hover:underline focus-ring rounded px-1" aria-haspopup="true" aria-expanded="false">Try a sample</button>
+            <button className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1" aria-haspopup="true" aria-expanded="false">Samples</button>
             <div className="absolute mt-2 hidden group-hover:block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-2 min-w-[14rem]">
               <ul className="text-sm">
                 <li><Link className="block px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded" href="/measure/ca-prop-17-2020">Proposition 17 (2020)</Link></li>

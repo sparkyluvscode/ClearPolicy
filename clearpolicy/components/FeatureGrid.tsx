@@ -47,9 +47,9 @@ export default function FeatureGrid() {
       <h2 id="features-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">How ClearPolicy empowers you</h2>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {features.map((f, i) => (
-          <div key={i} className="glass-panel p-4 lift">
+          <div key={i} className="glass-panel p-4 lift group">
             <div className="flex items-center gap-2 text-accent">
-              <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center transition-colors group-hover:bg-accent/20">
                 <span className="text-accent">{f.icon}</span>
               </div>
               <div className="font-medium text-gray-900 dark:text-gray-100">{f.title}</div>

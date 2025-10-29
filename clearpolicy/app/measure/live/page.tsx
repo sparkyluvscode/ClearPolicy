@@ -42,7 +42,7 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
         <LiveMeasureCardClient payload={data} />
       </div>
       <div>
-        <ZipPanel />
+        <ZipPanel contextId={source === "os" ? id : undefined} />
       </div>
     </div>
   );

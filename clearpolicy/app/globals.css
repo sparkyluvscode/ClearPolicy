@@ -12,13 +12,15 @@ html, body {
 
 body {
   @apply text-gray-900 antialiased transition-colors duration-300 ease-out;
-  /* Subtle gradient field that enhances glass surfaces */
+  /* Subtle but more vibrant gradient field for light mode */
   background-color: #f8fafc; /* fallback */
-  background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.06), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.06), transparent 50%);
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.08), transparent 60%),
+    radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.08), transparent 50%);
 }
 
 .section-title {
-  @apply text-xs tracking-wider text-gray-600 dark:text-gray-400 uppercase font-medium;
+  @apply text-xs tracking-wider text-gray-700 dark:text-gray-300 uppercase font-semibold;
   font-variant-caps: all-small-caps;
 }
 
@@ -27,6 +29,8 @@ body {
   These classes compose reusable “liquid glass” surfaces using Tailwind tokens.
 */
 @layer components {
+  .divider-h { @apply h-px bg-gray-200 dark:bg-white/10 w-full; }
+  .section-offset { @apply bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl; }
   .glass-surface {
     @apply rounded-2xl lg:rounded-3xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-slate-950/55 backdrop-blur-2xl backdrop-saturate-150 shadow-glass transition-all duration-300 ease-out;
   }

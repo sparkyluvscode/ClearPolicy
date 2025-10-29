@@ -14,11 +14,13 @@ type SummaryLike = {
   sourceRatio: number;
   citations: Citation[];
   sourceCount?: number;
+  example?: string;
 };
 
 export default function BillCard({ data, level }: { data: SummaryLike; level: "5" | "8" | "12" }) {
   const [showCitations, setShowCitations] = useState(false);
   const firstFor = (loc: Citation["location"]) => data.citations?.find((c) => c.location === loc) || data.citations?.[0];
+  const simple = (t: string) => (level === "5" ? (t ? `In simple words: ${t}` : t) : t);
 
   return (
     <article className="card p-5" aria-labelledby="billcard-heading">
@@ -30,7 +32,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
       <div className="mt-4 grid grid-cols-1 gap-5">
         <section>
           <h3 className="section-title">TL;DR</h3>
-          <p className="mt-1 text-gray-900">{simplify(data.tldr || "No TL;DR available; see sources below.", level)}</p>
+          <p className="mt-1 text-gray-900">{simple(simplify(data.tldr || "No TL;DR available; see sources below.", level))}</p>
           {firstFor("tldr") && (
             <div className="mt-1 text-xs text-gray-600">
               Source: <a href={firstFor("tldr")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("tldr")!.sourceName}</a>
@@ -39,7 +41,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
         </section>
         <section>
           <h3 className="section-title">What it does</h3>
-          <p className="mt-1 text-gray-900">{simplify(data.whatItDoes || "No section summary available; see official source.", level)}</p>
+          <p className="mt-1 text-gray-900">{simple(simplify(data.whatItDoes || "No section summary available; see official source.", level))} {level === "5" && data.example ? `For example: ${data.example}` : ""}</p>
           {firstFor("what") && (
             <div className="mt-1 text-xs text-gray-600">
               Source: <a href={firstFor("what")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("what")!.sourceName}</a>
@@ -48,7 +50,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
         </section>
         <section>
           <h3 className="section-title">Who is affected</h3>
-          <p className="mt-1 text-gray-900">{simplify(data.whoAffected || "No audience summary available; see official source.", level)}</p>
+          <p className="mt-1 text-gray-900">{simple(simplify(data.whoAffected || "No audience summary available; see official source.", level))}</p>
           {firstFor("who") && (
             <div className="mt-1 text-xs text-gray-600">
               Source: <a href={firstFor("who")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("who")!.sourceName}</a>
@@ -57,7 +59,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
         </section>
         <section>
           <h3 className="section-title">Pros</h3>
-          <p className="mt-1 text-gray-900">{simplify(data.pros || "No stated benefits available from sources.", level)}</p>
+          <p className="mt-1 text-gray-900">{simple(simplify(data.pros || "No stated benefits available from sources.", level))}</p>
           {firstFor("pros") && (
             <div className="mt-1 text-xs text-gray-600">
               Source: <a href={firstFor("pros")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("pros")!.sourceName}</a>
@@ -66,7 +68,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
         </section>
         <section>
           <h3 className="section-title">Cons</h3>
-          <p className="mt-1 text-gray-900">{simplify(data.cons || "No stated drawbacks available from sources.", level)}</p>
+          <p className="mt-1 text-gray-900">{simple(simplify(data.cons || "No stated drawbacks available from sources.", level))}</p>
           {firstFor("cons") && (
             <div className="mt-1 text-xs text-gray-600">
               Source: <a href={firstFor("cons")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("cons")!.sourceName}</a>
@@ -100,6 +102,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
                 "ca.gov",
               ];
               const isOfficial = officialHosts.some((h) => host.endsWith(h));
+              const badge = isOfficial ? "Official" : host.endsWith("openstates.org") ? "Primary" : "Analysis";
               return (
                 <li key={i}>
                   <a
@@ -112,6 +115,19 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
                     {c.sourceName}
                     {!isOfficial && host ? ` (${host})` : ""}
                   </a>
+                  <span
+                    className={"ml-2 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] border " + (isOfficial ? "bg-emerald-50 text-emerald-700 border-emerald-200" : badge==="Primary" ? "bg-sky-50 text-sky-700 border-sky-200" : "bg-gray-100 text-gray-700 border-gray-200")}
+                    title={
+                      badge === "Official" ? "Official government source (highest trust)" :
+                      badge === "Primary" ? "Primary data source (Open States summary or record)" :
+                      "Independent analysis or reporting"
+                    }
+                    aria-label={
+                      badge === "Official" ? "Official government source" :
+                      badge === "Primary" ? "Primary data source" :
+                      "Independent analysis"
+                    }
+                  >{badge}</span>
                   {c.location ? <span className="text-gray-600"> — {c.location}</span> : null}
                 </li>
               );

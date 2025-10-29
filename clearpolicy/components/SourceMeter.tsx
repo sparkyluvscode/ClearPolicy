@@ -13,6 +13,7 @@ export default function SourceMeter({ ratio, count, total }: { ratio: number; co
         >
           ?
         </span>
+        <a href="/about#trust" className="text-[10px] text-accent hover:underline focus-ring rounded" title="Why trust this? How we pick sources.">Why trust this?</a>
       </div>
       <div className="flex items-center gap-2" aria-label={`Source meter ${pct} percent`}>
         <div className="h-2 flex-1 rounded-full bg-gray-200">

@@ -119,7 +119,16 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const sourceRatio = sourceRatioFrom(blocks, finalCitations);
       const covered = new Set((finalCitations || []).map((c) => c.location).filter(Boolean) as string[]).size;
 
-      return { tldr, whatItDoes, whoAffected, pros, cons, sourceRatio, citations: finalCitations, sourceCount: covered };
+      // Create a simple impact example for kid-friendly mode
+      const example = (() => {
+        const t = `${subjectsArr.join(" ")} ${title}`.toLowerCase();
+        if (/advertis/.test(t)) return "For example: ads for candidates would include a clear label about who paid for them.";
+        if (/budget|fund|revenue/.test(t)) return "For example: money could be moved or tracked differently to protect key programs.";
+        if (/theft|crime|sentenc/.test(t)) return "For example: the rules for punishment could change to focus on fairness and safety.";
+        return "";
+      })();
+
+      return { tldr, whatItDoes, whoAffected, pros, cons, sourceRatio, citations: finalCitations, sourceCount: covered, example };
     }
     if (payload?.kind === "bill" && payload?.raw) {
       const raw = payload.raw;
@@ -144,7 +153,13 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const blocks = [tldr, whatItDoes, whoAffected, pros, cons];
       const sourceRatio = sourceRatioFrom(blocks, citations);
       const covered = new Set((citations || []).map((c) => c.location).filter(Boolean) as string[]).size;
-      return { tldr, whatItDoes, whoAffected, pros, cons, sourceRatio, citations, sourceCount: covered };
+      const example = (() => {
+        const t = `${subjectsArr.join(" ")} ${title}`.toLowerCase();
+        if (/education|school/.test(t)) return "For example: schools could get more help for students who need it.";
+        if (/energy|environment|water/.test(t)) return "For example: the state might set stronger rules to save water or power.";
+        return "";
+      })();
+      return { tldr, whatItDoes, whoAffected, pros, cons, sourceRatio, citations, sourceCount: covered, example };
     }
     return null;
   }, [payload]);

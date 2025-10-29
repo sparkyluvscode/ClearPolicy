@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { openstates } from "@/lib/clients/openstates";
 
-const Params = z.object({ zip: z.string().regex(/^\d{5}$/).optional() });
+const Params = z.object({ zip: z.string().regex(/^\d{5}$/).optional(), osid: z.string().optional() });
 
-type Official = { name: string; party?: string; office?: string; urls?: string[] };
+type Official = { name: string; party?: string; office?: string; urls?: string[]; context?: string; vote?: string; voteUrl?: string };
 
 export async function GET(req: NextRequest) {
   const zip = req.nextUrl.searchParams.get("zip") ?? undefined;
-  const parsed = Params.safeParse({ zip });
+  const osid = req.nextUrl.searchParams.get("osid") ?? undefined;
+  const parsed = Params.safeParse({ zip, osid });
   if (!parsed.success || !parsed.data.zip) return NextResponse.json({ error: "Enter a 5-digit ZIP (e.g., 95014).", officials: [], normalizedInput: { line1: zip || "" } }, { status: 200 });
 
   const normalizedInput = { line1: parsed.data.zip };
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
     const place = Array.isArray(zipJson?.places) && zipJson.places[0];
     const lat = place ? parseFloat(place.latitude) : NaN;
     const lon = place ? parseFloat(place.longitude) : NaN;
+    const city = place?.["place name"] || "";
     if (!isFinite(lat) || !isFinite(lon)) return NextResponse.json({ error: "Could not locate that ZIP. Try another.", officials: [], normalizedInput }, { status: 200 });
 
     // 2) lat/lon -> districts (Census Geocoder, ACS2025 layers)
@@ -136,7 +138,56 @@ export async function GET(req: NextRequest) {
 
     if (officials.length === 0) return NextResponse.json({ error: "No officials found for this ZIP.", officials: [], normalizedInput }, { status: 200 });
 
-    return NextResponse.json({ officials, normalizedInput, offices: [] }, { status: 200 });
+    // Optional measure context: attach simple context note
+    let contextLine: string | null = null;
+    let votes: Record<string, { vote: string; url?: string }> = {};
+    if (osid) {
+      try {
+        const billRes = await fetch(`https://v3.openstates.org/bills/${encodeURIComponent(osid)}?include=votes&apikey=${key}`, { cache: "no-store" });
+        const billJson: any = await billRes.json();
+        const title: string = billJson?.title || billJson?.identifier || "";
+        const latest: string = billJson?.latest_action_description || billJson?.latest_action?.description || "";
+        contextLine = title ? `Context: ${title}${latest ? ` — ${latest}` : ""}` : null;
+        const voteEvents: any[] = ([] as any[])
+          .concat(billJson?.votes || [])
+          .concat(billJson?.vote_events || [])
+          .filter(Boolean);
+        for (const ev of voteEvents) {
+          const voters: any[] = ([] as any[])
+            .concat(ev?.voters || [])
+            .concat(ev?.roll_calls || [])
+            .concat(ev?.votes || [])
+            .filter(Boolean);
+          for (const v of voters) {
+            const nm = String(v?.name || v?.legislator || v?.person || "").toLowerCase();
+            const opt = String(v?.vote || v?.option || v?.result || v?.value || "").toLowerCase();
+            if (!nm) continue;
+            let pretty = "";
+            if (/yes|yea|approve|pass/.test(opt)) pretty = "Voted Yes";
+            else if (/no|nay|reject|fail/.test(opt)) pretty = "Voted No";
+            else if (/abstain|absent|present/.test(opt)) pretty = "Abstained";
+            if (pretty) votes[nm] = { vote: pretty, url: ev?.source_url || ev?.url || billJson?.openstates_url };
+          }
+        }
+      } catch {}
+    }
+    if (contextLine) {
+      for (const o of officials) {
+        (o as any).context = contextLine;
+        // attach vote when name matches
+        const keyName = String(o.name || "").toLowerCase();
+        const matched = Object.keys(votes).find((vn) => keyName.includes(vn) || vn.includes(keyName));
+        if (matched) {
+          o.vote = votes[matched].vote;
+          if (votes[matched].url) o.voteUrl = votes[matched].url;
+        }
+      }
+    }
+
+    const analysisQuery = contextLine ? `${contextLine} ${city} California` : `${parsed.data.zip} California measure impact`;
+    const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(analysisQuery)}`;
+
+    return NextResponse.json({ officials, normalizedInput, offices: [], analysisUrl }, { status: 200 });
   } catch (e) {
     return NextResponse.json({ error: "Lookup failed. Try again later.", officials: [], normalizedInput }, { status: 200 });
   }

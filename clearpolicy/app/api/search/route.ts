@@ -53,12 +53,91 @@ export async function GET(req: NextRequest) {
         const na = Number.isFinite(sa) ? sa : -Infinity;
         return nb - na;
       });
-      (ca as any).results = deduped;
+      // Attach reason/score and partition direct vs related
+      const enrich = (r: any) => {
+        const title: string = String(r?.title || r?.identifier || "");
+        const cls: string[] = Array.isArray(r?.classification) ? r.classification : [];
+        const lower = title.toLowerCase();
+        const sc = score(r);
+        let reason = "Shown because it is related to your query.";
+        let direct = false;
+        if (lower === ql) { reason = "Shown because the title exactly matches your query."; direct = true; }
+        else if (lower.includes(ql)) { reason = "Shown because the title contains your query words."; direct = true; }
+        const m = ql.match(/prop\s*(\d+)/);
+        if (m && (/proposition\s*\d+/i.test(title) || /prop\s*\d+/i.test(title))) { reason = `Shown because it matches Proposition ${m[1]}.`; direct = true; }
+        if ((cls || []).map((x: any)=>String(x).toLowerCase()).includes("appropriation") && direct) { reason += " It is an appropriation bill."; }
+        const preview = String(
+          r?.latest_action_description || r?.latest_action?.description ||
+          (Array.isArray(cls) && cls.length ? `Type: ${cls.join(", ")}` : "")
+        ).slice(0, 180);
+        return { ...r, _score: sc, _reason: reason, _direct: direct, _preview: preview };
+      };
+      const enriched = deduped.map(enrich);
+      // Suppress weak related items
+      const strong = enriched.filter((r: any) => r._direct || r._score >= 20);
+      (ca as any).results = strong;
     } catch {}
 
-    return NextResponse.json({ chips, ca, us });
+    // Build trusted fallback links (always safe to show)
+    const fallbacks: Array<{ label: string; url: string; hint: string; kind: "overview" | "official" | "analysis" }> = [];
+
+    const ql = parsed.data.q.toLowerCase().trim();
+    const push = (label: string, url: string, hint: string, kind: "overview" | "official" | "analysis") => fallbacks.push({ label, url, hint, kind });
+
+    // General trusted portals
+    push("Open States (California)", `https://v3.openstates.org/?subject=${encodeURIComponent(parsed.data.q)}`, "State bill records", "official");
+    push("Congress.gov", `https://www.congress.gov/search?q=${encodeURIComponent(parsed.data.q)}`, "Federal legislation", "official");
+    push("GovTrack", `https://www.govtrack.us/search?q=${encodeURIComponent(parsed.data.q)}`, "Federal bill summaries", "overview");
+    push("Ballotpedia", `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(parsed.data.q)}`, "Ballot measures overview", "overview");
+    push("LAO (California)", `https://lao.ca.gov/Search?q=${encodeURIComponent(parsed.data.q)}`, "Legislative Analyst’s Office reports", "analysis");
+
+    // Pattern: CA proposition
+    // Add a virtual proposition result when user types "prop <number>"
+    try {
+      const m = ql.match(/prop\s*(\d{1,3})/);
+      if (m) {
+        const n = m[1];
+        const ext = `https://www.google.com/search?q=${encodeURIComponent(`California Proposition ${n} site:ballotpedia.org OR site:lao.ca.gov`)}`;
+        const virtual = {
+          id: `prop-${n}-external`,
+          identifier: `California Proposition ${n}`,
+          title: `California Proposition ${n}`,
+          classification: ["ballot"],
+          externalUrl: ext,
+          _direct: true,
+          _reason: `Shown because it matches Proposition ${n}.`,
+          _preview: "Open a trusted overview from Ballotpedia or LAO.",
+        };
+        const arr = Array.isArray((ca as any).results) ? (ca as any).results : [];
+        (ca as any).results = [virtual, ...arr];
+        push(`Ballotpedia – Proposition ${n}`, `https://ballotpedia.org/California_Proposition_${n}`, "Detailed ballot analysis", "overview");
+        push("LAO – Propositions", `https://lao.ca.gov/BallotAnalysis/Propositions`, "Official LAO analyses", "analysis");
+      }
+    } catch {}
+
+    // Pattern: CA bill AB/SB
+    try {
+      const mb = ql.match(/\b(a[bs]|sb|ab)\s*(\d{1,5})\b/);
+      if (mb) {
+        const bill = `${mb[1].toUpperCase()} ${mb[2]}`.replace("AS", "AB");
+        push(`${bill} on Open States`, `https://v3.openstates.org/bills?jurisdiction=California&q=${encodeURIComponent(bill)}`, "Bill record", "official");
+        push(`${bill} on LegInfo`, `https://leginfo.legislature.ca.gov/faces/billSearchClient.xhtml?search_text=${encodeURIComponent(bill)}`, "CA official site", "official");
+      }
+    } catch {}
+
+    // Pattern: common federal acts
+    if (/affordable care act|aca\b/.test(ql)) {
+      push("Affordable Care Act – Congress.gov", "https://www.congress.gov/bill/111th-congress/house-bill/3590", "Original ACA bill page", "official");
+      push("GovTrack – ACA overview", "https://www.govtrack.us/congress/bills/111/hr3590", "Bill overview and history", "overview");
+    }
+    if (/national defense authorization act|ndaa\b/.test(ql)) {
+      push("NDAA – Congress.gov (search)", "https://www.congress.gov/search?q=%22National%20Defense%20Authorization%20Act%22", "Official federal records", "official");
+      push("GovTrack – NDAA (search)", "https://www.govtrack.us/search?q=National%20Defense%20Authorization%20Act", "Bill summaries and status", "overview");
+    }
+
+    return NextResponse.json({ chips, ca, us, fallbacks });
   } catch (e: any) {
-    return NextResponse.json({ chips: [], ca: { results: [] }, us: { data: { bills: [] } }, error: e?.message || "search failed" }, { status: 200 });
+    return NextResponse.json({ chips: [], ca: { results: [] }, us: { data: { bills: [] } }, fallbacks: [], error: e?.message || "search failed" }, { status: 200 });
   }
 }
 
