@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cp-accent: #4f46e5;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply text-gray-900 antialiased;
+  /* Subtle gradient field that enhances glass surfaces */
+  background-color: #f8fafc; /* fallback */
+  background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.06), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.06), transparent 50%);
+}
+
+.section-title {
+  @apply text-xs tracking-wider text-gray-600 dark:text-gray-400 uppercase font-medium;
+  font-variant-caps: all-small-caps;
+}
+
+/*
+  Glassmorphism component layer
+  These classes compose reusable “liquid glass” surfaces using Tailwind tokens.
+*/
+@layer components {
+  .glass-surface {
+    @apply rounded-2xl lg:rounded-3xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-slate-950/55 backdrop-blur-2xl backdrop-saturate-150 shadow-glass transition-all duration-300 ease-out;
+  }
+
+  .glass-surface:hover { @apply shadow-glass-lg; }
+
+  .glass-card {
+    @apply glass-surface;
+  }
+
+  .glass-panel {
+    @apply glass-surface;
+  }
+
+  .glass-nav { @apply border-b border-white/20 dark:border-white/10 bg-white/60 dark:bg-slate-950/55 backdrop-blur-2xl backdrop-saturate-150 shadow-glass; }
+
+  .glass-popover { @apply rounded-2xl border border-white/30 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 backdrop-blur-2xl backdrop-saturate-150 shadow-glass-lg transition-all duration-300 ease-out; }
+
+  .glass-modal { @apply rounded-3xl border border-white/30 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 backdrop-blur-3xl backdrop-saturate-150 shadow-glass-lg; }
+
+  .glass-input { @apply rounded-xl border border-white/30 dark:border-white/10 bg-white/70 dark:bg-white/10 backdrop-blur-lg shadow-inner-glass text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 transition-all duration-200 ease-out; }
+
+  .liquid-button {
+    @apply relative inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium text-white shadow-glass transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900;
+    background: radial-gradient(80% 120% at 10% 10%, rgba(255,255,255,0.25), rgba(255,255,255,0) 60%), var(--cp-accent);
+  }
+  .liquid-button::before {
+    content: "";
+    @apply absolute inset-0 rounded-2xl blur-xl opacity-60 -z-10;
+    background: radial-gradient(60% 60% at 50% 50%, rgba(79,70,229,0.35), transparent 70%);
+  }
+  .liquid-button:hover { @apply shadow-glow-accent; }
+
+  .liquid-toggle { @apply inline-flex rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-950/55 backdrop-blur-xl backdrop-saturate-150 p-1 shadow-glass; }
+
+  .liquid-toggle-btn {
+    @apply px-3 py-1.5 text-sm rounded-xl transition-all duration-200 ease-out text-gray-800 dark:text-white;
+  }
+
+  .liquid-toggle-btn[aria-pressed="true"] { @apply bg-accent text-white shadow-glow-accent; }
+
+  .glass-divider {
+    @apply border-white/30 dark:border-white/10;
+  }
+
+  .text-on-glass { @apply text-gray-900 dark:text-gray-100 drop-shadow-sm; }
+
+  .glass-floating { @apply backdrop-blur-2xl backdrop-saturate-150 bg-white/80 dark:bg-slate-950/70 border border-white/30 dark:border-white/10 shadow-glass-lg; }
+}
+
+/* Upgrade existing card helper to glass by default */
+.card {
+  @apply glass-card;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900;
+}
+
+/* Dark theme background support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #020617; /* slate-950 */
+    background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.10), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.10), transparent 50%);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .glass-surface, .glass-card, .glass-panel, .glass-popover, .glass-modal, .liquid-button, .liquid-toggle, .liquid-toggle-btn {
+    transition-duration: 150ms !important;
+    transition-timing-function: ease-out !important;
+  }
+}
+
+

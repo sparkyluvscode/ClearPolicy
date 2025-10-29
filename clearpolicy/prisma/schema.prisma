@@ -1,0 +1,58 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Measure {
+  id           String     @id @default(cuid())
+  kind         String
+  jurisdiction String
+  session      String?
+  number       String
+  title        String
+  status       String?
+  slug         String     @unique
+  sources      SourceDoc[]
+  summaries    Summary[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model SourceDoc {
+  id        String  @id @default(cuid())
+  measureId String
+  name      String
+  url       String
+  docType   String?
+  Measure   Measure @relation(fields: [measureId], references: [id])
+}
+
+model Summary {
+  id          String   @id @default(cuid())
+  measureId   String
+  level       String
+  tldr        String
+  whatItDoes  String
+  whoAffected String
+  pros        String
+  cons        String
+  sourceRatio Float
+  citations   String
+  Measure     Measure  @relation(fields: [measureId], references: [id])
+}
+
+model Feedback {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  page        String
+  measureSlug String?
+  message     String
+  contact     String?
+}
+
+
