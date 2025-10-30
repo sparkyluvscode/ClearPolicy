@@ -26,8 +26,14 @@ export default function Header() {
   return (
     <header className={`glass-nav sticky top-0 z-50 ${scrolled ? "shadow-glass-lg" : ""}`}>
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-        <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-100 focus-ring rounded px-1" aria-label="ClearPolicy home">
-          {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
+        <Link href="/" className="flex items-center gap-1.5 focus-ring rounded px-1" aria-label="ClearPolicy home">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-gray-800/90 to-gray-900/95 dark:from-gray-700/90 dark:to-gray-900/95"></div>
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-white/0 via-white/10 to-white/30 opacity-60"></div>
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-white/5 to-white/20"></div>
+            <span className="relative px-2.5 py-1 text-base font-semibold text-white tracking-tight">Clear</span>
+          </div>
+          <span className="text-lg font-semibold text-gray-900 dark:text-gray-100 tracking-tight">Policy</span>
         </Link>
         <nav className="hidden md:flex items-center gap-4 text-sm ml-1">
           <Link href="/about" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">About</Link>
