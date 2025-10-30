@@ -26,13 +26,13 @@ export default function Header() {
   return (
     <header className={`glass-nav sticky top-0 z-50 ${scrolled ? "shadow-glass-lg" : ""}`}>
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-        <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-100 focus-ring rounded px-1" aria-label="ClearPolicy home">
+        <Link href="/" className="text-lg font-semibold text-gray-100 dark:text-gray-900 focus-ring rounded px-1" aria-label="ClearPolicy home">
           {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
         </Link>
         <nav className="hidden md:flex items-center gap-4 text-sm ml-1">
-          <Link href="/about" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">About</Link>
-          <Link href="/impact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Impact</Link>
-          <Link href="/contact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Contact</Link>
+          <Link href="/about" className="text-gray-200 dark:text-gray-800 hover:underline focus-ring rounded px-1">About</Link>
+          <Link href="/impact" className="text-gray-200 dark:text-gray-800 hover:underline focus-ring rounded px-1">Impact</Link>
+          <Link href="/contact" className="text-gray-200 dark:text-gray-800 hover:underline focus-ring rounded px-1">Contact</Link>
         </nav>
         <form
           className="ml-auto flex-1 max-w-xl"

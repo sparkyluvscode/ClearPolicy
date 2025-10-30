@@ -11,8 +11,8 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
   if (!source || !id) {
     return (
       <div className="card p-6">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Measure</h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Missing parameters. Try a new search or open a sample measure below.</p>
+        <h1 className="text-xl font-semibold text-gray-100 dark:text-gray-900">Measure</h1>
+        <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">Missing parameters. Try a new search or open a sample measure below.</p>
       </div>
     );
   }
@@ -31,8 +31,8 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
       <div className="lg:col-span-2 space-y-4">
         <TourOverlayClient />
         <div className="card p-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{source === "os" ? "California Measure" : "Federal Bill"}</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Live data</p>
+          <h1 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">{source === "os" ? "California Measure" : "Federal Bill"}</h1>
+          <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">Live data</p>
         </div>
         {missing && (
           <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-900/40">

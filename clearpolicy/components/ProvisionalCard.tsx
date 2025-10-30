@@ -52,7 +52,7 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
   return (
     <article className="card p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Summary</h2>
+        <h2 className="text-xl font-semibold text-gray-100 dark:text-gray-900">Summary</h2>
         <div className="liquid-toggle" role="group" aria-label="Reading level">
           {["5","8","12"].map((k) => (
             <button key={k} className="liquid-toggle-btn" aria-pressed={level===k} onClick={()=>setLevel(k as any)}>{k}th</button>
@@ -62,26 +62,26 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
       <div className="mt-4 grid grid-cols-1 gap-5">
         <section>
           <h3 className="section-title">TL;DR</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(text.tldr)}</p>
-          {primary && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(text.tldr)}</p>
+          {primary && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
         </section>
         <section>
           <h3 className="section-title">What it does</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(text.what)}</p>
-          {primary && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(text.what)}</p>
+          {primary && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
         </section>
         <section>
           <h3 className="section-title">Who is affected</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(`It affects ${text.who}.`)}</p>
-          {primary && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(`It affects ${text.who}.`)}</p>
+          {primary && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
         </section>
         <section>
           <h3 className="section-title">Pros</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(text.pros)}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(text.pros)}</p>
         </section>
         <section>
           <h3 className="section-title">Cons</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(text.cons)}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(text.cons)}</p>
         </section>
       </div>
     </article>

@@ -8,8 +8,8 @@ export default function ExternalCard({ label, url, hint, kind, top = false }: { 
     <li className={`rounded-md p-4 ${cls}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-medium text-gray-900 dark:text-gray-100">{label}</div>
-          <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{hint}{host ? ` — ${host}` : ""}</div>
+          <div className="font-medium text-gray-100 dark:text-gray-900">{label}</div>
+          <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">{hint}{host ? ` — ${host}` : ""}</div>
         </div>
         <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] border bg-gray-100 text-gray-700 border-gray-200" title={badge}>{badge}</span>
       </div>

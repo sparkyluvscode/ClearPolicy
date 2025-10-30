@@ -25,52 +25,52 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
   return (
     <article className="card p-5" aria-labelledby="billcard-heading">
       <div className="flex items-start justify-between gap-4">
-        <h2 id="billcard-heading" className="text-xl font-semibold text-gray-900 dark:text-gray-100">Summary</h2>
+        <h2 id="billcard-heading" className="text-xl font-semibold text-gray-100 dark:text-gray-900">Summary</h2>
         <SourceMeter ratio={data.sourceRatio} count={data.sourceCount} total={5} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-5">
         <section>
           <h3 className="section-title">TL;DR</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(simplify(data.tldr || "No TL;DR available; see sources below.", level))}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(simplify(data.tldr || "No TL;DR available; see sources below.", level))}</p>
           {firstFor("tldr") && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">
               Source: <a href={firstFor("tldr")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("tldr")!.sourceName}</a>
             </div>
           )}
         </section>
         <section>
           <h3 className="section-title">What it does</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(simplify(data.whatItDoes || "No section summary available; see official source.", level))} {level === "5" && data.example ? `For example: ${data.example}` : ""}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(simplify(data.whatItDoes || "No section summary available; see official source.", level))} {level === "5" && data.example ? `For example: ${data.example}` : ""}</p>
           {firstFor("what") && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">
               Source: <a href={firstFor("what")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("what")!.sourceName}</a>
             </div>
           )}
         </section>
         <section>
           <h3 className="section-title">Who is affected</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(simplify(data.whoAffected || "No audience summary available; see official source.", level))}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(simplify(data.whoAffected || "No audience summary available; see official source.", level))}</p>
           {firstFor("who") && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">
               Source: <a href={firstFor("who")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("who")!.sourceName}</a>
             </div>
           )}
         </section>
         <section>
           <h3 className="section-title">Pros</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(simplify(data.pros || "No stated benefits available from sources.", level))}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(simplify(data.pros || "No stated benefits available from sources.", level))}</p>
           {firstFor("pros") && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">
               Source: <a href={firstFor("pros")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("pros")!.sourceName}</a>
             </div>
           )}
         </section>
         <section>
           <h3 className="section-title">Cons</h3>
-          <p className="mt-1 text-gray-900 dark:text-gray-100">{simple(simplify(data.cons || "No stated drawbacks available from sources.", level))}</p>
+          <p className="mt-1 text-gray-100 dark:text-gray-900">{simple(simplify(data.cons || "No stated drawbacks available from sources.", level))}</p>
           {firstFor("cons") && (
-            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+            <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">
               Source: <a href={firstFor("cons")!.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline focus-ring rounded">{firstFor("cons")!.sourceName}</a>
             </div>
           )}
@@ -89,7 +89,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
             </button>
           </div>
           {/* Unique source list */}
-          <ul className="mt-2 text-sm text-gray-800 dark:text-gray-200 list-disc list-inside">
+          <ul className="mt-2 text-sm text-gray-200 dark:text-gray-800 list-disc list-inside">
             {[...new Map(data.citations.map((c) => [c.url, c])).values()].map((c, i) => {
               let host = "";
               try { host = new URL(c.url).hostname; } catch {}
@@ -136,7 +136,7 @@ export default function BillCard({ data, level }: { data: SummaryLike; level: "5
                       "Independent analysis"
                     }
                   >{badge}</span>
-                  {c.location ? <span className="text-gray-600 dark:text-gray-400"> — {c.location}</span> : null}
+                  {c.location ? <span className="text-gray-400 dark:text-gray-600"> — {c.location}</span> : null}
                 </li>
               );
             })}

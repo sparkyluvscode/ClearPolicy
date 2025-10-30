@@ -19,13 +19,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-dvh dark:bg-gray-950 dark:text-gray-100">
+      <body className="min-h-dvh dark:bg-gray-50 dark:text-gray-900">
         <Script id="cp-theme-init" strategy="beforeInteractive">
           {`(function(){try{var s=localStorage.getItem('cp_theme');var prefers=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=s?s==='dark':prefers;var el=document.documentElement; if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}catch(e){}})();`}
         </Script>
         <Header />
         {missingKeys && (
-          <div className="bg-amber-50 border-b border-amber-200 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-900/40">
+          <div className="bg-amber-900/20 border-b border-amber-800 text-amber-200 dark:bg-amber-50 dark:text-amber-900 dark:border-amber-200">
             <div className="mx-auto max-w-6xl px-4 py-2 text-sm">
               Live data temporarily unavailable—showing verified sample content.
             </div>

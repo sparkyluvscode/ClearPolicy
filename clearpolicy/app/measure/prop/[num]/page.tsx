@@ -7,7 +7,7 @@ const ZipPanel = dynamic(() => import("@/components/ZipPanel"), { ssr: false });
 export default async function PropositionPage({ params }: { params: { num: string } }) {
   const n = String(params.num || "").replace(/[^0-9]/g, "");
   if (!n) {
-    return <div className="card p-6 text-sm text-gray-600 dark:text-gray-400">Missing proposition number.</div>;
+    return <div className="card p-6 text-sm text-gray-400 dark:text-gray-600">Missing proposition number.</div>;
   }
 
   const hdrs = headers();
@@ -27,8 +27,8 @@ export default async function PropositionPage({ params }: { params: { num: strin
       <div className="lg:col-span-2 space-y-4">
         <header className="card p-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-indigo-200">California Proposition {n}</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Provisional in‑app summary with trusted sources.</p>
-          <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 flex gap-3">
+          <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">Provisional in‑app summary with trusted sources.</p>
+          <div className="mt-2 text-xs text-gray-400 dark:text-gray-600 flex gap-3">
             {bp && (<a className="text-accent hover:underline" href={bp} target="_blank" rel="noreferrer noopener">Ballotpedia</a>)}
             <a className="text-accent hover:underline" href="https://lao.ca.gov/BallotAnalysis/Propositions" target="_blank" rel="noreferrer noopener">LAO</a>
             <a className="text-accent hover:underline" href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noreferrer noopener">LegInfo</a>

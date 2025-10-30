@@ -11,16 +11,16 @@ html, body {
 }
 
 body {
-  @apply text-gray-900 antialiased transition-colors duration-300 ease-out;
-  /* Subtle but more vibrant gradient field for light mode */
-  background-color: #f8fafc; /* fallback */
+  @apply text-gray-100 antialiased transition-colors duration-300 ease-out;
+  /* Inverted light mode - dark backgrounds */
+  background-color: #0a0a0a; /* fallback */
   background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.08), transparent 60%),
-    radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.08), transparent 50%);
+    radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.12), transparent 60%),
+    radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.12), transparent 50%);
 }
 
 .section-title {
-  @apply text-xs tracking-wider text-gray-700 dark:text-gray-300 uppercase font-semibold;
+  @apply text-xs tracking-wider text-gray-300 dark:text-gray-700 uppercase font-semibold;
   font-variant-caps: all-small-caps;
 }
 
@@ -29,10 +29,10 @@ body {
   These classes compose reusable “liquid glass” surfaces using Tailwind tokens.
 */
 @layer components {
-  .divider-h { @apply h-px bg-gray-200 dark:bg-white/10 w-full; }
-  .section-offset { @apply bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl; }
+  .divider-h { @apply h-px bg-gray-700 dark:bg-gray-200 w-full; }
+  .section-offset { @apply bg-gray-900/60 dark:bg-white/60 backdrop-blur-sm rounded-2xl; }
   .glass-surface {
-    @apply rounded-2xl lg:rounded-3xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-slate-950/55 backdrop-blur-2xl backdrop-saturate-150 shadow-glass transition-all duration-300 ease-out;
+    @apply rounded-2xl lg:rounded-3xl border border-white/10 dark:border-white/30 bg-gray-900/70 dark:bg-white/50 backdrop-blur-2xl backdrop-saturate-150 shadow-glass transition-all duration-300 ease-out;
   }
 
   .glass-surface:hover { @apply shadow-glass-lg; }
@@ -45,13 +45,13 @@ body {
     @apply glass-surface;
   }
 
-  .glass-nav { @apply border-b border-white/20 dark:border-white/10 bg-white/60 dark:bg-slate-950/55 backdrop-blur-2xl backdrop-saturate-150 shadow-glass; }
+  .glass-nav { @apply border-b border-white/10 dark:border-white/20 bg-gray-900/60 dark:bg-white/60 backdrop-blur-2xl backdrop-saturate-150 shadow-glass; }
 
-  .glass-popover { @apply rounded-2xl border border-white/30 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 backdrop-blur-2xl backdrop-saturate-150 shadow-glass-lg transition-all duration-300 ease-out; }
+  .glass-popover { @apply rounded-2xl border border-white/10 dark:border-white/30 bg-gray-900/80 dark:bg-white/70 backdrop-blur-2xl backdrop-saturate-150 shadow-glass-lg transition-all duration-300 ease-out; }
 
-  .glass-modal { @apply rounded-3xl border border-white/30 dark:border-white/10 bg-white/70 dark:bg-slate-950/70 backdrop-blur-3xl backdrop-saturate-150 shadow-glass-lg; }
+  .glass-modal { @apply rounded-3xl border border-white/10 dark:border-white/30 bg-gray-900/80 dark:bg-white/70 backdrop-blur-3xl backdrop-saturate-150 shadow-glass-lg; }
 
-  .glass-input { @apply rounded-xl border border-white/30 dark:border-white/10 bg-white/70 dark:bg-white/10 backdrop-blur-lg shadow-inner-glass text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 transition-all duration-200 ease-out; }
+  .glass-input { @apply rounded-xl border border-white/10 dark:border-white/30 bg-gray-800/70 dark:bg-white/70 backdrop-blur-lg shadow-inner-glass text-white dark:text-gray-900 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 dark:focus-visible:ring-offset-white transition-all duration-200 ease-out; }
 
   .liquid-button {
     @apply relative inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium text-white shadow-glass transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900;
@@ -64,21 +64,21 @@ body {
   }
   .liquid-button:hover { @apply shadow-glow-accent; }
 
-  .liquid-toggle { @apply inline-flex rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-950/55 backdrop-blur-xl backdrop-saturate-150 p-1 shadow-glass; }
+  .liquid-toggle { @apply inline-flex rounded-2xl border border-white/10 dark:border-white/30 bg-gray-900/60 dark:bg-white/60 backdrop-blur-xl backdrop-saturate-150 p-1 shadow-glass; }
 
   .liquid-toggle-btn {
-    @apply px-3 py-1.5 text-sm rounded-xl transition-all duration-200 ease-out text-gray-800 dark:text-white;
+    @apply px-3 py-1.5 text-sm rounded-xl transition-all duration-200 ease-out text-white dark:text-gray-800;
   }
 
   .liquid-toggle-btn[aria-pressed="true"] { @apply bg-accent text-white shadow-glow-accent; }
 
   .glass-divider {
-    @apply border-white/30 dark:border-white/10;
+    @apply border-white/10 dark:border-white/30;
   }
 
-  .text-on-glass { @apply text-gray-900 dark:text-gray-100 drop-shadow-sm; }
+  .text-on-glass { @apply text-gray-100 dark:text-gray-900 drop-shadow-sm; }
 
-  .glass-floating { @apply backdrop-blur-2xl backdrop-saturate-150 bg-white/80 dark:bg-slate-950/70 border border-white/30 dark:border-white/10 shadow-glass-lg; }
+  .glass-floating { @apply backdrop-blur-2xl backdrop-saturate-150 bg-gray-900/90 dark:bg-white/80 border border-white/10 dark:border-white/30 shadow-glass-lg; }
 }
 
 /* Upgrade existing card helper to glass by default */
@@ -87,13 +87,13 @@ body {
 }
 
 .focus-ring {
-  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900;
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 dark:focus-visible:ring-offset-white;
 }
 
-/* Dark theme background support (controlled by html.dark) */
+/* Dark mode (when toggled) - light backgrounds */
 html.dark body {
-  background-color: #020617; /* slate-950 */
-  background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.10), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.10), transparent 50%);
+  background-color: #f8fafc; /* light gray */
+  background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.08), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.08), transparent 50%);
 }
 
 /* Respect reduced motion */

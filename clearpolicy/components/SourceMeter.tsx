@@ -5,7 +5,7 @@ export default function SourceMeter({ ratio, count, total }: { ratio: number; co
       <div className="section-title mb-1 flex items-center gap-2">
         <span>Source Meter</span>
         <span
-          className="text-[10px] text-gray-500 dark:text-gray-400 cursor-help"
+          className="text-[10px] text-gray-400 dark:text-gray-500 cursor-help"
           title={
             `Percent of sections (TL;DR, What, Who, Pros, Cons) with at least one non-generic citation link.` +
             (typeof count === "number" && typeof total === "number" ? ` (${count} of ${total} sections cited)` : "")

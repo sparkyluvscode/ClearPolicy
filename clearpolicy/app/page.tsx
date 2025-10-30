@@ -84,9 +84,9 @@ export default function HomePage() {
       <TourOverlay />
       {/* Hero */}
       <section className="card p-8 animate-fade-in-up relative overflow-hidden" id="about">
-        <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">Clarity on every ballot.</h1>
-        <p className="mt-2 text-lg text-gray-700 dark:text-gray-300">Empowering voters, parents, and students to understand policy at a glance.</p>
-        <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">Instant plain‑English summaries of every ballot measure and law. Neutral. Sourced. Searchable. Accessible.</p>
+        <h1 className="text-3xl font-semibold text-gray-100 dark:text-gray-900">Clarity on every ballot.</h1>
+        <p className="mt-2 text-lg text-gray-300 dark:text-gray-700">Empowering voters, parents, and students to understand policy at a glance.</p>
+        <p className="mt-3 text-sm text-gray-400 dark:text-gray-600">Instant plain‑English summaries of every ballot measure and law. Neutral. Sourced. Searchable. Accessible.</p>
         <div className="mt-5 flex items-center gap-3">
           <a href="#home-search" className="liquid-button px-6 py-2.5 font-semibold">Get started</a>
           <a href="/about" className="text-sm text-accent hover:underline focus-ring rounded">How it works</a>
@@ -98,17 +98,17 @@ export default function HomePage() {
       </section>
       {/* Why ClearPolicy (context-setting) */}
       <section className="card p-6 animate-fade-in-up">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Why ClearPolicy?</h2>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+        <h2 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">Why ClearPolicy?</h2>
+        <p className="mt-2 text-sm text-gray-300 dark:text-gray-700">
           Most voters feel lost, overwhelmed, and uncertain—ballot measures are pages long, packed with legal jargon, while search engines and AI tools often deliver biased, campaign-driven summaries and paid perspectives.
         </p>
-        <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+        <p className="mt-3 text-sm text-gray-300 dark:text-gray-700">
           ClearPolicy exists to cut through the confusion.
         </p>
-        <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+        <p className="mt-3 text-sm text-gray-300 dark:text-gray-700">
           Unlike Google, news feeds, or government pamphlets, we instantly give you neutral, easy-to-understand summaries—sourced directly from nonpartisan records. No ads, no sponsored messages, no political spin. Just the facts and unbiased context to help you make real choices for your community.
         </p>
-        <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+        <p className="mt-3 text-sm text-gray-300 dark:text-gray-700">
           You deserve clarity. You deserve trustworthy information. You deserve the power to decide for yourself.
         </p>
       </section>
@@ -116,7 +116,7 @@ export default function HomePage() {
       <HomeDemo />
       <Illustration label="App in action" />
       <section className="card p-6 animate-fade-in-up">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Find a bill or proposition</h2>
+        <h2 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">Find a bill or proposition</h2>
         <form
           className="mt-4 flex flex-col gap-2"
           onSubmit={(e) => {
@@ -155,8 +155,8 @@ export default function HomePage() {
                     if (s.slug) { window.location.href = `/measure/${s.slug}`; } else { setQ(s.label); doSearch(s.label); }
                   }}
                 >
-                  <span className="text-gray-900 dark:text-gray-100">{s.label}</span>
-                  <span className="text-gray-600 dark:text-gray-400">{s.hint}</span>
+                  <span className="text-gray-100 dark:text-gray-900">{s.label}</span>
+                  <span className="text-gray-400 dark:text-gray-600">{s.hint}</span>
                 </li>
               ))}
             </ul>
@@ -188,7 +188,7 @@ export default function HomePage() {
           )}
           <div className="mt-3 grid gap-4 md:grid-cols-2">
             <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">California (Open States)</div>
+              <div className="text-sm font-medium text-gray-100 dark:text-gray-900">California (Open States)</div>
               {hasCaResults ? (
                 <>
                   {/* Top pick */}
@@ -203,13 +203,13 @@ export default function HomePage() {
                         return (
                           <li key={i} className="border-2 border-emerald-300 dark:border-emerald-700 rounded-md p-3 bg-emerald-50/40 dark:bg-emerald-900/10">
                         <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
-                              <div className="font-medium text-gray-900 dark:text-gray-100">{r.title || r.identifier}</div>
+                              <div className="font-medium text-gray-100 dark:text-gray-900">{r.title || r.identifier}</div>
                               <div className="mt-1 flex items-center gap-2 text-xs">
                                 <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Top pick</span>
-                                {r._reason && <span className="text-gray-700 dark:text-gray-300">{r._reason}</span>}
+                                {r._reason && <span className="text-gray-300 dark:text-gray-700">{r._reason}</span>}
                               </div>
-                              {r._preview && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{r._preview}</div>}
-                              {r.classification && <div className="text-gray-600 dark:text-gray-400">{r.classification?.join?.(", ")}</div>}
+                              {r._preview && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">{r._preview}</div>}
+                              {r.classification && <div className="text-gray-400 dark:text-gray-600">{r.classification?.join?.(", ")}</div>}
                               <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                             </a>
                           </li>
@@ -229,10 +229,10 @@ export default function HomePage() {
                         return (
                           <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                             <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
-                              <div className="font-medium text-gray-900 dark:text-gray-100">{r.title || r.identifier}</div>
+                              <div className="font-medium text-gray-100 dark:text-gray-900">{r.title || r.identifier}</div>
                               <div className="mt-1 flex items-center gap-2 text-xs">
                                 <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Direct</span>
-                                {r._reason && <span className="text-gray-600 dark:text-gray-400">{r._reason}</span>}
+                                {r._reason && <span className="text-gray-400 dark:text-gray-600">{r._reason}</span>}
                               </div>
                               <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                             </a>
@@ -255,12 +255,12 @@ export default function HomePage() {
                           return (
                             <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                               <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
-                                <div className="font-medium text-gray-900 dark:text-gray-100">{r.title || r.identifier}</div>
+                                <div className="font-medium text-gray-100 dark:text-gray-900">{r.title || r.identifier}</div>
                                 <div className="mt-1 flex items-center gap-2 text-xs">
                                   <span className="inline-flex items-center rounded bg-gray-100 text-gray-700 px-2 py-0.5 border border-gray-200">Related</span>
-                                  {r._reason && <span className="text-gray-600 dark:text-gray-400">{r._reason}</span>}
+                                  {r._reason && <span className="text-gray-400 dark:text-gray-600">{r._reason}</span>}
                                 </div>
-                                {r._preview && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{r._preview}</div>}
+                                {r._preview && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">{r._preview}</div>}
                                 <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                               </a>
                             </li>
@@ -271,11 +271,11 @@ export default function HomePage() {
                   )}
                 </>
               ) : (
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">No California results</p>
+                <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">No California results</p>
               )}
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Federal (Congress.gov)</div>
+              <div className="text-sm font-medium text-gray-100 dark:text-gray-900">Federal (Congress.gov)</div>
               {hasUsResults ? (
                 <ul className="mt-2 space-y-2 text-sm">
                       {usBills.slice(0, 5).map((b: any, i: number) => {
@@ -283,8 +283,8 @@ export default function HomePage() {
                     return (
                       <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <a href={`/measure/live?source=congress&id=${encodeURIComponent(id)}`} className="focus-ring rounded block">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{b.title || b.number}</div>
-                          {b.latestAction?.text && <div className="text-gray-600 dark:text-gray-400">{b.latestAction.text}</div>}
+                          <div className="font-medium text-gray-100 dark:text-gray-900">{b.title || b.number}</div>
+                          {b.latestAction?.text && <div className="text-gray-400 dark:text-gray-600">{b.latestAction.text}</div>}
                           <div className="mt-1 text-xs text-accent">Open summary →</div>
                         </a>
                       </li>
@@ -292,14 +292,14 @@ export default function HomePage() {
                   })}
                 </ul>
               ) : (
-                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="mt-2 text-sm text-gray-400 dark:text-gray-600">
                   No federal results
                   {isLikelyFederal && (
                     <>
                       {" — try a format like "}
-                      <span className="font-medium text-gray-800 dark:text-gray-200">H.R. 50</span>
+                      <span className="font-medium text-gray-200 dark:text-gray-800">H.R. 50</span>
                       {" or "}
-                      <span className="font-medium text-gray-800 dark:text-gray-200">S. 50</span>
+                      <span className="font-medium text-gray-200 dark:text-gray-800">S. 50</span>
                       {". Or open a demo:"}
                       <div className="mt-2 flex gap-2">
                         {federalSamples.map((f) => (
@@ -321,7 +321,7 @@ export default function HomePage() {
       {/* Privacy */}
       <section id="privacy" className="card p-6 animate-fade-in-up">
         <h2 className="section-title">Privacy</h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">See our full policy on the <a className="text-accent hover:underline" href="/privacy">Privacy page</a>.</p>
+        <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">See our full policy on the <a className="text-accent hover:underline" href="/privacy">Privacy page</a>.</p>
       </section>
 
       {null}

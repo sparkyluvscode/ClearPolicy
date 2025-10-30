@@ -174,7 +174,7 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
   }, [payload]);
 
   if (!summary) {
-    return <div className="card p-6 text-sm text-gray-600 dark:text-gray-400">Unable to load live measure.</div>;
+    return <div className="card p-6 text-sm text-gray-400 dark:text-gray-600">Unable to load live measure.</div>;
   }
 
   const limitedData = !payload?.raw || (summary?.citations?.length || 0) < 1;
