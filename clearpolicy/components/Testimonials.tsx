@@ -31,7 +31,7 @@ export default function Testimonials() {
               <div className="text-xs text-gray-600 dark:text-gray-400">Rancho Cordova, CA</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The sources are right there and verified. No agenda, no spin—just the actual facts from official documents. That's what I need to make informed decisions."</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The sources are right there and verified. only real facts from the official documents. thats what i like to see"</p>
         </blockquote>
       </div>
     </section>
