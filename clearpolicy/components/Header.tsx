@@ -11,18 +11,28 @@ export default function Header() {
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("cp_theme") : null;
+    const el = typeof document !== "undefined" ? document.documentElement : null;
+    
     if (!stored) {
       const prefersDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       const nextDark = prefersDark ? false : true; // inverted for our color scheme
       setDark(nextDark);
-      if (typeof document !== "undefined") {
-        document.documentElement.classList.toggle('dark', nextDark);
+      if (el) {
+        if (nextDark) {
+          el.classList.add('dark');
+        } else {
+          el.classList.remove('dark');
+        }
       }
     } else {
       const nextDark = stored === "dark";
       setDark(nextDark);
-      if (typeof document !== "undefined") {
-        document.documentElement.classList.toggle('dark', nextDark);
+      if (el) {
+        if (nextDark) {
+          el.classList.add('dark');
+        } else {
+          el.classList.remove('dark');
+        }
       }
     }
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -68,8 +78,14 @@ export default function Header() {
           aria-pressed={dark}
           aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => {
-            const next = !dark; setDark(next);
-            document.documentElement.classList.toggle('dark', next);
+            const next = !dark;
+            const el = document.documentElement;
+            if (next) {
+              el.classList.add('dark');
+            } else {
+              el.classList.remove('dark');
+            }
+            setDark(next);
             try { localStorage.setItem("cp_theme", next ? "dark" : "light"); } catch {}
           }}
         >
