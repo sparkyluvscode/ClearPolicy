@@ -7,7 +7,6 @@ export default function ContactPage() {
       </header>
       <section className="card p-6">
         <p className="text-sm text-gray-700 dark:text-gray-300">Email <a className="text-accent hover:underline" href="mailto:pranil.raichura@gmail.com">pranil.raichura@gmail.com</a> for any inquiries.</p>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">LinkedIn: <a className="text-accent hover:underline" href="https://www.linkedin.com/in/pranilraichura" target="_blank" rel="noreferrer noopener">linkedin.com/in/pranilraichura</a></p>
       </section>
     </div>
   );
