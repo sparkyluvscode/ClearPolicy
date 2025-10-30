@@ -16,12 +16,12 @@ export default function SourceMeter({ ratio, count, total }: { ratio: number; co
         <a href="/about#trust" className="text-[10px] text-accent hover:underline focus-ring rounded" title="Why trust this? How we pick sources.">Why trust this?</a>
       </div>
       <div className="flex items-center gap-2" aria-label={`Source meter ${pct} percent`}>
-        <div className="h-2 flex-1 rounded-full bg-gray-200">
+        <div className="h-2 flex-1 rounded-full bg-gray-200 dark:bg-white/10">
           <div className="h-2 rounded-full bg-accent" style={{ width: `${pct}%` }} />
         </div>
-        <div className="text-sm text-gray-700 tabular-nums w-12 text-right">{pct}%</div>
+        <div className="text-sm text-gray-700 dark:text-gray-200 tabular-nums w-12 text-right">{pct}%</div>
         {typeof count === "number" && typeof total === "number" && (
-          <div className="text-xs text-gray-600 w-14 text-right">{count}/{total}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 w-14 text-right">{count}/{total}</div>
         )}
       </div>
     </div>

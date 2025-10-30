@@ -1,14 +1,31 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
 
 export default function HomeDemo() {
+  const lines = useMemo(() => [
+    "prop 17 retail theft — what changed and who is affected?",
+    "H.R. 50 — campaign finance disclosure: who must report and when?",
+    "SB 9 housing — can duplexes be built on single‑family lots?",
+  ], []);
+  const [idx, setIdx] = useState(0);
+  const [key, setKey] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIdx((i) => (i + 1) % lines.length);
+      setKey((k) => k + 1); // retrigger CSS typing
+    }, 4200);
+    return () => clearInterval(interval);
+  }, [lines]);
+  const current = lines[idx];
+  const steps = Math.min(60, Math.max(20, current.length));
   return (
     <section className="glass-card p-6 lift" aria-label="How ClearPolicy works">
       <div className="flex flex-col md:flex-row items-center gap-6">
         <div className="flex-1 w-full">
           <div className="text-sm text-gray-600">Try a search</div>
           <div className="mt-2 glass-input w-full px-3 py-2 text-sm relative">
-            <span className="typewriter animate-typing pr-1 block max-w-full text-gray-900 dark:text-gray-100">
-              prop 17 retail theft — what changed and who is affected?
+            <span key={key} className="typewriter animate-typing-once pr-1 block max-w-full text-gray-900 dark:text-gray-100" style={{ ["--typing-steps" as any]: String(steps), ["--typing-duration" as any]: "3.4s" }}>
+              {current}
             </span>
             <span className="animate-blink absolute right-3 top-2.5 h-5 w-px bg-gray-800/70 dark:bg-white/70" aria-hidden="true" />
           </div>

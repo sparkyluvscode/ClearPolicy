@@ -1,9 +1,9 @@
-import ZipPanel from "@/components/ZipPanel";
 import { headers } from "next/headers";
 import dynamic from "next/dynamic";
 
 const LiveMeasureCardClient = dynamic(() => import("@/components/LiveMeasureCard"), { ssr: false });
 const TourOverlayClient = dynamic(() => import("@/components/TourOverlay"), { ssr: false });
+const ZipPanelClient = dynamic(() => import("@/components/ZipPanel"), { ssr: false });
 
 export default async function LiveMeasurePage({ searchParams }: { searchParams: { source?: string; id?: string } }) {
   const source = searchParams.source as "os" | "congress" | undefined;
@@ -42,7 +42,7 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
         <LiveMeasureCardClient payload={data} />
       </div>
       <div>
-        <ZipPanel contextId={source === "os" ? id : undefined} />
+        <ZipPanelClient contextId={source === "os" ? id : undefined} />
       </div>
     </div>
   );

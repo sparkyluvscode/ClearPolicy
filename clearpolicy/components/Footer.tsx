@@ -18,7 +18,8 @@ export default function Footer() {
           <span aria-label="Partner badge" className="h-6 w-20 rounded bg-gray-900/10 dark:bg-white/10" />
           <span aria-label="School/club badge" className="h-6 w-20 rounded bg-gray-900/10 dark:bg-white/10" />
         </div>
-        <div className="mt-3 text-xs text-gray-500">Made in California</div>
+          <div className="mt-3 text-xs text-gray-500">Made in California</div>
+          <div className="mt-1 text-[11px] text-gray-500">Sources we reference include Open States and Congress.gov.</div>
         </div>
       </div>
     </footer>

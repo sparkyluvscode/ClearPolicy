@@ -18,8 +18,8 @@ export default function DisambiguatorChips({ chips }: { chips: Chip[] }) {
           }}
           aria-label={`${c.label} — ${c.hint}`}
         >
-          <span className="font-medium text-gray-900">{c.label}</span>
-          <span className="ml-1 text-gray-600">— {c.hint}</span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">{c.label}</span>
+          <span className="ml-1 text-gray-600 dark:text-gray-300">— {c.hint}</span>
         </button>
       ))}
       </div>

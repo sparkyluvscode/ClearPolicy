@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HelpButton from "@/components/HelpButton";
 import Script from "next/script";
+import FeedbackBar from "@/components/FeedbackBar";
 
 export const metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <HelpButton />
+        <FeedbackBar page="global" />
         <Footer />
       </body>
     </html>

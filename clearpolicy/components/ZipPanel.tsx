@@ -71,19 +71,19 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
           {loading ? "Looking…" : "Look up"}
         </button>
       </form>
-          <p className="mt-1 text-xs text-gray-500">Hint: Try a California ZIP like 95014 or 90001</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Hint: Try a California ZIP like 95014 or 90001</p>
       {/* District labels (if API returns them in future) */}
       {/* Intentionally minimal; server currently returns just officials */}
       {error && <p className="mt-2 text-sm text-amber-700">{error}</p>}
       {officials && (
         <ul className="mt-3 space-y-2" aria-live="polite">
-          {officials.length === 0 && <li className="text-sm text-gray-600">No officials found for this ZIP. Try a different one.</li>}
+          {officials.length === 0 && <li className="text-sm text-gray-600 dark:text-gray-400">No officials found for this ZIP. Try a different one.</li>}
           {officials.map((o, i) => (
-            <li key={i} className="rounded-md border border-gray-200 p-3">
-              {(o as any).office && <div className="text-xs text-gray-500" title="Official role">{(o as any).office}</div>}
-              <div className="font-medium text-gray-900">{o.name}</div>
-              {o.party && <div className="text-sm text-gray-600">{o.party}</div>}
-              {o.context && <div className="mt-1 text-xs text-gray-600">{o.context}</div>}
+            <li key={i} className="rounded-md border border-gray-200 dark:border-white/20 p-3">
+              {(o as any).office && <div className="text-xs text-gray-500 dark:text-gray-400" title="Official role">{(o as any).office}</div>}
+              <div className="font-medium text-gray-900 dark:text-gray-100">{o.name}</div>
+              {o.party && <div className="text-sm text-gray-600 dark:text-gray-300">{o.party}</div>}
+              {o.context && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{o.context}</div>}
               {o.vote && (
                 <div className="mt-1 text-xs">
                   <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">{o.vote}</span>
@@ -108,6 +108,16 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
                     Search votes →
                   </a>
                 )}
+                {!contextId && o.name && (
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(`${o.name} voting record ${zip} site:congress.gov OR site:govtrack.us`)}`}
+                    target="_blank" rel="noreferrer noopener"
+                    className="text-xs text-accent hover:underline focus-ring rounded"
+                    title="Search their voting record on this topic"
+                  >
+                    Search federal votes →
+                  </a>
+                )}
               </div>
             </li>
           ))}
@@ -115,7 +125,7 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
       )}
       {/* Local analysis */}
       {officials && (
-        <div className="mt-3 text-xs text-gray-600">
+        <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
           <a href={(window as any)?.lastZipAnalysisUrl || "#"} onClick={(e) => { e.preventDefault(); const url = (e as any)?.target?.dataset?.u || (window as any)?.lastZipAnalysisUrl; if (url) window.open(url, '_blank'); }} data-u={(typeof window!=="undefined" ? (window as any).lastZipAnalysisUrl : undefined)} className="text-accent hover:underline">Local analysis (news)</a>
         </div>
       )}

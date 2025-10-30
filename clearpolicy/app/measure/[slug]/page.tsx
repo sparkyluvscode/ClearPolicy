@@ -29,8 +29,8 @@ export default async function MeasurePage({ params }: { params: { slug: string }
         <header className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">{measure.number} — {measure.title}</h1>
-              {measure.status && <p className="mt-1 text-sm text-gray-600">{measure.status}</p>}
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{measure.number} — {measure.title}</h1>
+              {measure.status && <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{measure.status}</p>}
             </div>
             {/* Client area: level toggle + dynamic card */}
             <Suspense>
