@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import DisambiguatorChips from "@/components/DisambiguatorChips";
+import ExternalCard from "@/components/ExternalCard";
 import TourOverlay from "@/components/TourOverlay";
 import Link from "next/link";
  
@@ -67,8 +68,9 @@ export default function HomePage() {
   ], []);
 
   const hasCaResults = (results.ca?.results || []).length > 0;
-  const hasUsResults = (results.us?.data?.bills || []).length > 0;
-  const showResults = q && (hasCaResults || hasUsResults || chips.length > 0);
+      const usBills = (results.us?.data?.bills || results.us?.bills || []);
+      const hasUsResults = usBills.length > 0;
+  const showResults = q && (hasCaResults || hasUsResults || (results.fallbacks || []).length > 0 || chips.length > 0);
 
   const isLikelyFederal = /\b(hr|s|senate|house|congress|federal)\b/i.test(q);
   const caDirect = useMemo(() => (results.ca?.results || []).filter((r: any) => r._direct), [results.ca]);
@@ -78,15 +80,16 @@ export default function HomePage() {
     <div className="grid grid-cols-1 gap-8 lg:gap-10">
       <TourOverlay />
       {/* Hero */}
-      <section className="card p-8 animate-fade-in-up" id="about">
+      <section className="card p-8 animate-fade-in-up relative overflow-hidden" id="about">
         <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">Clarity on every ballot.</h1>
         <p className="mt-2 text-lg text-gray-700 dark:text-gray-300">Empowering voters, parents, and students to understand policy at a glance.</p>
         <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">Instant plain‑English summaries of every ballot measure and law. Neutral. Sourced. Searchable. Accessible.</p>
         <div className="mt-5 flex items-center gap-3">
-          <a href="#home-search" className="liquid-button px-5 py-2">Get started</a>
+          <a href="#home-search" className="liquid-button px-6 py-2.5 font-semibold">Get started</a>
           <a href="/about" className="text-sm text-accent hover:underline focus-ring rounded">How it works</a>
           <a href="/demo" className="text-sm text-accent hover:underline focus-ring rounded">Watch demo</a>
         </div>
+        <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
       </section>
       <section className="card p-6 animate-fade-in-up">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Find a bill or proposition</h2>
@@ -110,7 +113,7 @@ export default function HomePage() {
               onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
               onBlur={() => setTimeout(() => setShowSuggest(false), 120)}
               placeholder="Try: prop 17 retail theft"
-              className="glass-input w-full px-3 py-2 text-sm"
+              className="glass-input w-full px-4 py-3 text-base animate-input-pulse"
               aria-autocomplete="list"
               aria-controls="search-suggestions"
             />
@@ -172,9 +175,13 @@ export default function HomePage() {
                     <ul className="mt-2 space-y-2 text-sm">
                       {caDirect.slice(0, 1).map((r: any, i: number) => {
                         const osId = r.id || r.identifier || "";
+                        const href = (r as any)._virtual === "prop" && (r as any).propNum
+                          ? `/measure/prop/${encodeURIComponent((r as any).propNum)}`
+                          : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
+                        const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                         return (
                           <li key={i} className="border-2 border-emerald-300 dark:border-emerald-700 rounded-md p-3 bg-emerald-50/40 dark:bg-emerald-900/10">
-                        <a href={(r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`} target={(r as any).externalUrl ? "_blank" : undefined} rel={(r as any).externalUrl ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
+                        <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
                               <div className="font-medium text-gray-900 dark:text-gray-100">{r.title || r.identifier}</div>
                               <div className="mt-1 flex items-center gap-2 text-xs">
                                 <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Top pick</span>
@@ -182,7 +189,7 @@ export default function HomePage() {
                               </div>
                               {r._preview && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{r._preview}</div>}
                               {r.classification && <div className="text-gray-600 dark:text-gray-400">{r.classification?.join?.(", ")}</div>}
-                              <div className="mt-1 text-xs text-accent">{(r as any).externalUrl ? "Open overview →" : "Open summary →"}</div>
+                              <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                             </a>
                           </li>
                         );
@@ -194,15 +201,19 @@ export default function HomePage() {
                     <ul className="mt-2 space-y-2 text-sm">
                       {caDirect.slice(1, 5).map((r: any, i: number) => {
                         const osId = r.id || r.identifier || "";
+                        const href = (r as any)._virtual === "prop" && (r as any).propNum
+                          ? `/measure/prop/${encodeURIComponent((r as any).propNum)}`
+                          : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
+                        const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                         return (
                           <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <a href={(r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`} target={(r as any).externalUrl ? "_blank" : undefined} rel={(r as any).externalUrl ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
+                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
                               <div className="font-medium text-gray-900 dark:text-gray-100">{r.title || r.identifier}</div>
                               <div className="mt-1 flex items-center gap-2 text-xs">
                                 <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Direct</span>
                                 {r._reason && <span className="text-gray-600 dark:text-gray-400">{r._reason}</span>}
                               </div>
-                              <div className="mt-1 text-xs text-accent">{(r as any).externalUrl ? "Open overview →" : "Open summary →"}</div>
+                              <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                             </a>
                           </li>
                         );
@@ -216,16 +227,20 @@ export default function HomePage() {
                       <ul className="mt-2 space-y-2 text-sm">
                         {caRelated.slice(0, 5).map((r: any, i: number) => {
                           const osId = r.id || r.identifier || "";
+                          const href = (r as any)._virtual === "prop" && (r as any).propNum
+                            ? `/measure/prop/${encodeURIComponent((r as any).propNum)}`
+                            : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
+                          const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                           return (
                             <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                              <a href={(r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`} target={(r as any).externalUrl ? "_blank" : undefined} rel={(r as any).externalUrl ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
+                              <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
                                 <div className="font-medium text-gray-900 dark:text-gray-100">{r.title || r.identifier}</div>
                                 <div className="mt-1 flex items-center gap-2 text-xs">
                                   <span className="inline-flex items-center rounded bg-gray-100 text-gray-700 px-2 py-0.5 border border-gray-200">Related</span>
                                   {r._reason && <span className="text-gray-600 dark:text-gray-400">{r._reason}</span>}
                                 </div>
                                 {r._preview && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{r._preview}</div>}
-                                <div className="mt-1 text-xs text-accent">{(r as any).externalUrl ? "Open overview →" : "Open summary →"}</div>
+                                <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                               </a>
                             </li>
                           );
@@ -242,7 +257,7 @@ export default function HomePage() {
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Federal (Congress.gov)</div>
               {hasUsResults ? (
                 <ul className="mt-2 space-y-2 text-sm">
-                  {(results.us?.data?.bills || []).slice(0, 5).map((b: any, i: number) => {
+                      {usBills.slice(0, 5).map((b: any, i: number) => {
                     const id = `${b.congress || b.congressdotgovUrl?.match(/congress=(\d+)/)?.[1] || "118"}:${b.type || b.billType || "hr"}:${b.number?.replace(/\D/g, "") || "0"}`;
                     return (
                       <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
@@ -276,38 +291,28 @@ export default function HomePage() {
               )}
             </div>
           </div>
-          {/* Trusted overviews when available */}
-          {(results.fallbacks || []).length > 0 && (
-            <div className="mt-4">
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Trusted overviews</div>
-              <ul className="mt-2 grid gap-2 md:grid-cols-2">
-                {(results.fallbacks || []).slice(0, 6).map((f: any, i: number) => (
-                  <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 text-sm flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100">{f.label}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">{f.hint}</div>
-                    </div>
-                    <a href={f.url} target="_blank" rel="noreferrer noopener" className="text-xs text-accent hover:underline focus-ring rounded">Open →</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* trusted/overview links removed from results per product decision */}
         </section>
       )}
 
       <section className="card p-6 animate-fade-in-up">
         <h2 className="section-title">Sample measures</h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Explore these fully-featured measure cards with reading levels, citations, and sources.</p>
-        <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-800">
-          {quickLinks.map((l) => (
-            <li key={l.slug} className="py-3">
-              <Link href={`/measure/${l.slug}`} className="text-accent hover:underline focus-ring rounded">
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Explore fully‑featured demo cards with reading levels, citations, and sources.</p>
+        <div className="mt-3 overflow-x-auto no-scrollbar">
+          <ul className="flex gap-3 min-w-full pr-2">
+            {quickLinks.map((l) => (
+              <li key={l.slug} className="min-w-[16rem]">
+                <Link href={`/measure/${l.slug}`} className="glass-panel p-4 block lift focus-ring rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{l.label}</div>
+                    <span className="badge">Demo</span>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">Tap to open an example measure card.</div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {/* Privacy */}
