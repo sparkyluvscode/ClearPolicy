@@ -138,18 +138,27 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const congressUrl = bill?.congressdotgovUrl || "https://www.congress.gov/";
       const summaryText = bill?.summaries?.[0]?.text || "";
       const subjectsArr = (bill?.subjects || []).map((s: any) => s?.name || "");
-      const tldr = summaryText ? pickPolicySentence(summaryText) : (bill?.title ? `This bill addresses ${subjectsArr.slice(0, 5).join(", ") || "federal policy"}.` : `No summary available; see source for details.`);
-      const whatItDoes = summaryText ? pickPolicySentence(summaryText) : pickPolicySentence(latest) || `No summary available; see source for details.`;
+      const typeStr = String((bill as any)?.type || "");
+      const isResolution = /(h|s)\.?res/i.test(typeStr) || /^A\s+resolution/i.test(String(title));
+      const cleanedTitle = String(title).replace(/^A\s+resolution\s+/i, "").replace(/\.$/, "").trim();
+      const tldr = summaryText
+        ? pickPolicySentence(summaryText)
+        : (isResolution
+            ? (cleanedTitle ? pickPolicySentence(`Recognizes or expresses the sense of the Senate on ${cleanedTitle}.`) : "Recognizes or expresses the sense of the Senate on a specific topic.")
+            : (bill?.title ? `This bill addresses ${subjectsArr.slice(0, 5).join(", ") || "federal policy"}.` : `No summary available; see source for details.`)
+          );
+      const whatItDoes = isResolution
+        ? (cleanedTitle ? `Expresses the Senate’s position: ${cleanedTitle}.` : `Expresses the Senate’s position on a topic.`)
+        : (summaryText ? pickPolicySentence(summaryText) : pickPolicySentence(latest) || `No summary available; see source for details.`);
       const whoStake = stakeholdersFrom(subjectsArr, title);
       const whoAffected = whoStake ? `It affects ${whoStake}.` : (subjectsArr.length ? `Groups involved: ${subjectsArr.slice(0, 5).join(", ")}.` : `No summary available; see source for details.`);
       const pc = prosConsHeuristics(subjectsArr, title);
       const pros = pc.pros;
       const cons = pc.cons;
-      const citations = [
-        ...(summaryText ? [{ quote: pickPolicySentence(summaryText), sourceName: "Congress.gov — summary", url: congressUrl, location: "tldr" as const }] : []),
-        { quote: pickPolicySentence(latest), sourceName: "Congress.gov — latest action", url: congressUrl, location: "what" as const },
-        ...(subjectsArr.length ? [{ quote: `Subjects: ${subjectsArr.slice(0, 5).join(", ")}`, sourceName: "Congress.gov — subjects", url: congressUrl, location: "who" as const }] : []),
-      ];
+      const citations: { quote: string; sourceName: string; url: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+      if (summaryText) citations.push({ quote: pickPolicySentence(summaryText), sourceName: "Congress.gov — summary", url: congressUrl, location: "tldr" });
+      citations.push({ quote: pickPolicySentence(latest), sourceName: "Congress.gov — latest action", url: congressUrl, location: "what" });
+      if (subjectsArr.length) citations.push({ quote: `Subjects: ${subjectsArr.slice(0, 5).join(", ")}`, sourceName: "Congress.gov — subjects", url: congressUrl, location: "who" });
       const blocks = [tldr, whatItDoes, whoAffected, pros, cons];
       const sourceRatio = sourceRatioFrom(blocks, citations);
       const covered = new Set((citations || []).map((c) => c.location).filter(Boolean) as string[]).size;

@@ -30,7 +30,6 @@ export default function Header() {
           {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
         </Link>
         <nav className="hidden md:flex items-center gap-4 text-sm ml-1">
-          <Link href="/demo" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Demo</Link>
           <Link href="/about" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">About</Link>
           <Link href="/impact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Impact</Link>
           <Link href="/contact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Contact</Link>

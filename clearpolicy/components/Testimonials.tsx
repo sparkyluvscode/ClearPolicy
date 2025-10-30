@@ -5,33 +5,33 @@ export default function Testimonials() {
       <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
         <blockquote className="glass-panel p-4 lift">
           <div className="flex items-center gap-3">
-            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-accent/70 to-cyan-400/50 flex items-center justify-center text-white font-semibold">SR</span>
+            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-accent/70 to-cyan-400/50 flex items-center justify-center text-white font-semibold">AR</span>
             <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Student voter</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">San Jose, CA</div>
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Abdiel Rivera, PhD</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Storrs, CT</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">“ClearPolicy made my ballot research take minutes instead of hours.”</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The TL;DR summaries and plain-English breakdown transform dense policy language into clear, actionable information I can trust."</p>
         </blockquote>
         <blockquote className="glass-panel p-4 lift">
           <div className="flex items-center gap-3">
-            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500/80 to-purple-400/60 flex items-center justify-center text-white font-semibold">TM</span>
+            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500/80 to-purple-400/60 flex items-center justify-center text-white font-semibold">MI</span>
             <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Teacher</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Fremont, CA</div>
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Marc Imrie — Teacher</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Granite Bay, California</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">“The reading-level switch helps me teach the same measure to different grades.”</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"Finally, a tool that connects local ZIP codes to actual representatives and measures—I can see exactly how policy affects my community."</p>
         </blockquote>
         <blockquote className="glass-panel p-4 lift">
           <div className="flex items-center gap-3">
-            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-sky-500/80 to-emerald-400/60 flex items-center justify-center text-white font-semibold">KP</span>
+            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-sky-500/80 to-emerald-400/60 flex items-center justify-center text-white font-semibold">DM</span>
             <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Parent</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Los Angeles, CA</div>
+              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Daksh Mamnani — 2024 CAC Winner</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Rancho Cordova, CA</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">“Sources right next to the summary makes it easy to verify.”</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The citation meter and source verification give me confidence—no political spin, just neutral facts from official records."</p>
         </blockquote>
       </div>
     </section>

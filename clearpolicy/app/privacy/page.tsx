@@ -15,7 +15,7 @@ export default function PrivacyPage() {
       </section>
       <section className="card p-6">
         <h2 className="section-title">Contact</h2>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">Questions? Email <a className="text-accent hover:underline" href="mailto:pranil.raichura@gmail.com">pranil.raichura@gmail.com</a>.</p>
+        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">Questions? Email <a className="text-accent hover:underline" href="mailto:pranil.raichura@gmail.com">pranil.raichura@gmail.com</a> for any inquiries.</p>
       </section>
     </div>
   );

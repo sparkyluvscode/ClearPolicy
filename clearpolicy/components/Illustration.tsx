@@ -16,7 +16,6 @@ export default function Illustration({ label = "App demo" }: { label?: string })
         <rect x="46" y="144" width="260" height="12" rx="6" fill="#0b1220" fillOpacity="0.16" />
         <rect x="46" y="180" width="100" height="10" rx="5" fill="#4f46e5" fillOpacity="0.8" />
       </svg>
-      <figcaption className="mt-2 text-xs text-gray-600 dark:text-gray-400">Illustrative mockup</figcaption>
     </figure>
   );
 }

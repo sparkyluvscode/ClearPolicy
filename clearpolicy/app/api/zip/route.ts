@@ -28,18 +28,26 @@ export async function GET(req: NextRequest) {
     const params = new URLSearchParams({
       x: String(lon),
       y: String(lat),
-      benchmark: "Public_AR_ACS2025",
-      vintage: "Current_ACS2025",
+      benchmark: "Public_AR_Current",
+      vintage: "Current_Current",
       layers: "all",
       format: "json",
     });
     const cgRes = await fetch(`https://geocoding.geo.census.gov/geocoder/geographies/coordinates?${params.toString()}`, { cache: "no-store" });
     const cgJson: any = await cgRes.json().catch(() => ({}));
     const geos = cgJson?.result?.geographies || {};
-    const upperArr = geos["2024 State Legislative Districts - Upper"] || geos["State Legislative Districts - Upper"] || [];
-    const lowerArr = geos["2024 State Legislative Districts - Lower"] || geos["State Legislative Districts - Lower"] || [];
-    const upperNum = Array.isArray(upperArr) && upperArr[0] ? (upperArr[0].BASENAME || upperArr[0].NAME || upperArr[0].DISTRICT || "").toString().trim() : "";
-    const lowerNum = Array.isArray(lowerArr) && lowerArr[0] ? (lowerArr[0].BASENAME || lowerArr[0].NAME || lowerArr[0].DISTRICT || "").toString().trim() : "";
+    const keyFor = (kind: "Upper" | "Lower") => Object.keys(geos).find((k) => /State\s+Legislative\s+Districts/.test(k) && new RegExp(kind, "i").test(k));
+    const keyU = keyFor("Upper");
+    const keyL = keyFor("Lower");
+    const upperArr = (keyU && geos[keyU]) || [];
+    const lowerArr = (keyL && geos[keyL]) || [];
+    const extractNum = (o: any) => {
+      const raw = (o?.BASENAME || o?.NAME || o?.DISTRICT || "").toString();
+      const m = raw.match(/\d+/);
+      return m ? m[0] : raw.trim();
+    };
+    const upperNum = Array.isArray(upperArr) && upperArr[0] ? extractNum(upperArr[0]) : "";
+    const lowerNum = Array.isArray(lowerArr) && lowerArr[0] ? extractNum(lowerArr[0]) : "";
 
     const divisionIds: string[] = [];
     if (upperNum) divisionIds.push(`ocd-division/country:us/state:ca/sldu:${upperNum}`);
@@ -54,12 +62,14 @@ export async function GET(req: NextRequest) {
       const url = new URL("https://v3.openstates.org/people");
       url.searchParams.set("jurisdiction", "California");
       url.searchParams.set("district", district);
-      url.searchParams.set("active", "true");
+      // don't restrict to active only; some data sets omit this flag or seat temporarily
       url.searchParams.set("apikey", key);
       const r = await fetch(url.toString(), { cache: "no-store" });
       const j: any = await r.json();
       const list: any[] = Array.isArray(j?.results) ? j.results : [];
-      return list.filter((p: any) => p?.current_role?.org_classification === chamber);
+      // prefer chamber match, but fall back to any if none
+      const byChamber = list.filter((p: any) => p?.current_role?.org_classification === chamber);
+      return byChamber.length ? byChamber : list;
     };
 
     let peopleUpper = await fetchByDistrict(upperNum, "upper");
@@ -71,12 +81,12 @@ export async function GET(req: NextRequest) {
       const url = new URL("https://v3.openstates.org/people");
       url.searchParams.set("jurisdiction", "California");
       url.searchParams.set("division_id", divId);
-      url.searchParams.set("active", "true");
       url.searchParams.set("apikey", key);
       const r = await fetch(url.toString(), { cache: "no-store" });
       const j: any = await r.json();
       const list: any[] = Array.isArray(j?.results) ? j.results : [];
-      return list.filter((p: any) => (p?.current_role?.org_classification === chamber) && (p?.current_role?.division_id === divId));
+      const byChamber = list.filter((p: any) => (p?.current_role?.org_classification === chamber) && (p?.current_role?.division_id === divId));
+      return byChamber.length ? byChamber : list;
     };
     if (peopleUpper.length === 0 && upperNum) peopleUpper = await divFetch(`ocd-division/country:us/state:ca/sldu:${upperNum}`, "upper");
     if (peopleLower.length === 0 && lowerNum) peopleLower = await divFetch(`ocd-division/country:us/state:ca/sldl:${lowerNum}`, "lower");
@@ -136,7 +146,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (officials.length === 0) return NextResponse.json({ error: "No officials found for this ZIP.", officials: [], normalizedInput }, { status: 200 });
+    if (officials.length === 0) {
+      const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
+      return NextResponse.json({ error: "No officials found for this ZIP.", officials: [], normalizedInput, finderUrl }, { status: 200 });
+    }
 
     // Optional measure context: attach simple context note
     let contextLine: string | null = null;
@@ -187,7 +200,8 @@ export async function GET(req: NextRequest) {
     const analysisQuery = contextLine ? `${contextLine} ${city} California` : `${parsed.data.zip} California measure impact`;
     const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(analysisQuery)}`;
 
-    return NextResponse.json({ officials, normalizedInput, offices: [], analysisUrl }, { status: 200 });
+    const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
+    return NextResponse.json({ officials, normalizedInput, offices: [], analysisUrl, finderUrl }, { status: 200 });
   } catch (e) {
     return NextResponse.json({ error: "Lookup failed. Try again later.", officials: [], normalizedInput }, { status: 200 });
   }

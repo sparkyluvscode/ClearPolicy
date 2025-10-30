@@ -6,6 +6,7 @@ import TourOverlay from "@/components/TourOverlay";
 import Link from "next/link";
 import HomeDemo from "@/components/HomeDemo";
 import Illustration from "@/components/Illustration";
+import HeroGraphic from "@/components/HeroGraphic";
  
 
 export default function HomePage() {
@@ -91,7 +92,29 @@ export default function HomePage() {
           <a href="/about" className="text-sm text-accent hover:underline focus-ring rounded">How it works</a>
         </div>
         <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
+        <div className="mt-6">
+          <HeroGraphic />
+        </div>
       </section>
+      {/* Why ClearPolicy (context-setting) */}
+      <section className="card p-6 animate-fade-in-up">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Why ClearPolicy?</h2>
+        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+          Most voters feel lost, overwhelmed, and uncertain—ballot measures are pages long, packed with legal jargon, while search engines and AI tools often deliver biased, campaign-driven summaries and paid perspectives.
+        </p>
+        <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+          ClearPolicy exists to cut through the confusion.
+        </p>
+        <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+          Unlike Google, news feeds, or government pamphlets, we instantly give you neutral, easy-to-understand summaries—sourced directly from nonpartisan records. No ads, no sponsored messages, no political spin. Just the facts and unbiased context to help you make real choices for your community.
+        </p>
+        <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+          You deserve clarity. You deserve trustworthy information. You deserve the power to decide for yourself.
+        </p>
+      </section>
+      {/* Moved animated demo just below the hero */}
+      <HomeDemo />
+      <Illustration label="App in action" />
       <section className="card p-6 animate-fade-in-up">
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Find a bill or proposition</h2>
         <form
@@ -120,9 +143,6 @@ export default function HomePage() {
             />
             <button className="liquid-button px-4 py-2 text-sm font-medium min-w-24" disabled={loading} aria-busy={loading}>
               {loading ? "Searching…" : "Search"}
-            </button>
-            <button type="button" className="text-sm text-accent hover:underline focus-ring rounded" onClick={() => setShowSuggest((v)=>!v)} aria-controls="search-suggestions" aria-expanded={showSuggest} title="Show examples">
-              What should I search?
             </button>
           </div>
 
@@ -296,25 +316,7 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="card p-6 animate-fade-in-up">
-        <h2 className="section-title">Sample measures</h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Explore fully‑featured demo cards with reading levels, citations, and sources.</p>
-        <div className="mt-3 overflow-x-auto no-scrollbar">
-          <ul className="flex gap-3 min-w-full pr-2">
-            {quickLinks.map((l) => (
-              <li key={l.slug} className="min-w-[16rem]">
-                <Link href={`/measure/${l.slug}`} className="glass-panel p-4 block lift focus-ring rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{l.label}</div>
-                    <span className="badge">Demo</span>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">Tap to open an example measure card.</div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      {null}
 
       {/* Privacy */}
       <section id="privacy" className="card p-6 animate-fade-in-up">
@@ -322,17 +324,7 @@ export default function HomePage() {
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">See our full policy on the <a className="text-accent hover:underline" href="/privacy">Privacy page</a>.</p>
       </section>
 
-      {/* Demo content appended from /demo so users can scroll to it */}
-      <section id="demo" className="card p-6 animate-fade-in-up">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Demo</h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Watch how ClearPolicy summarizes a measure and shows sources.</p>
-      </section>
-      <HomeDemo />
-      <Illustration label="App in action" />
-      <section className="card p-6 animate-fade-in-up">
-        <h2 className="section-title">Try it yourself</h2>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Use the search above to try samples like <span className="font-medium text-gray-800 dark:text-gray-200">prop 17</span> or <span className="font-medium text-gray-800 dark:text-gray-200">H.R. 50</span>.</p>
-      </section>
+      {null}
     </div>
   );
 }

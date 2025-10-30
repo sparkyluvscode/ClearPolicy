@@ -31,17 +31,13 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
         (window as any).lastZipAnalysisUrl = data.analysisUrl;
       }
       if (!res.ok) throw new Error(data?.error || "lookup failed");
-      const offices: any[] = Array.isArray(data.offices) ? data.offices : [];
       const ocials: any[] = Array.isArray(data.officials) ? data.officials : [];
-      const mapped: Official[] = ocials.map((o: any) => ({ name: o?.name || "", party: o?.party, urls: o?.urls }));
-      // Some responses provide divisions mapping: map offices by officialIndices
-      offices.forEach((off) => {
-        const idxs: number[] = Array.isArray(off?.officialIndices) ? off.officialIndices : [];
-        idxs.forEach((idx) => {
-          if (mapped[idx]) (mapped[idx] as any).office = off?.name || (off?.roles?.[0] || "Official");
-        });
-      });
+      const mapped: Official[] = ocials.map((o: any) => ({ name: o?.name || "", party: o?.party, urls: o?.urls, office: o?.office, vote: o?.vote, voteUrl: o?.voteUrl }));
       setOfficials(mapped);
+      if (mapped.length === 0 && data?.finderUrl) {
+        setError("No officials found for this ZIP. Try the official CA finder.");
+        (window as any).lastZipFinderUrl = data.finderUrl;
+      }
     } catch (e: any) {
       setError("ZIP lookup failed. Check your ZIP or try later.");
       setOfficials([]);
@@ -117,6 +113,12 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
       {officials && (
         <div className="mt-3 text-xs text-gray-600">
           <a href={(window as any)?.lastZipAnalysisUrl || "#"} onClick={(e) => { e.preventDefault(); const url = (e as any)?.target?.dataset?.u || (window as any)?.lastZipAnalysisUrl; if (url) window.open(url, '_blank'); }} data-u={(typeof window!=="undefined" ? (window as any).lastZipAnalysisUrl : undefined)} className="text-accent hover:underline">Local analysis (news)</a>
+          { (window as any)?.lastZipFinderUrl && (
+            <>
+              <span className="mx-2">·</span>
+              <a href={(window as any).lastZipFinderUrl} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">Find your rep (official)</a>
+            </>
+          )}
         </div>
       )}
     </aside>
