@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className="h-full">
       <body className="min-h-dvh dark:bg-gray-50 dark:text-gray-900">
         <Script id="cp-theme-init" strategy="beforeInteractive">
-          {`(function(){try{var s=localStorage.getItem('cp_theme');var prefers=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=s?s==='dark':prefers;var el=document.documentElement; if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}catch(e){}})();`}
+          {`(function(){try{var s=localStorage.getItem('cp_theme');if(s){var dark=s==='dark';var el=document.documentElement;if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefers=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=prefers?false:true;var el=document.documentElement;if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
         </Script>
         <Header />
         {missingKeys && (

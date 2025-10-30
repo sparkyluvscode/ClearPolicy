@@ -11,11 +11,19 @@ export default function Header() {
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("cp_theme") : null;
-    const prefersDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const nextDark = stored ? stored === "dark" : prefersDark;
-    setDark(nextDark);
-    if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle('dark', nextDark);
+    if (!stored) {
+      const prefersDark = typeof window !== "undefined" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const nextDark = prefersDark ? false : true; // inverted for our color scheme
+      setDark(nextDark);
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.toggle('dark', nextDark);
+      }
+    } else {
+      const nextDark = stored === "dark";
+      setDark(nextDark);
+      if (typeof document !== "undefined") {
+        document.documentElement.classList.toggle('dark', nextDark);
+      }
     }
     const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', onScroll, { passive: true });
