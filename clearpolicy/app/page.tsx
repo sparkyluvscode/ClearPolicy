@@ -4,6 +4,8 @@ import DisambiguatorChips from "@/components/DisambiguatorChips";
 import ExternalCard from "@/components/ExternalCard";
 import TourOverlay from "@/components/TourOverlay";
 import Link from "next/link";
+import HomeDemo from "@/components/HomeDemo";
+import Illustration from "@/components/Illustration";
  
 
 export default function HomePage() {
@@ -87,7 +89,6 @@ export default function HomePage() {
         <div className="mt-5 flex items-center gap-3">
           <a href="#home-search" className="liquid-button px-6 py-2.5 font-semibold">Get started</a>
           <a href="/about" className="text-sm text-accent hover:underline focus-ring rounded">How it works</a>
-          <a href="/demo" className="text-sm text-accent hover:underline focus-ring rounded">Watch demo</a>
         </div>
         <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
       </section>
@@ -319,6 +320,18 @@ export default function HomePage() {
       <section id="privacy" className="card p-6 animate-fade-in-up">
         <h2 className="section-title">Privacy</h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">See our full policy on the <a className="text-accent hover:underline" href="/privacy">Privacy page</a>.</p>
+      </section>
+
+      {/* Demo content appended from /demo so users can scroll to it */}
+      <section id="demo" className="card p-6 animate-fade-in-up">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Demo</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Watch how ClearPolicy summarizes a measure and shows sources.</p>
+      </section>
+      <HomeDemo />
+      <Illustration label="App in action" />
+      <section className="card p-6 animate-fade-in-up">
+        <h2 className="section-title">Try it yourself</h2>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Use the search above to try samples like <span className="font-medium text-gray-800 dark:text-gray-200">prop 17</span> or <span className="font-medium text-gray-800 dark:text-gray-200">H.R. 50</span>.</p>
       </section>
     </div>
   );
