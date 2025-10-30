@@ -1,14 +1,54 @@
 "use client";
+import { useEffect, useState } from "react";
 
 export default function HomeDemo() {
+  const prompts = [
+    "prop 17 retail theft — what changed and who is affected?",
+    "H.R. 50 voting rights",
+    "prop 47 criminal justice",
+    "Find my representative for ZIP 95014"
+  ];
+
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
+  const [currentText, setCurrentText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentPrompt = prompts[currentPromptIndex];
+    
+    if (!isDeleting && currentText.length < currentPrompt.length) {
+      // Typing
+      const timer = setTimeout(() => {
+        setCurrentText(currentPrompt.slice(0, currentText.length + 1));
+      }, 80);
+      return () => clearTimeout(timer);
+    } else if (!isDeleting && currentText.length === currentPrompt.length) {
+      // Pause after typing complete
+      const timer = setTimeout(() => {
+        setIsDeleting(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else if (isDeleting && currentText.length > 0) {
+      // Deleting
+      const timer = setTimeout(() => {
+        setCurrentText(currentPrompt.slice(0, currentText.length - 1));
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (isDeleting && currentText.length === 0) {
+      // Move to next prompt
+      setIsDeleting(false);
+      setCurrentPromptIndex((prev) => (prev + 1) % prompts.length);
+    }
+  }, [currentText, isDeleting, currentPromptIndex]);
+
   return (
     <section className="glass-card p-6 lift" aria-label="How ClearPolicy works">
       <div className="flex flex-col md:flex-row items-center gap-6">
         <div className="flex-1 w-full">
           <div className="text-sm text-gray-600">Try a search</div>
           <div className="mt-2 glass-input w-full px-3 py-2 text-sm relative">
-            <span className="typewriter animate-typing pr-1 block max-w-full text-gray-900 dark:text-gray-100">
-              prop 17 retail theft — what changed and who is affected?
+            <span className="pr-1 block max-w-full text-gray-900 dark:text-gray-100">
+              {currentText}
             </span>
             <span className="animate-blink absolute right-3 top-2.5 h-5 w-px bg-gray-800/70 dark:bg-white/70" aria-hidden="true" />
           </div>

@@ -18,7 +18,7 @@ export default function Testimonials() {
             <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500/80 to-purple-400/60 flex items-center justify-center text-white font-semibold">MI</span>
             <div>
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Marc Imrie — Teacher</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Granite Bay, California</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Granite Bay, CA</div>
             </div>
           </div>
           <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"Finally, a tool that connects local ZIP codes to actual representatives and measures—I can see exactly how policy affects my community."</p>
@@ -31,7 +31,7 @@ export default function Testimonials() {
               <div className="text-xs text-gray-600 dark:text-gray-400">Rancho Cordova, CA</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The sources are right there and verified. only real facts from the official documents. thats what i like to see"</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The sources are right there and verified. Only real facts from the official documents. That's what I like to see."</p>
         </blockquote>
       </div>
     </section>
