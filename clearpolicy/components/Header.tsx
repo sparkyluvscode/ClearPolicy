@@ -33,17 +33,7 @@ export default function Header() {
           <Link href="/demo" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Demo</Link>
           <Link href="/about" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">About</Link>
           <Link href="/impact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Impact</Link>
-          <Link href="/privacy" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Privacy</Link>
           <Link href="/contact" className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1">Contact</Link>
-          <div className="relative group">
-            <button className="text-gray-800 dark:text-gray-200 hover:underline focus-ring rounded px-1" aria-haspopup="true" aria-expanded="false">Samples</button>
-            <div className="absolute mt-2 hidden group-hover:block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-2 min-w-[14rem]">
-              <ul className="text-sm">
-                <li><Link className="block px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded" href="/measure/ca-prop-17-2020">Proposition 17 (2020)</Link></li>
-                <li><Link className="block px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded" href="/measure/ca-prop-47-2014">Proposition 47 (2014)</Link></li>
-              </ul>
-            </div>
-          </div>
         </nav>
         <form
           className="ml-auto flex-1 max-w-xl"
