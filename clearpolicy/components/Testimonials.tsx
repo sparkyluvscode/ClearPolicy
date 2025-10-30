@@ -11,7 +11,7 @@ export default function Testimonials() {
               <div className="text-xs text-gray-600 dark:text-gray-400">Storrs, CT</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The TL;DR summaries and plain-English breakdown transform dense policy language into clear, actionable information I can trust."</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The TLDR summaries and plain-English breakdown transform dense policy language into clear, actionable information I can trust."</p>
         </blockquote>
         <blockquote className="glass-panel p-4 lift">
           <div className="flex items-center gap-3">
@@ -31,7 +31,7 @@ export default function Testimonials() {
               <div className="text-xs text-gray-600 dark:text-gray-400">Rancho Cordova, CA</div>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The citation meter and source verification give me confidence—no political spin, just neutral facts from official records."</p>
+          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The sources are right there and verified. No agenda, no spin—just the actual facts from official documents. That's what I need to make informed decisions."</p>
         </blockquote>
       </div>
     </section>
