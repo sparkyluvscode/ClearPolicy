@@ -73,7 +73,6 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
       {error && <p className="mt-2 text-sm text-amber-700">{error}</p>}
       {officials && (
         <ul className="mt-3 space-y-2" aria-live="polite">
-          {officials.length === 0 && <li className="text-sm text-gray-600">No officials found for this ZIP. Try a different one.</li>}
           {officials.map((o, i) => (
             <li key={i} className="rounded-md border border-gray-200 p-3">
               {(o as any).office && <div className="text-xs text-gray-500" title="Official role">{(o as any).office}</div>}

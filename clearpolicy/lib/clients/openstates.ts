@@ -13,6 +13,7 @@ export async function os(path: string, params: Record<string, string>) {
 export const openstates = {
   searchBills: (q: string, state = "ca") => os("/bills", { q, jurisdiction: state.toUpperCase() }),
   billById: (id: string) => os(`/bills/${id}`, {}),
+  searchByIdentifier: (identifier: string, state = "ca") => os("/bills", { identifier, jurisdiction: state.toUpperCase() }),
 };
 
 
