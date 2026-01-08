@@ -1,11 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
+import { openstates } from "@/lib/clients/openstates";
+import { generateSummary } from "@/lib/ai";
 
-async function fetchText(url: string): Promise<string> {
+async function fetchText(url: string, userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"): Promise<string> {
   try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return "";
-    return await res.text();
-  } catch {
+    // Try with comprehensive browser headers to avoid blocking
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        "User-Agent": userAgent,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Cache-Control": "max-age=0",
+        "Referer": "https://www.google.com/",
+      },
+      redirect: "follow",
+    });
+    if (!res.ok) {
+      console.error(`Ballotpedia fetch failed for ${url}: ${res.status} ${res.statusText}`);
+      return "";
+    }
+    const text = await res.text();
+    if (!text || text.length < 500) {
+      console.error(`Ballotpedia returned empty/short content for ${url} (${text.length} chars)`);
+      return "";
+    }
+    // Check if we got a CAPTCHA or blocking page
+    if (text.includes("verify that you're not a robot") ||
+      text.includes("captcha") ||
+      text.includes("cloudflare") ||
+      text.includes("checking your browser")) {
+      console.error(`Ballotpedia blocked request for ${url} (CAPTCHA detected)`);
+      return "";
+    }
+    return text;
+  } catch (error) {
+    console.error(`Ballotpedia fetch error for ${url}:`, error);
     return "";
   }
 }
@@ -19,42 +56,395 @@ function strip(html: string): string {
     .trim();
 }
 
+function extractContent(html: string): { tldr: string; pros: string[]; cons: string[] } {
+  let tldr = "";
+  let pros: string[] = [];
+  let cons: string[] = [];
+
+  if (!html || html.includes("does not exist") || html.includes("not found") || html.length < 500) {
+    return { tldr, pros, cons };
+  }
+
+  // Try multiple meta tag patterns
+  const metaPatterns = [
+    /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+name=["']twitter:description["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+  ];
+
+  for (const pattern of metaPatterns) {
+    const metaMatch = html.match(pattern);
+    if (metaMatch && metaMatch[1] && metaMatch[1].length > 30) {
+      tldr = strip(metaMatch[1]).slice(0, 280);
+      break;
+    }
+  }
+
+  // Try to find content in mw-content-text div
+  const contentMatch = html.match(/<div[^>]*id=["']mw-content-text["'][^>]*>([\s\S]*?)<\/div>/i);
+  if (contentMatch) {
+    const content = contentMatch[1];
+
+    // Find first substantial paragraph
+    if (!tldr) {
+      const paraMatch = content.match(/<p[^>]*>(.*?)<\/p>/i);
+      if (paraMatch) {
+        const paraText = strip(paraMatch[1]);
+        if (paraText.length > 50 && !paraText.includes("does not exist")) {
+          tldr = paraText.slice(0, 280);
+        }
+      }
+    }
+
+    // Look for "Ballot title" or "Ballot summary" sections with more flexible patterns
+    const ballotPatterns = [
+      /(?:Ballot\s+title|Ballot\s+summary|Official\s+title)[^<]*:?\s*<p[^>]*>(.*?)<\/p>/i,
+      /<h[23][^>]*>Ballot\s+title[^<]*<\/h[23]>[\s\S]*?<p[^>]*>(.*?)<\/p>/i,
+      /<div[^>]*class=["'][^"']*ballot[^"']*title[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    ];
+
+    for (const pattern of ballotPatterns) {
+      const match = content.match(pattern);
+      if (match && match[1] && !tldr) {
+        const text = strip(match[1]);
+        if (text.length > 30) {
+          tldr = text.slice(0, 280);
+          break;
+        }
+      }
+    }
+
+    // Also try to find the first substantial paragraph after the title
+    if (!tldr) {
+      const paragraphs = content.match(/<p[^>]*>(.*?)<\/p>/g) || [];
+      for (const para of paragraphs.slice(0, 5)) {
+        const text = strip(para.replace(/<[^>]+>/g, " "));
+        if (text.length > 50 && !text.includes("does not exist") && !text.includes("redirect")) {
+          tldr = text.slice(0, 280);
+          break;
+        }
+      }
+    }
+
+    // Look for support/opposition sections with various patterns
+    const supportPatterns = [
+      />Support[^<]*<[^>]*>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+      />Arguments?\s+in\s+favor[^<]*<[^>]*>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+      />Yes[^<]*<[^>]*>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+      /<h[23][^>]*>Support[^<]*<\/h[23]>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+    ];
+
+    for (const pattern of supportPatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        const listText = strip(match[1]);
+        pros = listText.split(/\s*[•·]\s*|\s*<li[^>]*>|<\/li>\s*/)
+          .map(s => strip(s))
+          .filter(s => s.length > 10)
+          .slice(0, 3);
+        if (pros.length > 0) break;
+      }
+    }
+
+    const opposePatterns = [
+      />Opposition[^<]*<[^>]*>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+      />Arguments?\s+against[^<]*<[^>]*>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+      />No[^<]*<[^>]*>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+      /<h[23][^>]*>Opposition[^<]*<\/h[23]>[\s\S]*?<ul[^>]*>(.*?)<\/ul>/i,
+    ];
+
+    for (const pattern of opposePatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        const listText = strip(match[1]);
+        cons = listText.split(/\s*[•·]\s*|\s*<li[^>]*>|<\/li>\s*/)
+          .map(s => strip(s))
+          .filter(s => s.length > 10)
+          .slice(0, 3);
+        if (cons.length > 0) break;
+      }
+    }
+  }
+
+  return { tldr, pros, cons };
+}
+
 export async function GET(_req: NextRequest, { params }: { params: { num: string } }) {
   const n = String(params.num || "").replace(/[^0-9]/g, "");
   if (!n) return NextResponse.json({ error: "missing" }, { status: 400 });
 
-  const bpUrl = `https://ballotpedia.org/California_Proposition_${n}`;
-  const laoUrl = `https://lao.ca.gov/BallotAnalysis/Propositions`;
-  const [bp, lao] = await Promise.all([fetchText(bpUrl), fetchText(laoUrl)]);
+  // No hardcoded database - we use AI to generate summaries dynamically
 
-  // Naive extraction for Ballotpedia: first paragraph after title and simple pros/cons bullets by headings
+  // Then, try to get data from OpenStates
   let tldr = "";
   let pros: string[] = [];
   let cons: string[] = [];
-  if (bp) {
-    // Try meta description first for concise TL;DR
-    const meta = bp.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i);
-    if (meta) tldr = strip(meta[1]).slice(0, 280);
-    if (!tldr) {
-      const paraMatch = bp.match(/<p>([\s\S]*?)<\/p>/i);
-      if (paraMatch) tldr = strip(paraMatch[1]).slice(0, 280);
+  let ballotpediaUrl: string | null = null;
+  let foundInOpenStates = false;
+  let levels: any = null;
+
+  // Collect data for AI analysis
+  let collectedTitle = `California Proposition ${n}`;
+  let collectedContent = "";
+  let collectedSubjects: string[] = [];
+
+  try {
+    // Search OpenStates for the proposition - try multiple search strategies
+    const searchQueries = [
+      `California Proposition ${n}`,
+      `Prop ${n}`,
+      `Proposition ${n}`,
+    ];
+
+    let propMatch = null;
+    for (const searchQuery of searchQueries) {
+      const osResults = await openstates.searchBills(searchQuery, "ca").catch(() => ({ results: [] }));
+      const results = Array.isArray(osResults?.results) ? osResults.results : [];
+
+      // Find the best match (should have "proposition" or "prop" in title/identifier)
+      propMatch = results.find((r: any) => {
+        const title = (r.title || r.identifier || "").toLowerCase();
+        return /proposition|prop/.test(title) && new RegExp(`\\b${n}\\b`).test(title);
+      });
+
+      if (propMatch) break;
     }
-    // Look for support/opposition sections
-    const supportSec = bp.match(/>Support<[^]*?(<ul>[^]*?<\/ul>)/i) || bp.match(/Arguments\s+in\s+favor[^]*?(<ul>[^]*?<\/ul>)/i);
-    if (supportSec) pros = strip(supportSec[1]).split(/\s*•\s*|\s*\n\s*/).filter(Boolean).slice(0, 3);
-    const opposeSec = bp.match(/>Opposition<[^]*?(<ul>[^]*?<\/ul>)/i) || bp.match(/Arguments\s+against[^]*?(<ul>[^]*?<\/ul>)/i);
-    if (opposeSec) cons = strip(opposeSec[1]).split(/\s*•\s*|\s*\n\s*/).filter(Boolean).slice(0, 3);
+
+    if (propMatch) {
+      foundInOpenStates = true;
+      const title = propMatch.title || propMatch.identifier || "";
+      const abstract = propMatch.abstract || "";
+      const latestAction = propMatch.latest_action?.description || propMatch.latest_action_description || "";
+      const impactClause = propMatch.extras?.impact_clause || "";
+      const summary = propMatch.summary || "";
+
+      collectedTitle = title || collectedTitle;
+      collectedContent = [abstract, latestAction, summary, impactClause, title].filter(Boolean).join(". ");
+
+      // Extract subjects/classification for context
+      const subjects = propMatch.subjects || propMatch.classification || [];
+      collectedSubjects = Array.isArray(subjects) ? subjects : [];
+
+      // Use abstract or latest action for TL;DR
+      if (abstract && abstract.length > 30) {
+        tldr = abstract.slice(0, 280);
+      } else if (impactClause && impactClause.length > 30) {
+        tldr = impactClause.replace(/^An act to /i, "").replace(/, relating to .*$/i, "").trim().slice(0, 280);
+      } else if (summary && summary.length > 30) {
+        tldr = summary.slice(0, 280);
+      } else if (latestAction && latestAction.length > 30) {
+        tldr = latestAction.slice(0, 280);
+      } else if (title && title.length > 30) {
+        tldr = title;
+      }
+
+      if (subjects.length > 0 && tldr) {
+        tldr = `${tldr} Related to: ${subjects.slice(0, 3).join(", ")}.`.slice(0, 280);
+      }
+    }
+  } catch (error) {
+    console.error("OpenStates search error:", error);
+  }
+
+  // Try Ballotpedia with common years if we don't have good content
+  // Note: Prop 22 (2020) was about app-based drivers, Prop 22 (2010) was about redistricting
+  const commonYears = ["2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010", "2008", "2006"];
+  let bpHtml = "";
+
+  if (!tldr || tldr.length < 50) {
+    for (const year of commonYears) {
+      const bpUrl = `https://ballotpedia.org/California_Proposition_${n}_(${year})`;
+      bpHtml = await fetchText(bpUrl);
+
+      // Check if we got actual content (not just error page)
+      if (bpHtml && bpHtml.length > 2000 && !bpHtml.includes("does not exist") && !bpHtml.includes("not found") && !bpHtml.includes("404")) {
+        ballotpediaUrl = bpUrl;
+        const extracted = extractContent(bpHtml);
+        if (extracted.tldr && extracted.tldr.length > 50) {
+          tldr = extracted.tldr;
+          pros = extracted.pros;
+          cons = extracted.cons;
+          console.log(`Found Prop ${n} content from Ballotpedia (${year})`);
+          break;
+        }
+      }
+    }
+
+    // Also try without year as fallback
+    if (!tldr || tldr.length < 50) {
+      const bpUrlNoYear = `https://ballotpedia.org/California_Proposition_${n}`;
+      const bpHtmlNoYear = await fetchText(bpUrlNoYear);
+      if (bpHtmlNoYear && bpHtmlNoYear.length > 2000 && !bpHtmlNoYear.includes("does not exist")) {
+        if (!ballotpediaUrl) ballotpediaUrl = bpUrlNoYear;
+        const extracted = extractContent(bpHtmlNoYear);
+        if (extracted.tldr && extracted.tldr.length > 50) {
+          tldr = extracted.tldr;
+          pros = extracted.pros;
+          cons = extracted.cons;
+        }
+      }
+    }
+  } else {
+    // If we have OpenStates content, still try to get pros/cons from Ballotpedia
+    for (const year of commonYears) {
+      const bpUrl = `https://ballotpedia.org/California_Proposition_${n}_(${year})`;
+      bpHtml = await fetchText(bpUrl);
+
+      if (bpHtml && bpHtml.length > 2000 && !bpHtml.includes("does not exist")) {
+        if (!ballotpediaUrl) ballotpediaUrl = bpUrl;
+        const extracted = extractContent(bpHtml);
+        if (extracted.pros.length > 0) pros = extracted.pros;
+        if (extracted.cons.length > 0) cons = extracted.cons;
+        if (pros.length > 0 && cons.length > 0) break;
+      }
+    }
+  }
+
+  const laoUrl = "https://lao.ca.gov/BallotAnalysis/Propositions";
+
+  // Check if we have GOOD content (not just a generic fallback)
+  const hasGoodContent = tldr &&
+    tldr.length > 50 &&
+    !tldr.includes("See official sources for details") &&
+    !tldr.includes("For detailed information") &&
+    !tldr.includes("was a ballot measure");
+
+  // Track the year if we found one
+  let foundYear = "";
+  if (ballotpediaUrl) {
+    const yearMatch = ballotpediaUrl.match(/\((\d{4})\)/);
+    if (yearMatch) {
+      foundYear = yearMatch[1];
+    }
+  }
+
+  // If we don't have good content, try AI to generate a summary from available data
+  if (!hasGoodContent) {
+    // Try Ballotpedia one more time with different years
+    const recentYears = ["2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010"];
+    if (!foundYear) {
+      for (const year of recentYears) {
+        try {
+          const bpUrl = `https://ballotpedia.org/California_Proposition_${n}_(${year})`;
+          const testHtml = await fetchText(bpUrl);
+          if (testHtml && testHtml.length > 2000 && !testHtml.includes("does not exist") && !testHtml.includes("verify that you're not a robot")) {
+            ballotpediaUrl = bpUrl;
+            foundYear = year;
+            const extracted = extractContent(testHtml);
+            if (extracted.tldr && extracted.tldr.length > 50) {
+              tldr = extracted.tldr;
+              pros = extracted.pros;
+              cons = extracted.cons;
+              break;
+            }
+          }
+        } catch (e) {
+          // Continue to next year
+        }
+      }
+    }
+
+    // Always use generateSummary to get enhanced fallback (includes known props)
+    // This MUST be called to get known props data
+    const allContent = [
+      collectedContent,
+      collectedTitle,
+      collectedSubjects.join(", "),
+      tldr, // Include existing tldr as context
+    ].filter(Boolean).join(". ");
+
+    // Use generateSummary which will handle known props and AI
+    try {
+      const summary = await generateSummary({
+        title: collectedTitle || `California Proposition ${n}`,
+        content: allContent || `California Proposition ${n} ballot measure`,
+        subjects: collectedSubjects,
+        identifier: `Prop ${n}`,
+        type: "proposition",
+        year: foundYear // Pass the year we found
+      });
+
+      // Always use the summary - it has known props data
+      if (summary.levels) {
+        // Use level 8 (standard) for top-level backward compatibility
+        const standard = summary.levels["8"];
+        if (standard) {
+          tldr = standard.tldr;
+          if (standard.pros.length > 0) pros = standard.pros;
+          if (standard.cons.length > 0) cons = standard.cons;
+        }
+        if (summary.year) foundYear = summary.year;
+
+        // Store the full levels object to return
+        levels = summary.levels;
+      }
+    } catch (e) {
+      console.error(`[Prop ${n}] Summary generation failed:`, e);
+    }
+
+    // Final fallback ONLY if generateSummary completely failed
+    if (!tldr || tldr.length < 20 || (tldr.includes("See official sources") && pros.length === 0)) {
+      if (!ballotpediaUrl) {
+        ballotpediaUrl = `https://ballotpedia.org/California_Proposition_${n}`;
+      }
+      // Only use generic message if we truly have nothing
+      if (pros.length === 0 && cons.length === 0) {
+        tldr = `California Proposition ${n} was a ballot measure. For detailed information about what this proposition does, please visit the official sources linked below.`;
+      }
+    }
+  }
+
+  // Generate whatItDoes from tldr if not already set
+  let whatItDoes = tldr;
+  if (tldr && tldr.length > 50) {
+    // Extract a more detailed "what it does" from the TL;DR
+    // Try to expand on the key actions
+    const sentences = tldr.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    if (sentences.length > 1) {
+      whatItDoes = sentences.join(". ").trim();
+    } else if (sentences.length === 1) {
+      // Expand single sentence with more detail
+      const sentence = sentences[0];
+      // Add context about implementation if available
+      if (collectedContent && collectedContent.length > 50) {
+        const contentSentences = collectedContent.split(/[.!?]+/).filter(s => s.trim().length > 30);
+        if (contentSentences.length > 0) {
+          whatItDoes = `${sentence}. ${contentSentences[0]}`.trim();
+        }
+      } else {
+        whatItDoes = sentence;
+      }
+    }
+  }
+
+  // If we don't have AI levels, construct them from the single source we have
+  if (!levels) {
+    const singleLevel = {
+      tldr,
+      whatItDoes: whatItDoes || tldr,
+      whoAffected: "See official sources for details.", // Basic fallback
+      pros: pros.length > 0 ? pros : [],
+      cons: cons.length > 0 ? cons : []
+    };
+    levels = {
+      "5": singleLevel,
+      "8": singleLevel,
+      "12": singleLevel
+    };
   }
 
   return NextResponse.json({
     number: n,
+    year: foundYear, // Include year in response
     sources: {
-      ballotpedia: bp ? bpUrl : null,
-      lao: lao ? laoUrl : null,
+      ballotpedia: ballotpediaUrl,
+      lao: laoUrl,
     },
     tldr,
-    pros,
-    cons,
+    whatItDoes: whatItDoes || tldr,
+    pros: pros.length > 0 ? pros : [],
+    cons: cons.length > 0 ? cons : [],
+    levels // Include the multi-level data
   });
 }
 

@@ -15,10 +15,13 @@
     "ci": "npm run build && playwright test"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.20.0",
     "autoprefixer": "^10.4.19",
     "diff-match-patch": "^1.0.5",
+    "dotenv": "^17.2.3",
     "next": "^14.2.5",
+    "openai": "^6.15.0",
     "postcss": "^8.4.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -27,13 +30,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.7.3",
+    "@playwright/test": "^1.48.2",
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.5",
-    "@playwright/test": "^1.48.2",
-    "@axe-core/playwright": "^4.7.3",
     "prisma": "^5.20.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
@@ -42,4 +45,3 @@
     "seed": "ts-node prisma/seed.ts"
   }
 }
-

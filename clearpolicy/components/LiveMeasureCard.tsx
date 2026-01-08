@@ -8,7 +8,7 @@ import ReadingLevelToggle from "@/components/ReadingLevelToggle";
 export default function LiveMeasureCard({ payload }: { payload: any }) {
   const [level, setLevel] = useState<"5" | "8" | "12">("8");
 
-  // Basic adaptation: build a minimal SummaryLike from live payload
+
   const summary = useMemo(() => {
     const firstSentence = (text: string) => {
       if (!text) return "";
@@ -77,36 +77,115 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
     if (payload?.kind === "prop" && payload?.raw) {
       const raw = payload.raw;
       const title = raw?.title || raw?.identifier || "California Measure";
-      const subjectsArr = cleanTopics(raw?.subjects || raw?.subject || raw?.classification, title);
+      
+      // Use AI summary if available (generated server-side)
+      if (payload?.aiSummary) {
+        const ai = payload.aiSummary;
+        const whoStake = stakeholdersFrom(
+          Array.isArray(raw?.subject) ? raw.subject : (raw?.subject ? [raw.subject] : []),
+          title
+        );
+        const whoAffected = ai.whoAffected || (whoStake ? `It affects ${whoStake}.` : "See official sources for details.");
+        
+        // Build citations
+        const citations: { quote: string; sourceName: string; url: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+        const primaryUrl = raw?.openstates_url || raw?.openstatesUrl || raw?.sources?.[0]?.url || "";
+        if (raw?.extras?.impact_clause) {
+          citations.push({ quote: raw.extras.impact_clause, sourceName: "Open States — impact clause", url: primaryUrl, location: "tldr" });
+        }
+        if (raw?.latest_action_description) {
+          citations.push({ quote: pickPolicySentence(raw.latest_action_description), sourceName: "Open States — latest action", url: primaryUrl, location: "what" });
+        }
+        if (citations.length === 0) {
+          citations.push({ quote: firstSentence(title), sourceName: "Open States", url: primaryUrl, location: "tldr" });
+        }
+        
+        const blocks = [ai.tldr, ai.whatItDoes, whoAffected, ai.pros.join(" "), ai.cons.join(" ")];
+        const sourceRatio = sourceRatioFrom(blocks, citations);
+        const covered = new Set((citations || []).map((c) => c.location).filter(Boolean) as string[]).size;
+        
+        return {
+          tldr: ai.tldr,
+          whatItDoes: ai.whatItDoes,
+          whoAffected: simplify(ai.whoAffected || whoAffected, level),
+          pros: simplify(ai.pros.join(" "), level),
+          cons: simplify(ai.cons.join(" "), level),
+          sourceRatio,
+          citations,
+          sourceCount: covered,
+          example: "",
+        };
+      }
+      
+      // Fallback to rule-based extraction if AI not available
+      const subjectsRaw = raw?.subjects || raw?.subject || [];
+      const subjectsArr = cleanTopics(
+        Array.isArray(subjectsRaw) ? subjectsRaw : (subjectsRaw ? [subjectsRaw] : []),
+        title
+      );
+      if (raw?.classification && Array.isArray(raw.classification)) {
+        subjectsArr.push(...raw.classification.filter((c: string) => !subjectsArr.includes(c)));
+      }
       const subjects = subjectsArr.join(", ") || "policy";
       const latestAction = (
         raw?.latest_action?.description ||
         raw?.latestAction?.text ||
         (typeof (raw as any)?.latest_action_description === "string" ? (raw as any).latest_action_description : "") ||
         raw?.actions?.[0]?.description ||
+        raw?.actions?.[raw.actions.length - 1]?.description ||
         ""
       ).trim();
       const primaryUrl = raw?.openstates_url || raw?.openstatesUrl || raw?.sources?.[0]?.url || "";
 
-      // Try to synthesize helpful content using available fields
-      const abstract = raw?.abstracts?.[0]?.abstract || raw?.summary || "";
-      const tldr = abstract
-        ? pickPolicySentence(abstract)
-        : (subjects ? `This measure updates rules related to ${subjects}.` : `No summary available; see source for details.`);
-      // Prefer concise, concrete statement of effect; fall back to latest action when no summary exists
-      const whatItDoes = abstract
-        ? pickPolicySentence(abstract).replace(/^this measure/i, "It")
-        : (latestAction ? `Latest action: ${pickPolicySentence(latestAction)}` : `No summary available; see source for details.`);
+      const abstract = raw?.abstracts?.[0]?.abstract || raw?.summary || raw?.extras?.summary || "";
+      const impactClause = raw?.extras?.impact_clause || "";
+      const actions = raw?.actions || [];
+      const firstAction = actions.find((a: any) => a.description && a.description.length > 20)?.description || "";
+      
+      let tldr = "";
+      if (impactClause && impactClause.length > 30) {
+        const cleanImpact = impactClause.replace(/^An act to /i, "").replace(/, relating to .*$/i, "").trim();
+        tldr = cleanImpact.length > 20 ? cleanImpact : impactClause.slice(0, 200);
+      } else if (abstract && abstract.length > 30) {
+        tldr = pickPolicySentence(abstract);
+      } else if (firstAction && firstAction.length > 30) {
+        tldr = pickPolicySentence(firstAction);
+      } else if (latestAction && latestAction.length > 30) {
+        tldr = pickPolicySentence(latestAction);
+      } else if (title && subjectsArr.length > 0) {
+        tldr = `${title}. Relates to ${subjectsArr.slice(0, 3).join(", ")}.`;
+      } else if (title) {
+        tldr = `${title}.`;
+      } else {
+        tldr = subjects ? `This measure updates rules related to ${subjects}.` : `No summary available; see source for details.`;
+      }
+      
+      let whatItDoes = "";
+      if (impactClause && impactClause.length > 30) {
+        const cleanImpact = impactClause.replace(/^An act to /i, "It would ").replace(/^add Section/i, "add section").replace(/^amend/i, "amend");
+        whatItDoes = cleanImpact.length > 20 ? cleanImpact : impactClause;
+      } else if (abstract && abstract.length > 30) {
+        whatItDoes = pickPolicySentence(abstract).replace(/^this measure/i, "It");
+      } else if (firstAction && firstAction.length > 30) {
+        whatItDoes = `Latest action: ${pickPolicySentence(firstAction)}`;
+      } else if (latestAction && latestAction.length > 20) {
+        whatItDoes = `Latest action: ${pickPolicySentence(latestAction)}`;
+      } else if (title && subjectsArr.length > 0) {
+        whatItDoes = `It addresses ${subjectsArr.slice(0, 2).join(" and ")} as described in the title: ${title}.`;
+      } else {
+        whatItDoes = title ? `${title}. See official source for details.` : `No summary available; see source for details.`;
+      }
       const whoStake = stakeholdersFrom(subjectsArr, title);
       const whoAffected = whoStake ? `It affects ${whoStake}.` : (subjects ? `Groups involved: ${subjects}.` : `No summary available; see source for details.`);
       const pc = prosConsHeuristics(subjectsArr, title);
       const pros = pc.pros;
       const cons = pc.cons;
 
-      // Build citations prioritizing substantive quotes (abstract/summary/latest action)
+      // Build citations prioritizing substantive quotes (impact clause/abstract/summary/latest action)
       const citations: { quote: string; sourceName: string; url: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+      if (impactClause) citations.push({ quote: impactClause, sourceName: "Open States — impact clause", url: primaryUrl || raw?.openstates_url || "", location: "tldr" });
       if (abstract) citations.push({ quote: pickPolicySentence(abstract), sourceName: "Open States — abstract", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" });
-      if (latestAction) citations.push({ quote: pickPolicySentence(latestAction), sourceName: "Open States — latest action", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" });
+      if (latestAction) citations.push({ quote: pickPolicySentence(latestAction), sourceName: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" });
       if (Array.isArray(raw?.sources)) {
         raw.sources.slice(0, 3).forEach((s: any) => {
           if (s?.url) citations.push({ quote: s.note || "See source for details.", sourceName: s.note || "Open States", url: s.url });
@@ -128,7 +207,18 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         return "";
       })();
 
-      return { tldr, whatItDoes, whoAffected, pros, cons, sourceRatio, citations: finalCitations, sourceCount: covered, example };
+      // Apply reading level simplification
+      return { 
+        tldr: simplify(tldr, level), 
+        whatItDoes: simplify(whatItDoes, level), 
+        whoAffected: simplify(whoAffected, level), 
+        pros: simplify(pros, level), 
+        cons: simplify(cons, level), 
+        sourceRatio, 
+        citations: finalCitations, 
+        sourceCount: covered, 
+        example 
+      };
     }
     if (payload?.kind === "bill" && payload?.raw) {
       const raw = payload.raw;
@@ -174,7 +264,20 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
   }, [payload]);
 
   if (!summary) {
-    return <div className="card p-6 text-sm text-gray-400 dark:text-gray-600">Unable to load live measure.</div>;
+    // Debug: show what we received
+    console.error("LiveMeasureCard: No summary computed", { 
+      hasPayload: !!payload, 
+      kind: payload?.kind, 
+      hasRaw: !!payload?.raw,
+      rawKeys: payload?.raw ? Object.keys(payload.raw) : []
+    });
+    return (
+      <div className="card p-6 text-sm text-gray-400 dark:text-gray-600">
+        <p>Unable to load live measure.</p>
+        {payload?.error && <p className="mt-2 text-xs">Error: {payload.error}</p>}
+        {!payload?.raw && <p className="mt-2 text-xs">No raw data available.</p>}
+      </div>
+    );
   }
 
   const limitedData = !payload?.raw || (summary?.citations?.length || 0) < 1;

@@ -3,19 +3,25 @@ const prisma = new PrismaClient();
 
 async function main() {
   async function upsertMeasure(m: any) {
-    const measure = await prisma.measure.upsert({
+    // First try to find existing measure
+    let measure = await prisma.measure.findUnique({
       where: { slug: m.slug },
-      update: {},
-      create: {
-        kind: m.kind,
-        jurisdiction: m.jurisdiction,
-        session: m.session ?? null,
-        number: m.number,
-        title: m.title,
-        status: m.status,
-        slug: m.slug,
-      },
     });
+    
+    // If not found, create it
+    if (!measure) {
+      measure = await prisma.measure.create({
+        data: {
+          kind: m.kind,
+          jurisdiction: m.jurisdiction,
+          session: m.session ?? null,
+          number: m.number,
+          title: m.title,
+          status: m.status,
+          slug: m.slug,
+        },
+      });
+    }
 
     for (const s of m.sources) {
       await prisma.sourceDoc.upsert({
@@ -215,8 +221,19 @@ async function main() {
 }
 
 main()
-  .then(() => console.log("Seed complete"))
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(async () => { await prisma.$disconnect(); });
+  .then(() => {
+    console.log("Seed complete");
+    return prisma.measure.count();
+  })
+  .then((count) => {
+    console.log(`Total measures in database: ${count}`);
+  })
+  .catch((e) => { 
+    console.error("Seed error:", e); 
+    process.exit(1); 
+  })
+  .finally(async () => { 
+    await prisma.$disconnect(); 
+  });
 
 

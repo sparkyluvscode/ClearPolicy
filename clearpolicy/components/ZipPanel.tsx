@@ -67,7 +67,7 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
           {loading ? "Looking…" : "Look up"}
         </button>
       </form>
-          <p className="mt-1 text-xs text-gray-500">Hint: Try a California ZIP like 95014 or 90001</p>
+      <p className="mt-1 text-xs text-gray-500">Hint: Try a California ZIP like 95014 or 90001</p>
       {/* District labels (if API returns them in future) */}
       {/* Intentionally minimal; server currently returns just officials */}
       {error && <p className="mt-2 text-sm text-amber-700">{error}</p>}
@@ -76,9 +76,9 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
           {officials.map((o, i) => (
             <li key={i} className="rounded-md border border-gray-200 p-3">
               {(o as any).office && <div className="text-xs text-gray-500" title="Official role">{(o as any).office}</div>}
-              <div className="font-medium text-gray-900">{o.name}</div>
-              {o.party && <div className="text-sm text-gray-600">{o.party}</div>}
-              {o.context && <div className="mt-1 text-xs text-gray-600">{o.context}</div>}
+              <div className="font-medium text-gray-900 dark:text-gray-100">{o.name}</div>
+              {o.party && <div className="text-sm text-gray-600 dark:text-gray-400">{o.party}</div>}
+              {o.context && <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">{o.context}</div>}
               {o.vote && (
                 <div className="mt-1 text-xs">
                   <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5">{o.vote}</span>
@@ -111,8 +111,8 @@ export default function ZipPanel({ contextId }: { contextId?: string }) {
       {/* Local analysis */}
       {officials && (
         <div className="mt-3 text-xs text-gray-600">
-          <a href={(window as any)?.lastZipAnalysisUrl || "#"} onClick={(e) => { e.preventDefault(); const url = (e as any)?.target?.dataset?.u || (window as any)?.lastZipAnalysisUrl; if (url) window.open(url, '_blank'); }} data-u={(typeof window!=="undefined" ? (window as any).lastZipAnalysisUrl : undefined)} className="text-accent hover:underline">Local analysis (news)</a>
-          { (window as any)?.lastZipFinderUrl && (
+          <a href={(window as any)?.lastZipAnalysisUrl || "#"} onClick={(e) => { e.preventDefault(); const url = (e as any)?.target?.dataset?.u || (window as any)?.lastZipAnalysisUrl; if (url) window.open(url, '_blank'); }} data-u={(typeof window !== "undefined" ? (window as any).lastZipAnalysisUrl : undefined)} className="text-accent hover:underline">Local analysis (news)</a>
+          {(window as any)?.lastZipFinderUrl && (
             <>
               <span className="mx-2">·</span>
               <a href={(window as any).lastZipFinderUrl} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">Find your rep (official)</a>

@@ -11,15 +11,147 @@ export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q") ?? "";
     const parsed = QuerySchema.safeParse({ q });
     if (!parsed.success) return NextResponse.json({ error: "invalid query" }, { status: 400 });
-    const chips = disambiguate(parsed.data.q);
+    
+    // Detect ZIP code queries (e.g., "whos my rep for 95762", "who's my rep 95014", "representative 95762")
+    const zipMatch = parsed.data.q.match(/(?:who'?s?\s+my\s+rep(?:resentative)?|rep(?:resentative)?)\s+(?:for\s+)?(\d{5})/i);
+    if (zipMatch) {
+      const zip = zipMatch[1];
+      // Return special response for ZIP code queries that frontend can handle
+      return NextResponse.json({ 
+        zipCode: zip,
+        redirectToZip: true,
+        ca: { results: [] },
+        us: { bills: [] },
+        fallbacks: [],
+        chips: []
+      });
+    }
+    
+    // Normalize "Proposition" to "Prop" for better matching
+    let normalizedQuery = parsed.data.q.replace(/\bproposition\s+(\d+)/gi, "Prop $1");
+    
+    const chips = disambiguate(normalizedQuery);
+    // For topic-based searches, try to find bills by subject
+    const ql = normalizedQuery.toLowerCase().trim();
+    const isTopicSearch = !/(prop|proposition|ab|sb|assembly|senate)\s*\d+/i.test(normalizedQuery) && 
+                          /^(healthcare|health|education|environment|climate|energy|tax|budget|crime|criminal)/i.test(normalizedQuery);
+    
+    // Check for bill identifier patterns first (AB 5, SB 1383, etc.)
+    const identMatch = normalizedQuery.toLowerCase().match(/\b(ab|sb)\s*(\d{1,5})\b/);
+    
+    // Check for proposition patterns (Prop 22, Proposition 22, etc.)
+    const propMatch = normalizedQuery.match(/\b(?:prop|proposition)\s*(\d{1,3})\b/i);
+    
+    // Search both CA and US in parallel
     const [ca, us] = await Promise.all([
-      openstates.searchBills(parsed.data.q, "ca").catch(() => ({ results: [] })),
-      congress.searchBills(parsed.data.q).catch(() => ({ data: { bills: [] } })),
+      (async () => {
+        if (identMatch) {
+          // For bill identifiers, search by identifier first
+          const ident = `${identMatch[1].toUpperCase()} ${identMatch[2]}`;
+          const byIdent: any = await openstates.searchByIdentifier(ident, "ca").catch(() => ({ results: [] }));
+          const arr: any[] = Array.isArray(byIdent?.results) ? byIdent.results : [];
+          if (arr.length > 0) {
+            return { results: arr };
+          }
+          // Fallback to text search if identifier search fails
+        }
+        // Use normalized query for search
+        return openstates.searchBills(normalizedQuery, "ca").catch(() => ({ results: [] }));
+      })(),
+      congress.searchBills(normalizedQuery).catch(() => ({ data: { bills: [] } })),
     ]);
+    
+    // If topic search returned no results, try alternative search strategies
+    if (isTopicSearch && Array.isArray((ca as any).results) && (ca as any).results.length === 0) {
+      try {
+        // Map common topics to OpenStates subject terms
+        const topicMap: Record<string, string> = {
+          "healthcare": "Health",
+          "health": "Health",
+          "education": "Education",
+          "environment": "Environment",
+          "climate": "Environment",
+          "energy": "Energy",
+          "tax": "Taxation",
+          "budget": "Appropriations",
+          "crime": "Criminal Justice",
+          "criminal": "Criminal Justice",
+        };
+        
+        const subjectTerm = topicMap[ql];
+        
+        // Try subject-based search using OpenStates subject parameter if we have a mapping
+        if (subjectTerm) {
+          try {
+            const subjectResults = await openstates.searchBySubject(subjectTerm, "ca").catch(() => ({ results: [] }));
+            if (Array.isArray(subjectResults?.results) && subjectResults.results.length > 0) {
+              (ca as any).results = subjectResults.results;
+            }
+          } catch (e) {
+            // Continue to fallback strategies
+          }
+        }
+        
+        // If subject search didn't work, try multiple text search strategies
+        if (Array.isArray((ca as any).results) && (ca as any).results.length === 0) {
+          const searchStrategies = [
+            `California ${parsed.data.q}`,
+            parsed.data.q.charAt(0).toUpperCase() + parsed.data.q.slice(1),
+            parsed.data.q + " policy",
+            parsed.data.q + " legislation",
+            parsed.data.q + " bill",
+            `CA ${parsed.data.q}`,
+          ];
+          
+          for (const strategy of searchStrategies) {
+            try {
+              const topicResults = await openstates.searchBills(strategy, "ca").catch(() => ({ results: [] }));
+              if (Array.isArray(topicResults?.results) && topicResults.results.length > 0) {
+                (ca as any).results = topicResults.results;
+                break;
+              }
+            } catch (e) {
+              // Continue to next strategy
+            }
+          }
+        }
+        
+        // If still no results, try to find any bills that might be related
+        if (Array.isArray((ca as any).results) && (ca as any).results.length === 0) {
+          // Try searching for bills with the topic in title or subjects
+          try {
+            // Search for recent bills that might match - use the original query
+            const recentSearch = await openstates.searchBills(parsed.data.q, "ca").catch(() => ({ results: [] }));
+            if (Array.isArray(recentSearch?.results) && recentSearch.results.length > 0) {
+              // Filter results that contain the topic keyword anywhere
+              const filtered = recentSearch.results.filter((r: any) => {
+                const title = (r.title || "").toLowerCase();
+                const identifier = (r.identifier || "").toLowerCase();
+                const subjects = Array.isArray(r.subject) ? r.subject.join(" ").toLowerCase() : (r.subject || "").toLowerCase();
+                const classification = Array.isArray(r.classification) ? r.classification.join(" ").toLowerCase() : "";
+                const latestAction = (r.latest_action_description || "").toLowerCase();
+                const allText = `${title} ${identifier} ${subjects} ${classification} ${latestAction}`;
+                // Match if topic appears anywhere in bill data
+                return allText.includes(ql) || allText.includes(parsed.data.q.toLowerCase());
+              });
+              if (filtered.length > 0) {
+                (ca as any).results = filtered.slice(0, 10);
+              } else {
+                // If no filtered results, use all results from search (they might still be relevant)
+                (ca as any).results = recentSearch.results.slice(0, 10);
+              }
+            }
+          } catch (e) {
+            // Accept empty results if all strategies fail
+          }
+        }
+      } catch (e) {
+        // Continue with empty results
+      }
+    }
 
     // CA ranking & dedupe
     try {
-      const ql = parsed.data.q.toLowerCase();
       const caItems: any[] = Array.isArray((ca as any).results) ? (ca as any).results : [];
       const seen = new Set<string>();
       const deduped = caItems.filter((r: any) => {
@@ -91,9 +223,14 @@ export async function GET(req: NextRequest) {
             ...r,
             _direct: true,
             _reason: "Shown because it matches the bill identifier.",
-            _preview: r?.latest_action_description || r?.latest_action?.description || "",
+            _preview: r?.latest_action_description || r?.latest_action?.description || r?.extras?.impact_clause?.slice(0, 100) || "",
           }));
-          (ca as any).results = [...mapped, ...((ca as any).results || [])];
+          const exactMatch = mapped.find((r: any) => (r.identifier || "").toUpperCase() === ident.toUpperCase());
+          if (exactMatch) {
+            (ca as any).results = [exactMatch, ...mapped.filter(r => r.id !== exactMatch.id), ...((ca as any).results || [])];
+          } else {
+            (ca as any).results = [...mapped, ...((ca as any).results || [])];
+          }
         } else {
           // Virtual fallback to CA LegInfo when no OpenStates match
           (ca as any).results = [
@@ -115,8 +252,8 @@ export async function GET(req: NextRequest) {
 
     // Build trusted fallback links (always safe to show)
     const fallbacks: Array<{ label: string; url: string; hint: string; kind: "overview" | "official" | "analysis" }> = [];
-
-    const ql = parsed.data.q.toLowerCase().trim();
+    
+    // ql already defined above, reuse it
     const push = (label: string, url: string, hint: string, kind: "overview" | "official" | "analysis") => fallbacks.push({ label, url, hint, kind });
 
     // General trusted portals
@@ -126,10 +263,10 @@ export async function GET(req: NextRequest) {
     push("Ballotpedia", `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(parsed.data.q)}`, "Ballot measures overview", "overview");
     push("LAO (California)", `https://lao.ca.gov/Search?q=${encodeURIComponent(parsed.data.q)}`, "Legislative Analyst’s Office reports", "analysis");
 
-    // Pattern: CA proposition
-    // Add a virtual proposition result when user types "prop <number>"
+    // Pattern: CA proposition (handle both "prop" and "proposition")
+    // Add a virtual proposition result when user types "prop <number>" or "proposition <number>"
     try {
-      const m = ql.match(/prop\s*(\d{1,3})/);
+      const m = ql.match(/(?:prop|proposition)\s*(\d{1,3})/);
       if (m) {
         const n = m[1];
         const ext = `https://www.google.com/search?q=${encodeURIComponent(`California Proposition ${n} site:ballotpedia.org OR site:lao.ca.gov`)}`;

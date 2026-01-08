@@ -16,8 +16,8 @@ export default async function PropositionPage({ params }: { params: { num: strin
   const base = `${proto}://${host}`;
   const query = `California Proposition ${n}`;
   const [searchRes, propRes] = await Promise.all([
-    fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { cache: "no-store" }).then(r=>r.json()).catch(()=>({})),
-    fetch(`${base}/api/prop/${encodeURIComponent(n)}`, { cache: "no-store" }).then(r=>r.json()).catch(()=>({})),
+    fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+    fetch(`${base}/api/prop/${encodeURIComponent(n)}`, { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
   ]);
   const fallbacks = Array.isArray(searchRes?.fallbacks) ? searchRes.fallbacks : [];
   const bp = propRes?.sources?.ballotpedia as string | null;
@@ -26,7 +26,7 @@ export default async function PropositionPage({ params }: { params: { num: strin
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-4">
         <header className="card p-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-indigo-200">California Proposition {n}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-indigo-200">California Proposition {n} {propRes?.year ? <span className="text-gray-500 font-normal">({propRes.year})</span> : ""}</h1>
           <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">Provisional in‑app summary with trusted sources.</p>
           <div className="mt-2 text-xs text-gray-400 dark:text-gray-600 flex gap-3">
             {bp && (<a className="text-accent hover:underline" href={bp} target="_blank" rel="noreferrer noopener">Ballotpedia</a>)}
@@ -34,7 +34,7 @@ export default async function PropositionPage({ params }: { params: { num: strin
             <a className="text-accent hover:underline" href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noreferrer noopener">LegInfo</a>
           </div>
         </header>
-        <ProvisionalCard query={query} fallbacks={fallbacks} seed={{ tldr: propRes?.tldr, pros: propRes?.pros, cons: propRes?.cons }} />
+        <ProvisionalCard query={query} fallbacks={fallbacks} seed={{ tldr: propRes?.tldr, whatItDoes: propRes?.whatItDoes, pros: propRes?.pros, cons: propRes?.cons, year: propRes?.year, levels: propRes?.levels }} />
       </div>
       <div>
         <ZipPanel />

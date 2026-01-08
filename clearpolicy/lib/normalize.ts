@@ -15,20 +15,40 @@ export function slugify(m: NormalMeasure) {
 export function disambiguate(rawQuery: string) {
   const q = rawQuery.toLowerCase();
   const chips: { label: string; hint: string; slug?: string }[] = [];
-  if (/prop\s*17/.test(q) && /theft|retail|shoplift/.test(q)) {
-    chips.push(
-      { label: "Prop 17 (2020)", hint: "voting rights for people on parole", slug: "ca-prop-17-2020" },
-      { label: "Prop 47 (2014)", hint: "theft & drug penalties ($950)", slug: "ca-prop-47-2014" }
-    );
-  }
-  const m = q.match(/prop\s*(\d{1,3})/);
-  if (m) {
-    const n = m[1];
-    // We only have seeded cards for 17 and 47; for others, nudge the user
-    if (n !== "17" && n !== "47") {
-      chips.push({ label: `California Proposition ${n}`, hint: "Open live legislative summaries", slug: undefined });
+
+  // 1. Matches for "Prop" or "Proposition"
+  const propMatch = q.match(/(?:prop|proposition)\s*(\d{1,3})/);
+  if (propMatch) {
+    const n = propMatch[1];
+    if (n === "17") {
+      chips.push({ label: "Prop 17 (2020)", hint: "Voting rights for people on parole", slug: "ca-prop-17-2020" });
+    } else if (n === "47") {
+      chips.push({ label: "Prop 47 (2014)", hint: "Reduced penalties for theft & drug crimes", slug: "ca-prop-47-2014" });
+    } else {
+      // General dynamic prop suggestion
+      chips.push({ label: `California Proposition ${n}`, hint: "Search for this ballot measure", slug: undefined });
     }
   }
+  // 2. Fallback: If user types just "Prop", give them the popular ones
+  else if (/^prop(?:osition)?\s*$/.test(q)) {
+    chips.push(
+      { label: "Prop 47 (2014)", hint: "Theft & drug penalties", slug: "ca-prop-47-2014" },
+      { label: "Prop 17 (2020)", hint: "Parolee voting rights", slug: "ca-prop-17-2020" }
+    );
+  }
+
+  // 3. Topic matches
+  if (/theft|shoplift|steal|crime|robbery/.test(q)) {
+    if (!chips.some(c => c.label.includes("47"))) {
+      chips.push({ label: "Prop 47 (2014)", hint: "Related to retail theft penalties", slug: "ca-prop-47-2014" });
+    }
+  }
+  if (/parole|vote|felon|voting/.test(q)) {
+    if (!chips.some(c => c.label.includes("17"))) {
+      chips.push({ label: "Prop 17 (2020)", hint: "Parolee voting rights", slug: "ca-prop-17-2020" });
+    }
+  }
+
   return chips;
 }
 

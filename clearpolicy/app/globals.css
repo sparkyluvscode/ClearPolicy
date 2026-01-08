@@ -92,6 +92,7 @@ body {
 
 /* Dark mode (when toggled) - light backgrounds */
 html.dark body {
+  @apply text-slate-900;
   background-color: #f8fafc; /* light gray */
   background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.08), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.08), transparent 50%);
 }

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Search</title>
+</head>
+<body>
+  <h1>Testing Search API</h1>
+  <button onclick="testSearch()">Test Search for "health"</button>
+  <div id="results"></div>
+  <script>
+    async function testSearch() {
+      const res = await fetch('/api/search?q=health');
+      const data = await res.json();
+      document.getElementById('results').innerHTML = `
+        <h2>Results:</h2>
+        <p>CA Results: ${data.ca?.results?.length || 0}</p>
+        <p>US Bills: ${data.us?.bills?.length || data.us?.data?.bills?.length || 0}</p>
+        <p>Chips: ${data.chips?.length || 0}</p>
+        <p>Fallbacks: ${data.fallbacks?.length || 0}</p>
+        <pre>${JSON.stringify(data, null, 2)}</pre>
+      `;
+    }
+  </script>
+</body>
+</html>
+
+
