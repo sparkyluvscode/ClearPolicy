@@ -3,7 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --cp-accent: #4f46e5;
+  --cp-accent: #1e40af;
+  --cp-bg: #f7f8fb;
+  --cp-surface: #ffffff;
+  --cp-surface-2: #f1f5f9;
+  --cp-doc: #ffffff;
+  --cp-border: rgba(15, 23, 42, 0.12);
+  --cp-text: #0f172a;
+  --cp-muted: #64748b;
+  --cp-quote: #f8fafc;
+  --cp-ring: rgba(30, 64, 175, 0.25);
 }
 
 html, body {
@@ -11,113 +20,50 @@ html, body {
 }
 
 body {
-  @apply text-gray-100 antialiased transition-colors duration-300 ease-out;
-  /* Inverted light mode - dark backgrounds */
-  background-color: #0a0a0a; /* fallback */
-  background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.12), transparent 60%),
-    radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.12), transparent 50%);
+  @apply antialiased transition-colors duration-200 ease-out text-[15px] md:text-base;
+  background-color: var(--cp-bg);
+  color: var(--cp-text);
+}
+
+html.dark {
+  --cp-bg: #0b0f14;
+  --cp-surface: #111827;
+  --cp-surface-2: #0f172a;
+  --cp-doc: #0b1326;
+  --cp-border: rgba(148, 163, 184, 0.2);
+  --cp-text: #e2e8f0;
+  --cp-muted: #94a3b8;
+  --cp-quote: #0f172a;
+  --cp-ring: rgba(99, 132, 255, 0.35);
+}
+
+a {
+  color: var(--cp-accent);
 }
 
 .section-title {
-  @apply text-xs tracking-wider text-gray-300 dark:text-gray-700 uppercase font-semibold;
-  font-variant-caps: all-small-caps;
+  @apply text-xs font-semibold uppercase tracking-wider;
+  color: var(--cp-muted);
 }
 
-/*
-  Glassmorphism component layer
-  These classes compose reusable “liquid glass” surfaces using Tailwind tokens.
-*/
 @layer components {
-  .divider-h { @apply h-px bg-gray-700 dark:bg-gray-200 w-full; }
-  .section-offset { @apply bg-gray-900/60 dark:bg-white/60 backdrop-blur-sm rounded-2xl; }
-  .glass-surface {
-    @apply rounded-2xl lg:rounded-3xl border border-white/10 dark:border-white/30 bg-gray-900/70 dark:bg-white/50 backdrop-blur-2xl backdrop-saturate-150 shadow-glass transition-all duration-300 ease-out;
-  }
-
-  .glass-surface:hover { @apply shadow-glass-lg; }
-
-  .glass-card {
-    @apply glass-surface;
-  }
-
-  .glass-panel {
-    @apply glass-surface;
-  }
-
-  .glass-nav { @apply border-b border-white/10 dark:border-white/20 bg-gray-900/60 dark:bg-white/60 backdrop-blur-2xl backdrop-saturate-150 shadow-glass; }
-
-  .glass-popover { @apply rounded-2xl border border-white/10 dark:border-white/30 bg-gray-900/80 dark:bg-white/70 backdrop-blur-2xl backdrop-saturate-150 shadow-glass-lg transition-all duration-300 ease-out; }
-
-  .glass-modal { @apply rounded-3xl border border-white/10 dark:border-white/30 bg-gray-900/80 dark:bg-white/70 backdrop-blur-3xl backdrop-saturate-150 shadow-glass-lg; }
-
-  .glass-input { @apply rounded-xl border border-white/10 dark:border-white/30 bg-gray-800/70 dark:bg-white/70 backdrop-blur-lg shadow-inner-glass text-white dark:text-gray-900 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 dark:focus-visible:ring-offset-white transition-all duration-200 ease-out; }
-
-  .liquid-button {
-    @apply relative inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium text-white shadow-glass transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900;
-    background: radial-gradient(80% 120% at 10% 10%, rgba(255,255,255,0.25), rgba(255,255,255,0) 60%), var(--cp-accent);
-  }
-  .liquid-button::before {
-    content: "";
-    @apply absolute inset-0 rounded-2xl blur-xl opacity-60 -z-10;
-    background: radial-gradient(60% 60% at 50% 50%, rgba(79,70,229,0.35), transparent 70%);
-  }
-  .liquid-button:hover { @apply shadow-glow-accent; }
-
-  .liquid-toggle { @apply inline-flex rounded-2xl border border-white/10 dark:border-white/30 bg-gray-900/60 dark:bg-white/60 backdrop-blur-xl backdrop-saturate-150 p-1 shadow-glass; }
-
-  .liquid-toggle-btn {
-    @apply px-3 py-1.5 text-sm rounded-xl transition-all duration-200 ease-out text-white dark:text-gray-800;
-  }
-
-  .liquid-toggle-btn[aria-pressed="true"] { @apply bg-accent text-white shadow-glow-accent; }
-
-  .glass-divider {
-    @apply border-white/10 dark:border-white/30;
-  }
-
-  .text-on-glass { @apply text-gray-100 dark:text-gray-900 drop-shadow-sm; }
-
-  .glass-floating { @apply backdrop-blur-2xl backdrop-saturate-150 bg-gray-900/90 dark:bg-white/80 border border-white/10 dark:border-white/30 shadow-glass-lg; }
+  .divider-h { @apply h-px w-full; background-color: var(--cp-border); }
+  .focus-ring { @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950; }
+  .page-title { @apply text-2xl md:text-3xl font-semibold tracking-tight; color: var(--cp-text); }
+  .page-subtitle { @apply text-sm md:text-base; color: var(--cp-muted); }
+  .section-heading { @apply text-lg font-semibold tracking-tight; color: var(--cp-text); }
+  .card { border: 1px solid var(--cp-border); background-color: var(--cp-surface); }
+  .muted-link { color: var(--cp-muted); transition: color 150ms ease; }
+  .muted-link:hover { color: var(--cp-text); }
+  .inline-link { color: var(--cp-text); text-decoration: underline; text-underline-offset: 2px; }
+  .inline-link:hover { color: var(--cp-accent); }
 }
 
-/* Upgrade existing card helper to glass by default */
-.card {
-  @apply glass-card;
-}
-
-.focus-ring {
-  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900 dark:focus-visible:ring-offset-white;
-}
-
-/* Dark mode (when toggled) - light backgrounds */
-html.dark body {
-  @apply text-slate-900;
-  background-color: #f8fafc; /* light gray */
-  background-image: radial-gradient(1200px 600px at 10% -10%, rgba(79,70,229,0.08), transparent 60%), radial-gradient(800px 400px at 110% 10%, rgba(14,165,233,0.08), transparent 50%);
-}
-
-/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .glass-surface, .glass-card, .glass-panel, .glass-popover, .glass-modal, .liquid-button, .liquid-toggle, .liquid-toggle-btn {
+  * {
     transition-duration: 150ms !important;
-    transition-timing-function: ease-out !important;
+    animation-duration: 0.001ms !important;
   }
-}
-
-/* Lightweight animations and microinteractions */
-@keyframes typing { from { width: 0 } to { width: 100% } }
-@keyframes blink { 50% { border-color: transparent } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
-
-@layer utilities {
-  .typewriter { border-right: 2px solid rgba(2, 6, 23, 0.5); white-space: nowrap; overflow: hidden }
-  .typewriter-dark { border-right: 2px solid rgba(248, 250, 252, 0.6) }
-  .animate-typing { animation: typing 3.8s steps(36, end) infinite alternate; }
-  .animate-blink { animation: blink 1s step-end infinite; }
-  .animate-fade-in-up { animation: fadeInUp 600ms ease-out both; }
-  .lift { transition: transform 300ms ease-out, box-shadow 300ms ease-out; will-change: transform; }
-  .lift:hover { transform: translateY(-2px); }
 }
 
 

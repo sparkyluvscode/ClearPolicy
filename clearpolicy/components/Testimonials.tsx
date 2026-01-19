@@ -1,39 +1,43 @@
+import { Card } from "@/components/ui";
+
 export default function Testimonials() {
   return (
-    <section className="glass-card p-6" aria-labelledby="testimonials-title">
-      <h2 id="testimonials-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">What people say</h2>
-      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <blockquote className="glass-panel p-4 lift">
-          <div className="flex items-center gap-3">
-            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-accent/70 to-cyan-400/50 flex items-center justify-center text-white font-semibold">AR</span>
-            <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Abdiel Rivera, PhD</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Storrs, CT</div>
+    <section aria-labelledby="testimonials-title">
+      <Card className="space-y-4">
+        <h2 id="testimonials-title" className="section-heading">What people say</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <blockquote className="rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-4">
+            <div className="flex items-center gap-3">
+              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white font-semibold">AR</span>
+              <div>
+                <div className="text-sm font-medium text-[var(--cp-text)]">Abdiel Rivera, PhD</div>
+                <div className="text-xs text-[var(--cp-muted)]">Storrs, CT</div>
+              </div>
             </div>
-          </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The TLDR summaries and plain-English breakdown transform dense policy language into clear, actionable information I can trust."</p>
-        </blockquote>
-        <blockquote className="glass-panel p-4 lift">
-          <div className="flex items-center gap-3">
-            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500/80 to-purple-400/60 flex items-center justify-center text-white font-semibold">MI</span>
-            <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Marc Imrie — Teacher</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Granite Bay, California</div>
+            <p className="mt-3 text-sm leading-6 text-[var(--cp-text)]">&ldquo;The TLDR summaries and plain-English breakdown transform dense policy language into clear, actionable information I can trust.&rdquo;</p>
+          </blockquote>
+          <blockquote className="rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-4">
+            <div className="flex items-center gap-3">
+              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-white font-semibold">MI</span>
+              <div>
+                <div className="text-sm font-medium text-[var(--cp-text)]">Marc Imrie — Teacher</div>
+                <div className="text-xs text-[var(--cp-muted)]">Granite Bay, California</div>
+              </div>
             </div>
-          </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"Finally, a tool that connects local ZIP codes to actual representatives and measures—I can see exactly how policy affects my community."</p>
-        </blockquote>
-        <blockquote className="glass-panel p-4 lift">
-          <div className="flex items-center gap-3">
-            <span aria-hidden className="h-10 w-10 rounded-full bg-gradient-to-br from-sky-500/80 to-emerald-400/60 flex items-center justify-center text-white font-semibold">DM</span>
-            <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Daksh Mamnani — 2024 CAC Winner</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Rancho Cordova, CA</div>
+            <p className="mt-3 text-sm leading-6 text-[var(--cp-text)]">&ldquo;Finally, a tool that connects local ZIP codes to actual representatives and measures—I can see exactly how policy affects my community.&rdquo;</p>
+          </blockquote>
+          <blockquote className="rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-4">
+            <div className="flex items-center gap-3">
+              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-600 text-white font-semibold">DM</span>
+              <div>
+                <div className="text-sm font-medium text-[var(--cp-text)]">Daksh Mamnani — 2024 CAC Winner</div>
+                <div className="text-xs text-[var(--cp-muted)]">Rancho Cordova, CA</div>
+              </div>
             </div>
-          </div>
-          <p className="mt-3 text-[15px] leading-6 text-gray-900 dark:text-gray-100">"The sources are right there and verified. No agenda, no spin—just the actual facts from official documents. That's what I need to make informed decisions."</p>
-        </blockquote>
-      </div>
+            <p className="mt-3 text-sm leading-6 text-[var(--cp-text)]">&ldquo;The sources are right there and verified. No agenda, no spin—just the actual facts from official documents. That&apos;s what I need to make informed decisions.&rdquo;</p>
+          </blockquote>
+        </div>
+      </Card>
     </section>
   );
 }

@@ -18,20 +18,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   ].some(Boolean);
 
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-dvh dark:bg-gray-50 dark:text-gray-900">
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className="min-h-dvh">
         <Script id="cp-theme-init" strategy="beforeInteractive">
-          {`(function(){try{var s=localStorage.getItem('cp_theme');if(s){var dark=s==='dark';var el=document.documentElement;if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefers=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=prefers?false:true;var el=document.documentElement;if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
+          {`(function(){try{var s=localStorage.getItem('cp_theme');var el=document.documentElement;if(s){var dark=s==='dark';if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefers=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(prefers){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
         </Script>
         <Header />
         {missingKeys && (
-          <div className="bg-amber-900/20 border-b border-amber-800 text-amber-200 dark:bg-amber-50 dark:text-amber-900 dark:border-amber-200">
+          <div className="border-b border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
             <div className="mx-auto max-w-6xl px-4 py-2 text-sm">
               Live data temporarily unavailable—showing verified sample content.
             </div>
           </div>
         )}
-        <main className="mx-auto max-w-6xl px-4 py-6">
+        <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8">
           {children}
         </main>
         <HelpButton />

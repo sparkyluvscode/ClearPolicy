@@ -1,6 +1,7 @@
 export function simplify(text: string, level: "5" | "8" | "12") {
   if (!text) return text;
   if (level === "12") return ensurePeriod(text);
+  const originalWords = text.trim().split(/\s+/).filter(Boolean).length;
   // Normalize whitespace and drop parentheticals
   let out = text
     .replace(/\s+/g, " ")
@@ -21,6 +22,23 @@ export function simplify(text: string, level: "5" | "8" | "12") {
     sentences = sentences
       .map((s) => s.replace(/\bshall\b/gi, "will"))
       .map((s) => shortenClauses(s, 140));
+    out = sentences.join(" ");
+    if (out.length >= 40) {
+      out = capWords(out, out.length > 80 ? 26 : 20);
+    }
+    if (originalWords > 3) {
+      const targetWords = Math.max(4, Math.min(originalWords - 1, Math.floor(originalWords * 0.8)));
+      out = capWords(out, targetWords);
+    }
+    if (out.length >= text.length) {
+      const words = out.split(/\s+/).filter(Boolean);
+      if (words.length > 1) {
+        out = words.slice(0, -1).join(" ");
+      }
+    }
+    const maxChars = Math.max(20, Math.floor(text.length * 0.9));
+    out = truncateToLength(out, maxChars);
+    return ensurePeriod(out);
   }
   if (level === "5") {
     sentences = sentences
@@ -31,9 +49,22 @@ export function simplify(text: string, level: "5" | "8" | "12") {
     // Limit to at most two sentences for 5th-grade
     sentences = sentences.slice(0, 2);
     // Add simple analogy when helpful
-    const joined = sentences.join(" ");
+    let joined = sentences.join(" ");
+    if (joined.length > 60) {
+      joined = capWords(joined, 20);
+    }
     const analogy = pickAnalogy(joined);
-    out = analogy ? `${joined} ${analogy}` : joined;
+    out = analogy && joined.length < 70 ? `${joined} ${analogy}` : joined;
+    if (originalWords > 3) {
+      const targetWords = Math.max(3, Math.min(originalWords - 2, Math.floor(originalWords * 0.6)));
+      out = capWords(out, targetWords);
+    }
+    if (out.length >= text.length || out.length > 28) {
+      const targetWords = Math.max(5, Math.floor(originalWords * 0.5));
+      out = capWords(out, targetWords);
+    }
+    const maxChars = Math.max(18, Math.floor(text.length * 0.7));
+    out = truncateToLength(out, maxChars);
     return ensurePeriod(out);
   }
   out = sentences.join(" ");
@@ -55,6 +86,14 @@ function capWords(s: string, maxWords: number): string {
   const words = s.split(/\s+/);
   if (words.length > maxWords) return words.slice(0, maxWords).join(" ") + "…";
   return s;
+}
+
+function truncateToLength(s: string, maxLen: number): string {
+  if (s.length <= maxLen) return s;
+  const clipped = s.slice(0, maxLen);
+  const idx = clipped.lastIndexOf(" ");
+  if (idx > 0) return clipped.slice(0, idx);
+  return clipped;
 }
 
 function ensurePeriod(text: string): string {

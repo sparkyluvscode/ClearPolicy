@@ -13,16 +13,31 @@ export async function GET(req: NextRequest) {
   if (!parsed.success || !parsed.data.zip) return NextResponse.json({ error: "Enter a 5-digit ZIP (e.g., 95014).", officials: [], normalizedInput: { line1: zip || "" } }, { status: 200 });
 
   const normalizedInput = { line1: parsed.data.zip };
+  const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
+  const curated: Record<string, Official[]> = {
+    "95014": [
+      { name: "Josh Becker", party: "Democratic", office: "Senator", urls: ["https://sd13.senate.ca.gov/"] },
+      { name: "Evan Low", party: "Democratic", office: "Assemblymember", urls: ["https://a26.asmdc.org/"] },
+    ],
+  };
+  const curatedOfficials = curated[parsed.data.zip];
+  const fallbackResponse = (error?: string) => {
+    if (curatedOfficials && curatedOfficials.length) {
+      const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(`${parsed.data.zip} California measure impact`)}`;
+      return NextResponse.json({ officials: curatedOfficials, normalizedInput, analysisUrl, finderUrl }, { status: 200 });
+    }
+    return NextResponse.json({ error: error || "ZIP not found. Try a valid CA ZIP like 95014.", officials: [], normalizedInput }, { status: 200 });
+  };
   try {
     // 1) ZIP -> lat/lon (Zippopotam.us)
     const zipRes = await fetch(`https://api.zippopotam.us/us/${parsed.data.zip}`, { cache: "no-store" });
-    if (!zipRes.ok) return NextResponse.json({ error: "ZIP not found. Try a valid CA ZIP like 95014.", officials: [], normalizedInput }, { status: 200 });
+    if (!zipRes.ok) return fallbackResponse();
     const zipJson: any = await zipRes.json();
     const place = Array.isArray(zipJson?.places) && zipJson.places[0];
     const lat = place ? parseFloat(place.latitude) : NaN;
     const lon = place ? parseFloat(place.longitude) : NaN;
     const city = place?.["place name"] || "";
-    if (!isFinite(lat) || !isFinite(lon)) return NextResponse.json({ error: "Could not locate that ZIP. Try another.", officials: [], normalizedInput }, { status: 200 });
+    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.");
 
     // 2) lat/lon -> districts (Census Geocoder, ACS2025 layers)
     const params = new URLSearchParams({
@@ -52,7 +67,7 @@ export async function GET(req: NextRequest) {
     const divisionIds: string[] = [];
     if (upperNum) divisionIds.push(`ocd-division/country:us/state:ca/sldu:${upperNum}`);
     if (lowerNum) divisionIds.push(`ocd-division/country:us/state:ca/sldl:${lowerNum}`);
-    if (divisionIds.length === 0) return NextResponse.json({ error: "Could not find CA districts for this ZIP.", officials: [], normalizedInput }, { status: 200 });
+    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.");
 
     // 3) OpenStates: fetch people for each division_id
     // Fetch by district number and filter by chamber from current_role to ensure correctness
@@ -172,15 +187,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (officials.length === 0) {
-      const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
-      // Prefer a curated mapping for known demo ZIPs for best UX
-      const curated: Record<string, Official[]> = {
-        "95014": [
-          { name: "Josh Becker", party: "Democratic", office: "Senator", urls: ["https://sd13.senate.ca.gov/"] },
-          { name: "Evan Low", party: "Democratic", office: "Assemblymember", urls: ["https://a26.asmdc.org/"] },
-        ],
-      };
-      const cur = curated[parsed.data.zip];
+      const cur = curatedOfficials;
       if (cur && cur.length) officials.push(...cur);
 
       // Helper to parse a likely name from a homepage <title>
@@ -302,10 +309,9 @@ export async function GET(req: NextRequest) {
     const analysisQuery = contextLine ? `${contextLine} ${city} California` : `${parsed.data.zip} California measure impact`;
     const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(analysisQuery)}`;
 
-    const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
     return NextResponse.json({ officials, normalizedInput, offices: [], analysisUrl, finderUrl }, { status: 200 });
   } catch (e) {
-    return NextResponse.json({ error: "Lookup failed. Try again later.", officials: [], normalizedInput }, { status: 200 });
+    return fallbackResponse("Lookup failed. Try again later.");
   }
 }
 

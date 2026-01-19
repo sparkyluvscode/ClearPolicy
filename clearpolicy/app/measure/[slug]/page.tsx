@@ -3,6 +3,7 @@ import InteractiveSummary from "@/components/InteractiveSummary";
 import ZipPanel from "@/components/ZipPanel";
 import { Suspense } from "react";
 import TourOverlay from "@/components/TourOverlay";
+import { Card } from "@/components/ui";
 
 async function getData(slug: string) {
   try {
@@ -22,19 +23,19 @@ export default async function MeasurePage({ params }: { params: { slug: string }
     const measure = await getData(params.slug);
     if (!measure) {
       return (
-        <div className="card p-6">
-          <h1 className="text-xl font-semibold text-gray-100 dark:text-gray-900">Measure not found</h1>
-          <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">The measure you're looking for doesn't exist.</p>
-        </div>
+        <Card>
+          <h1 className="text-xl font-semibold text-[var(--cp-text)]">Measure not found</h1>
+          <p className="mt-2 text-sm text-[var(--cp-muted)]">The measure you&apos;re looking for doesn&apos;t exist.</p>
+        </Card>
       );
     }
     
     if (!measure.summaries || measure.summaries.length === 0) {
       return (
-        <div className="card p-6">
-          <h1 className="text-xl font-semibold text-gray-100 dark:text-gray-900">{measure.number} — {measure.title}</h1>
-          <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">No summaries available for this measure.</p>
-        </div>
+        <Card>
+          <h1 className="text-xl font-semibold text-[var(--cp-text)]">{measure.number} — {measure.title}</h1>
+          <p className="mt-2 text-sm text-[var(--cp-muted)]">No summaries available for this measure.</p>
+        </Card>
       );
     }
 
@@ -54,24 +55,21 @@ export default async function MeasurePage({ params }: { params: { slug: string }
     }));
 
     return (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[2.2fr,1fr]">
         <TourOverlay />
-        <div className="lg:col-span-2 space-y-4">
-          <header className="card p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">{measure.number} — {measure.title}</h1>
-                {measure.status && <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">{measure.status}</p>}
-              </div>
+        <div className="space-y-6">
+          <Card>
+            <div className="space-y-2">
+              <h1 className="page-title">{measure.number} — {measure.title}</h1>
+              {measure.status && <p className="text-sm text-[var(--cp-muted)]">{measure.status}</p>}
             </div>
-            {/* Client area: level toggle + dynamic card */}
-            <Suspense fallback={<div className="mt-4 text-sm text-gray-400">Loading summary...</div>}>
-              <InteractiveSummary summaries={summariesWithCitations} />
-            </Suspense>
-          </header>
+          </Card>
+          <Suspense fallback={<div className="text-sm text-[var(--cp-muted)]">Loading summary...</div>}>
+            <InteractiveSummary summaries={summariesWithCitations} />
+          </Suspense>
           <div className="sr-only">{summary12?.tldr}</div>
         </div>
-        <div>
+        <div className="space-y-6">
           <ZipPanel />
         </div>
       </div>
@@ -79,10 +77,10 @@ export default async function MeasurePage({ params }: { params: { slug: string }
   } catch (error) {
     console.error("Error loading measure:", error);
     return (
-      <div className="card p-6">
-        <h1 className="text-xl font-semibold text-gray-100 dark:text-gray-900">Error loading measure</h1>
-        <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">There was an error loading this measure. Please try again later.</p>
-      </div>
+      <Card>
+        <h1 className="text-xl font-semibold text-[var(--cp-text)]">Error loading measure</h1>
+        <p className="mt-2 text-sm text-[var(--cp-muted)]">There was an error loading this measure. Please try again later.</p>
+      </Card>
     );
   }
 }

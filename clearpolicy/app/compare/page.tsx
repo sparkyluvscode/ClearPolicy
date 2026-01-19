@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { Badge, Button, Card } from "@/components/ui";
 
 // Same proposition data - in real app would come from API/shared data
 const propositions = [
@@ -71,46 +72,48 @@ export default function ComparePage() {
 
     return (
         <div className="space-y-6">
-            {/* Hero */}
-            <section className="card p-6 md:p-8 animate-fade-in-up">
-                <h1 className="text-2xl md:text-3xl font-semibold text-gray-100 dark:text-gray-900">
+            <Card className="space-y-2">
+                <h1 className="page-title">
                     Compare Propositions
                 </h1>
-                <p className="mt-2 text-gray-300 dark:text-gray-700">
-                    View side-by-side comparisons of ballot measures
+                <p className="page-subtitle">
+                    View side-by-side comparisons of ballot measures.
                 </p>
-            </section>
+            </Card>
 
             {/* Slot selectors */}
-            <section className="card p-4 md:p-6 animate-fade-in-up">
+            <Card className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
                     {selectedProps.map((num, index) => (
                         <div key={index} className="relative">
-                            <button
+                            <Button
+                                variant="secondary"
                                 onClick={() => setShowSelector(showSelector === index ? null : index)}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800/50 dark:bg-white/50 hover:bg-gray-700/50 dark:hover:bg-white/70 transition-colors"
+                                className="w-44 justify-between"
                             >
                                 <span className="text-accent font-semibold">
                                     {num ? `Prop ${num}` : "Select..."}
                                 </span>
-                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
-                            </button>
+                            </Button>
 
                             {selectedProps.length > 2 && (
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 text-rose-500 hover:bg-rose-500/10"
                                     onClick={() => removeSlot(index)}
-                                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
                                     aria-label="Remove"
                                 >
                                     ×
-                                </button>
+                                </Button>
                             )}
 
                             {/* Dropdown */}
                             {showSelector === index && (
-                                <div className="absolute top-full mt-2 left-0 z-20 w-64 glass-popover p-2 max-h-64 overflow-y-auto">
+                                <div className="absolute top-full mt-2 left-0 z-20 w-64 rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 shadow-soft max-h-64 overflow-y-auto">
                                     {propositions.map(p => (
                                         <button
                                             key={p.num}
@@ -118,12 +121,12 @@ export default function ComparePage() {
                                             disabled={selectedProps.includes(p.num) && selectedProps[index] !== p.num}
                                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedProps.includes(p.num) && selectedProps[index] !== p.num
                                                     ? 'opacity-50 cursor-not-allowed'
-                                                    : 'hover:bg-white/10'
-                                                } ${selectedProps[index] === p.num ? 'bg-accent/20' : ''}`}
+                                                    : 'hover:bg-[var(--cp-surface-2)]'
+                                                } ${selectedProps[index] === p.num ? 'bg-[var(--cp-surface-2)]' : ''}`}
                                         >
-                                            <span className="font-medium text-gray-100 dark:text-gray-900">Prop {p.num}</span>
-                                            <span className="ml-2 text-xs text-gray-400 dark:text-gray-600">({p.year})</span>
-                                            <div className="text-xs text-gray-400 dark:text-gray-600 line-clamp-1 mt-0.5">
+                                            <span className="font-medium text-[var(--cp-text)]">Prop {p.num}</span>
+                                            <span className="ml-2 text-xs text-[var(--cp-muted)]">({p.year})</span>
+                                            <div className="text-xs text-[var(--cp-muted)] line-clamp-1 mt-0.5">
                                                 {p.title}
                                             </div>
                                         </button>
@@ -134,83 +137,79 @@ export default function ComparePage() {
                     ))}
 
                     {selectedProps.length < 3 && (
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={addSlot}
-                            className="px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-600 dark:border-gray-400 text-gray-400 hover:border-accent hover:text-accent transition-colors"
+                            className="border-2 border-dashed border-[var(--cp-border)] text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
                         >
                             + Add
-                        </button>
+                        </Button>
                     )}
                 </div>
-            </section>
+            </Card>
 
             {/* Comparison Table - Desktop */}
-            <section className="hidden md:block card p-6 animate-fade-in-up overflow-x-auto">
+            <Card className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b border-white/10">
-                            <th className="text-left py-3 px-4 text-gray-400 dark:text-gray-600 font-medium w-32">Aspect</th>
+                        <tr className="border-b border-[var(--cp-border)]">
+                            <th className="text-left py-3 px-4 text-[var(--cp-muted)] font-medium w-32">Aspect</th>
                             {selectedData.map((prop: any) => (
                                 <th key={prop.num} className="text-left py-3 px-4">
                                     <Link href={`/measure/prop/${prop.num}`} className="hover:text-accent transition-colors">
                                         <span className="text-xl font-bold text-accent">Prop {prop.num}</span>
-                                        <span className="ml-2 text-xs text-gray-400">({prop.year})</span>
+                                        <span className="ml-2 text-xs text-[var(--cp-muted)]">({prop.year})</span>
                                     </Link>
                                 </th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
-                        <tr className="border-b border-white/5">
-                            <td className="py-4 px-4 text-sm text-gray-400 dark:text-gray-600 font-medium">Title</td>
+                        <tr className="border-b border-[var(--cp-border)]">
+                            <td className="py-4 px-4 text-sm text-[var(--cp-muted)] font-medium">Title</td>
                             {selectedData.map((prop: any) => (
-                                <td key={prop.num} className="py-4 px-4 text-sm text-gray-100 dark:text-gray-900">
+                                <td key={prop.num} className="py-4 px-4 text-sm text-[var(--cp-text)]">
                                     {prop.title}
                                 </td>
                             ))}
                         </tr>
-                        <tr className="border-b border-white/5">
-                            <td className="py-4 px-4 text-sm text-gray-400 dark:text-gray-600 font-medium">Category</td>
+                        <tr className="border-b border-[var(--cp-border)]">
+                            <td className="py-4 px-4 text-sm text-[var(--cp-muted)] font-medium">Category</td>
                             {selectedData.map((prop: any) => (
                                 <td key={prop.num} className="py-4 px-4">
-                                    <span className="text-xs px-2 py-1 bg-gray-800/50 dark:bg-white/50 rounded-md text-gray-300 dark:text-gray-700">
+                                    <span className="text-xs px-2 py-1 bg-[var(--cp-surface-2)] rounded-md text-[var(--cp-muted)]">
                                         {prop.category}
                                     </span>
                                 </td>
                             ))}
                         </tr>
-                        <tr className="border-b border-white/5">
-                            <td className="py-4 px-4 text-sm text-gray-400 dark:text-gray-600 font-medium">Status</td>
+                        <tr className="border-b border-[var(--cp-border)]">
+                            <td className="py-4 px-4 text-sm text-[var(--cp-muted)] font-medium">Status</td>
                             {selectedData.map((prop: any) => (
                                 <td key={prop.num} className="py-4 px-4">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${prop.status === 'Active'
-                                            ? 'bg-emerald-500/20 text-emerald-400'
-                                            : prop.status === 'Passed'
-                                                ? 'bg-blue-500/20 text-blue-400'
-                                                : 'bg-red-500/20 text-red-400'
-                                        }`}>
+                                    <Badge variant={prop.status === "Active" ? "supported" : prop.status === "Passed" ? "official" : "analysis"}>
                                         {prop.status}
-                                    </span>
+                                    </Badge>
                                 </td>
                             ))}
                         </tr>
-                        <tr className="border-b border-white/5">
-                            <td className="py-4 px-4 text-sm text-gray-400 dark:text-gray-600 font-medium align-top">TL;DR</td>
+                        <tr className="border-b border-[var(--cp-border)]">
+                            <td className="py-4 px-4 text-sm text-[var(--cp-muted)] font-medium align-top">TL;DR</td>
                             {selectedData.map((prop: any) => (
-                                <td key={prop.num} className="py-4 px-4 text-sm text-gray-100 dark:text-gray-900">
+                                <td key={prop.num} className="py-4 px-4 text-sm text-[var(--cp-text)]">
                                     {prop.tldr}
                                 </td>
                             ))}
                         </tr>
-                        <tr className="border-b border-white/5">
-                            <td className="py-4 px-4 text-sm text-gray-400 dark:text-gray-600 font-medium align-top">Pros</td>
+                        <tr className="border-b border-[var(--cp-border)]">
+                            <td className="py-4 px-4 text-sm text-[var(--cp-muted)] font-medium align-top">Pros</td>
                             {selectedData.map((prop: any) => (
                                 <td key={prop.num} className="py-4 px-4">
-                                    <ul className="text-sm text-emerald-400 space-y-1">
+                                    <ul className="text-sm space-y-1">
                                         {prop.pros.map((pro: string, i: number) => (
                                             <li key={i} className="flex items-start gap-2">
-                                                <span className="mt-1">✓</span>
-                                                <span className="text-gray-100 dark:text-gray-900">{pro}</span>
+                                                <span className="mt-1 text-emerald-500">✓</span>
+                                                <span className="text-[var(--cp-text)]">{pro}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -218,14 +217,14 @@ export default function ComparePage() {
                             ))}
                         </tr>
                         <tr>
-                            <td className="py-4 px-4 text-sm text-gray-400 dark:text-gray-600 font-medium align-top">Cons</td>
+                            <td className="py-4 px-4 text-sm text-[var(--cp-muted)] font-medium align-top">Cons</td>
                             {selectedData.map((prop: any) => (
                                 <td key={prop.num} className="py-4 px-4">
-                                    <ul className="text-sm text-red-400 space-y-1">
+                                    <ul className="text-sm space-y-1">
                                         {prop.cons.map((con: string, i: number) => (
                                             <li key={i} className="flex items-start gap-2">
-                                                <span className="mt-1">✗</span>
-                                                <span className="text-gray-100 dark:text-gray-900">{con}</span>
+                                                <span className="mt-1 text-rose-500">✗</span>
+                                                <span className="text-[var(--cp-text)]">{con}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -234,23 +233,20 @@ export default function ComparePage() {
                         </tr>
                     </tbody>
                 </table>
-            </section>
+            </Card>
 
             {/* Comparison Cards - Mobile */}
             <section className="md:hidden space-y-4">
                 {selectedData.map((prop: any) => (
-                    <article key={prop.num} className="card p-5 animate-fade-in-up">
+                    <Card key={prop.num} className="space-y-3">
                         <Link href={`/measure/prop/${prop.num}`} className="block hover:text-accent transition-colors">
                             <div className="flex items-center justify-between">
                                 <span className="text-xl font-bold text-accent">Prop {prop.num}</span>
-                                <span className={`text-xs px-2 py-1 rounded-full ${prop.status === 'Active'
-                                        ? 'bg-emerald-500/20 text-emerald-400'
-                                        : 'bg-blue-500/20 text-blue-400'
-                                    }`}>
+                                <Badge variant={prop.status === "Active" ? "supported" : "official"}>
                                     {prop.status}
-                                </span>
+                                </Badge>
                             </div>
-                            <h3 className="mt-2 text-sm font-medium text-gray-100 dark:text-gray-900">
+                            <h3 className="mt-2 text-sm font-medium text-[var(--cp-text)]">
                                 {prop.title}
                             </h3>
                         </Link>
@@ -258,12 +254,12 @@ export default function ComparePage() {
                         <div className="mt-4 space-y-3">
                             <div>
                                 <span className="section-title">TL;DR</span>
-                                <p className="mt-1 text-sm text-gray-100 dark:text-gray-900">{prop.tldr}</p>
+                                <p className="mt-1 text-sm text-[var(--cp-text)]">{prop.tldr}</p>
                             </div>
 
                             <div>
-                                <span className="section-title text-emerald-400">Pros</span>
-                                <ul className="mt-1 text-sm text-gray-100 dark:text-gray-900 space-y-1">
+                                <span className="section-title text-emerald-600">Pros</span>
+                                <ul className="mt-1 text-sm text-[var(--cp-text)] space-y-1">
                                     {prop.pros.map((pro: string, i: number) => (
                                         <li key={i}>✓ {pro}</li>
                                     ))}
@@ -271,35 +267,34 @@ export default function ComparePage() {
                             </div>
 
                             <div>
-                                <span className="section-title text-red-400">Cons</span>
-                                <ul className="mt-1 text-sm text-gray-100 dark:text-gray-900 space-y-1">
+                                <span className="section-title text-rose-500">Cons</span>
+                                <ul className="mt-1 text-sm text-[var(--cp-text)] space-y-1">
                                     {prop.cons.map((con: string, i: number) => (
                                         <li key={i}>✗ {con}</li>
                                     ))}
                                 </ul>
                             </div>
                         </div>
-                    </article>
+                    </Card>
                 ))}
             </section>
 
-            {/* Call to action */}
-            <section className="card p-6 text-center animate-fade-in-up">
-                <h3 className="text-lg font-medium text-gray-100 dark:text-gray-900">
+            <Card className="text-center">
+                <h3 className="text-lg font-medium text-[var(--cp-text)]">
                     Want to explore more measures?
                 </h3>
-                <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">
+                <p className="mt-1 text-sm text-[var(--cp-muted)]">
                     Browse all available propositions or search for specific topics
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
-                    <Link href="/browse" className="liquid-button px-5 py-2.5 text-sm">
-                        Browse All
+                    <Link href="/browse">
+                        <Button>Browse All</Button>
                     </Link>
-                    <Link href="/" className="px-5 py-2.5 text-sm rounded-xl border border-white/20 text-gray-200 dark:text-gray-800 hover:bg-white/5 transition-colors">
-                        Search
+                    <Link href="/">
+                        <Button variant="secondary">Search</Button>
                     </Link>
                 </div>
-            </section>
+            </Card>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 export default function Illustration({ label = "App demo" }: { label?: string }) {
   return (
-    <figure className="glass-card p-6" aria-label={label} role="img">
+    <figure className="rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-6" aria-label={label} role="img">
       <svg viewBox="0 0 600 280" className="w-full h-auto" aria-hidden>
         <defs>
           <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">

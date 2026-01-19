@@ -25,15 +25,13 @@ test.describe('Home search, results, onboarding, headings, mobile @acceptance', 
     // Use the home-search input directly (it doesn't navigate, just updates state)
     // The header global search navigates to /?q=query which requires waiting for navigation
     const homeSearch = page.locator('#home-search');
-    if (await homeSearch.count() > 0 && await homeSearch.isVisible()) {
+    if (await homeSearch.isVisible().catch(() => false)) {
       await homeSearch.fill('health');
-      await page.getByRole('button', { name: 'Search' }).click();
-      // Wait for the API response and state update
-      await page.waitForTimeout(2000);
+      await page.keyboard.press('Enter');
     } else {
       // Fallback to header search - this navigates, so wait for navigation
-      const hasGlobal = await page.getByLabel('Search measures').count();
-      if (hasGlobal) {
+      const globalSearch = page.getByLabel('Search measures');
+      if (await globalSearch.isVisible().catch(() => false)) {
         await page.getByLabel('Search measures').fill('health');
         await Promise.all([
           page.waitForNavigation({ waitUntil: 'networkidle' }),
@@ -41,10 +39,10 @@ test.describe('Home search, results, onboarding, headings, mobile @acceptance', 
         ]);
       } else {
         await page.getByLabel('Search').fill('health');
-        await page.getByRole('button', { name: 'Search' }).click();
-        await page.waitForTimeout(2000);
+        await page.keyboard.press('Enter');
       }
     }
+    await page.waitForTimeout(500);
     await expect(page.getByRole('heading', { name: 'Search Results' })).toBeVisible();
     const first = page.getByRole('link', { name: /Open summary/ }).first();
     await expect(first).toBeVisible();

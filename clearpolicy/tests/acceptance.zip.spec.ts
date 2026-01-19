@@ -15,7 +15,8 @@ test.describe('ZIP/Local lens @acceptance', () => {
     // Valid
     await input.fill('95014');
     await page.getByRole('button', { name: 'Look up' }).click();
-    const list = page.getByRole('list');
+    const zipPanel = page.getByRole('complementary', { name: /Local lens/ });
+    const list = zipPanel.getByRole('list', { name: 'ZIP officials' });
     await expect(list).toBeVisible();
     await expect(list.locator('li').first()).toBeVisible();
   });

@@ -1,13 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Card } from "@/components/ui";
 
 export default function HomeDemo() {
-  const prompts = [
-    "prop 17 retail theft — what changed and who is affected?",
-    "H.R. 50 voting rights",
-    "prop 47 criminal justice",
-    "Find my representative for ZIP 95014"
-  ];
+  const prompts = useMemo(
+    () => [
+      "prop 17 retail theft — what changed and who is affected?",
+      "H.R. 50 voting rights",
+      "prop 47 criminal justice",
+      "Find my representative for ZIP 95014",
+    ],
+    []
+  );
 
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [currentText, setCurrentText] = useState("");
@@ -39,38 +43,40 @@ export default function HomeDemo() {
       setIsDeleting(false);
       setCurrentPromptIndex((prev) => (prev + 1) % prompts.length);
     }
-  }, [currentText, isDeleting, currentPromptIndex]);
+  }, [currentText, isDeleting, currentPromptIndex, prompts]);
 
   return (
-    <section className="glass-card p-6 lift" aria-label="How ClearPolicy works">
-      <div className="flex flex-col md:flex-row items-center gap-6">
-        <div className="flex-1 w-full">
-          <div className="text-sm text-gray-400 dark:text-gray-600">Try a search</div>
-          <div className="mt-2 glass-input w-full px-3 py-2 text-sm relative">
-            <span className="pr-1 block max-w-full text-white dark:text-gray-900">
-              {currentText}
-            </span>
-            <span className="animate-blink absolute right-3 top-2.5 h-5 w-px bg-white/70 dark:bg-gray-800/70" aria-hidden="true" />
+    <section aria-label="How ClearPolicy works">
+      <Card className="space-y-4">
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          <div className="flex-1 w-full">
+            <div className="text-sm text-[var(--cp-muted)]">Try a search</div>
+            <div className="mt-2 w-full rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] px-3 py-2 text-sm relative">
+              <span className="pr-1 block max-w-full text-[var(--cp-text)]">
+                {currentText}
+              </span>
+              <span className="absolute right-3 top-2.5 h-5 w-px bg-[var(--cp-muted)]/60" aria-hidden="true" />
+            </div>
+            <div className="mt-3 text-xs text-[var(--cp-muted)]">Watch the input type, then the summary card appears.</div>
           </div>
-          <div className="mt-3 text-xs text-gray-400 dark:text-gray-500">Watch the input type, then the summary card appears.</div>
-        </div>
-        <div className="flex-1 w-full">
-          <div className="glass-card p-4 animate-fade-in-up" aria-hidden="true">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-gray-100 dark:text-gray-900">Summary</div>
-              <div className="h-2 w-24 rounded-full bg-accent/20">
-                <div className="h-2 w-12 rounded-full bg-accent" />
+          <div className="flex-1 w-full">
+            <div className="rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-4" aria-hidden="true">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-[var(--cp-text)]">Summary</div>
+                <div className="h-2 w-24 rounded-full bg-accent/20">
+                  <div className="h-2 w-12 rounded-full bg-accent" />
+                </div>
               </div>
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="h-3 rounded bg-[var(--cp-text)]/10 w-[92%]" />
+                <div className="h-3 rounded bg-[var(--cp-text)]/10 w-[86%]" />
+                <div className="h-3 rounded bg-[var(--cp-text)]/10 w-[80%]" />
+              </div>
+              <div className="mt-4 text-xs text-accent">Sources included • Tap to verify</div>
             </div>
-            <div className="mt-3 space-y-2 text-sm">
-              <div className="h-3 rounded bg-gray-900/10 dark:bg-white/10 w-[92%]" />
-              <div className="h-3 rounded bg-gray-900/10 dark:bg-white/10 w-[86%]" />
-              <div className="h-3 rounded bg-gray-900/10 dark:bg-white/10 w-[80%]" />
-            </div>
-            <div className="mt-4 text-xs text-accent">Sources included • Tap to verify</div>
           </div>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import ZipPanel from "@/components/ZipPanel";
 import { headers } from "next/headers";
 import dynamic from "next/dynamic";
+import { Card } from "@/components/ui";
 
 const LiveMeasureCardClient = dynamic(() => import("@/components/LiveMeasureCard"), { ssr: false });
 const TourOverlayClient = dynamic(() => import("@/components/TourOverlay"), { ssr: false });
@@ -10,10 +11,10 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
   const id = searchParams.id;
   if (!source || !id) {
     return (
-      <div className="card p-6">
-        <h1 className="text-xl font-semibold text-gray-100 dark:text-gray-900">Measure</h1>
-        <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">Missing parameters. Try a new search or open a sample measure below.</p>
-      </div>
+      <Card>
+        <h1 className="text-xl font-semibold text-[var(--cp-text)]">Measure</h1>
+        <p className="mt-2 text-sm text-[var(--cp-muted)]">Missing parameters. Try a new search or open a sample measure below.</p>
+      </Card>
     );
   }
 
@@ -27,21 +28,23 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
   const missing = !data || !!data.error || !data.raw;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-4">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[2.2fr,1fr]">
+      <div className="space-y-6">
         <TourOverlayClient />
-        <div className="card p-6">
-          <h1 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">{source === "os" ? "California Measure" : "Federal Bill"}</h1>
-          <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">Live data</p>
-        </div>
+        <Card>
+          <h1 className="page-title">
+            {source === "os" ? "California Measure" : "Federal Bill"}
+          </h1>
+          <p className="mt-1 text-sm text-[var(--cp-muted)]">Live data</p>
+        </Card>
         {missing && (
-          <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-900/40">
-            Some details unavailable; see the source link for more.
+          <div className="rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
+            <div className="px-3 py-2">Some details unavailable; see the source link for more.</div>
           </div>
         )}
         <LiveMeasureCardClient payload={data} />
       </div>
-      <div>
+      <div className="space-y-6">
         <ZipPanel contextId={source === "os" ? id : undefined} />
       </div>
     </div>

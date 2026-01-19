@@ -2,6 +2,9 @@
 import { useMemo, useState } from "react";
 import { simplify } from "@/lib/reading";
 import SourceMeter from "@/components/SourceMeter";
+import { Button, Card, SegmentedControl, ToggleButton } from "@/components/ui";
+import BillCard from "@/components/BillCard";
+import type { SummaryLike } from "@/lib/summary-types";
 
 type Fallback = { label: string; url: string; hint: string; kind: "overview" | "official" | "analysis" };
 type LevelContent = {
@@ -25,6 +28,7 @@ type Seed = {
 export default function ProvisionalCard({ query, fallbacks = [], seed }: { query: string; fallbacks?: Fallback[]; seed?: Seed }) {
   const [level, setLevel] = useState<"5" | "8" | "12">("8");
   const [showCitations, setShowCitations] = useState(false);
+  const [evidenceMode, setEvidenceMode] = useState(false);
   const primary = useMemo(() => {
     // Prefer Ballotpedia/LAO analyses if present so sources are actually explanatory
     const byLabel = fallbacks.find((f) => /ballotpedia|lao/i.test(f.label));
@@ -137,52 +141,87 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
     return content;
   };
 
+  const evidenceSummary = useMemo<SummaryLike>(() => {
+    const toString = (val: string | string[]) => (Array.isArray(val) ? val.join(" ") : val);
+    return {
+      tldr: toString(text.tldr),
+      whatItDoes: toString(text.what),
+      whoAffected: toString(text.who),
+      pros: toString(text.pros),
+      cons: toString(text.cons),
+      sourceRatio: 0,
+      citations: [],
+      sourceCount: 0,
+    };
+  }, [text]);
+
   return (
-    <article className="card p-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-semibold text-gray-100 dark:text-gray-900">Summary {seed?.year && <span className="text-gray-500 font-normal">({seed.year})</span>}</h2>
-        <div className="liquid-toggle" role="group" aria-label="Reading level">
-          {["5", "8", "12"].map((k) => (
-            <button key={k} className="liquid-toggle-btn" aria-pressed={level === k} onClick={() => setLevel(k as any)}>{k}th</button>
-          ))}
+    <Card variant="document" className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--cp-text)]">
+            Summary {seed?.year && <span className="text-[var(--cp-muted)] font-normal">({seed.year})</span>}
+          </h2>
+          <p className="mt-1 text-xs text-[var(--cp-muted)]">Fallback summary with available context.</p>
         </div>
+        <SegmentedControl
+          value={level}
+          onChange={(v) => setLevel(v as any)}
+          ariaLabel="Reading level"
+          options={[
+            { value: "5", label: "5th" },
+            { value: "8", label: "8th" },
+            { value: "12", label: "12th" },
+          ]}
+        />
       </div>
 
-      {/* Source Meter - shows citation coverage */}
-      <div className="mt-4 p-3 rounded-xl bg-gray-800/30 dark:bg-white/30 flex items-center justify-between flex-wrap gap-3">
+      <Card variant="subtle" className="flex flex-wrap items-center justify-between gap-3">
         <SourceMeter
           ratio={primary ? 0.8 : 0.4}
           count={primary ? 4 : 2}
           total={5}
         />
-        <button
-          onClick={() => setShowCitations(!showCitations)}
-          className="text-xs font-medium text-accent hover:underline focus-ring rounded"
-        >
-          {showCitations ? "Hide cited lines" : "Show cited lines"}
-        </button>
-      </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCitations(!showCitations)}
+          >
+            {showCitations ? "Hide cited lines" : "Show cited lines"}
+          </Button>
+          <ToggleButton
+            pressed={evidenceMode}
+            onPressedChange={setEvidenceMode}
+            label="Evidence Mode (beta)"
+            data-testid="evidence-toggle"
+          />
+        </div>
+      </Card>
 
-      <div className="mt-4 grid grid-cols-1 gap-5">
-
+      {evidenceMode && (
+        <BillCard data={evidenceSummary as any} level={level} evidenceMode />
+      )}
+      {!evidenceMode && (
+      <div className="grid grid-cols-1 gap-5 text-sm leading-relaxed">
         <section>
           <h3 className="section-title">TL;DR</h3>
-          <p className={`mt-1 text-gray-100 dark:text-gray-900 ${showCitations ? "border-l-2 border-emerald-500 pl-3" : ""}`}>{display(text.tldr)}</p>
-          {primary && showCitations && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600 animate-fade-in">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
+          <p className={`mt-1 text-[var(--cp-text)] ${showCitations ? "border-l-2 border-emerald-500/70 pl-3" : ""}`}>{display(text.tldr)}</p>
+          {primary && showCitations && <div className="mt-1 text-xs text-[var(--cp-muted)]">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="inline-link">{primary.label}</a></div>}
         </section>
         <section>
           <h3 className="section-title">What it does</h3>
-          <p className={`mt-1 text-gray-100 dark:text-gray-900 ${showCitations ? "border-l-2 border-emerald-500 pl-3" : ""}`}>{display(text.what)}</p>
-          {primary && showCitations && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600 animate-fade-in">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
+          <p className={`mt-1 text-[var(--cp-text)] ${showCitations ? "border-l-2 border-emerald-500/70 pl-3" : ""}`}>{display(text.what)}</p>
+          {primary && showCitations && <div className="mt-1 text-xs text-[var(--cp-muted)]">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="inline-link">{primary.label}</a></div>}
         </section>
         <section>
           <h3 className="section-title">Who is affected</h3>
-          <p className={`mt-1 text-gray-100 dark:text-gray-900 ${showCitations ? "border-l-2 border-emerald-500 pl-3" : ""}`}>{display(text.who)}</p>
-          {primary && showCitations && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600 animate-fade-in">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{primary.label}</a></div>}
+          <p className={`mt-1 text-[var(--cp-text)] ${showCitations ? "border-l-2 border-emerald-500/70 pl-3" : ""}`}>{display(text.who)}</p>
+          {primary && showCitations && <div className="mt-1 text-xs text-[var(--cp-muted)]">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="inline-link">{primary.label}</a></div>}
         </section>
         <section>
           <h3 className="section-title">Pros</h3>
-          <div className="mt-1 text-gray-100 dark:text-gray-900">
+          <div className="mt-1 text-[var(--cp-text)]">
             {Array.isArray(text.pros) ? (
               <ul className="list-disc pl-5 space-y-1">
                 {text.pros.map((p, i) => <li key={i}>{p}</li>)}
@@ -192,7 +231,7 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
         </section>
         <section>
           <h3 className="section-title">Cons</h3>
-          <div className="mt-1 text-gray-100 dark:text-gray-900">
+          <div className="mt-1 text-[var(--cp-text)]">
             {Array.isArray(text.cons) ? (
               <ul className="list-disc pl-5 space-y-1">
                 {text.cons.map((c, i) => <li key={i}>{c}</li>)}
@@ -201,7 +240,8 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
           </div>
         </section>
       </div>
-    </article>
+      )}
+    </Card>
   );
 }
 

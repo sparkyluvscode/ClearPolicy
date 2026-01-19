@@ -1,41 +1,36 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import DisambiguatorChips from "@/components/DisambiguatorChips";
+import FeatureGrid from "@/components/FeatureGrid";
 import TourOverlay from "@/components/TourOverlay";
-import Link from "next/link";
-import HomeDemo from "@/components/HomeDemo";
-import Illustration from "@/components/Illustration";
-import HeroGraphic from "@/components/HeroGraphic";
+import { Badge, Button, Card, SearchInput } from "@/components/ui";
 
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
   const [q, setQ] = useState("");
   const [chips, setChips] = useState<{ label: string; hint: string; slug?: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{ ca?: { results?: any[] }; us?: { bills?: any[]; data?: { bills?: any[] } }; fallbacks?: any[] }>({});
+  const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState<{ label: string; hint: string; slug?: string }[]>([]);
   const [showSuggest, setShowSuggest] = useState(false);
   const suggestAbort = useRef<AbortController | null>(null);
   const suggestTimeout = useRef<number | null>(null);
 
+  const queryParam = searchParams?.get("q") || "";
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get("q");
-    if (query && query.trim()) {
-      const trimmed = query.trim();
-      console.log("Initial query from URL:", trimmed);
-      // Set query state first
+    const trimmed = queryParam.trim();
+    if (!trimmed) return;
+    if (trimmed !== q.trim()) {
       setQ(trimmed);
-      // Then trigger search - use a small delay to ensure state is set
-      setTimeout(() => {
-        doSearch(trimmed).catch((err) => {
-          console.error("Initial search failed:", err);
-        });
-      }, 100);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    doSearch(trimmed).catch((err) => {
+      console.error("Initial search failed:", err);
+    });
+  }, [queryParam]);
 
   async function doSearch(query: string) {
     if (typeof window === "undefined") return;
@@ -44,6 +39,7 @@ export default function HomePage() {
       console.log("Empty query, skipping search");
       return;
     }
+    setHasSearched(true);
 
     console.log("doSearch called with:", trimmedQuery);
     setLoading(true);
@@ -208,7 +204,7 @@ export default function HomePage() {
 
   // Calculate showResults - ensure we check the actual state values
   const currentQ = q.trim();
-  const showResults = Boolean(currentQ && (hasCaResults || hasUsResults || hasFallbacks || chips.length > 0));
+  const showResults = Boolean(currentQ && (hasCaResults || hasUsResults || hasFallbacks || chips.length > 0 || hasSearched));
 
   // Additional debug - log when showResults should be true but isn't showing
   useEffect(() => {
@@ -258,149 +254,138 @@ export default function HomePage() {
   const caRelated = useMemo(() => caResultsArray.filter((r: any) => !r._direct), [caResultsArray]);
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:gap-10">
+    <div className="space-y-10">
       <TourOverlay />
-      <section className="card p-8 animate-fade-in-up relative overflow-hidden" id="about">
-        <h1 className="text-3xl font-semibold text-gray-100 dark:text-gray-900">Clarity on every ballot.</h1>
-        <p className="mt-2 text-lg text-gray-300 dark:text-gray-700">Empowering voters, parents, and students to understand policy at a glance.</p>
-        <p className="mt-3 text-sm text-gray-400 dark:text-gray-600">Instant plain‑English summaries of every ballot measure and law. Neutral. Sourced. Searchable. Accessible.</p>
-        <div className="mt-5 flex items-center gap-3">
-          <a href="#home-search" className="liquid-button px-6 py-2.5 font-semibold">Get started</a>
-          <a href="/about" className="text-sm text-accent hover:underline focus-ring rounded">How it works</a>
+      <section id="home-search-section" className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="page-title">Find a bill or proposition</h1>
+          <p className="page-subtitle">
+            Search a bill number, proposition, or topic. We explain it in plain language with sources you can check.
+          </p>
         </div>
-        <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
-        <div className="mt-6">
-          <HeroGraphic />
-        </div>
-      </section>
-      <section className="card p-6 animate-fade-in-up">
-        <h2 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">Why ClearPolicy?</h2>
-        <p className="mt-2 text-sm text-gray-300 dark:text-gray-700">
-          Most voters feel lost, overwhelmed, and uncertain—ballot measures are pages long, packed with legal jargon, while search engines and AI tools often deliver biased, campaign-driven summaries and paid perspectives.
-        </p>
-        <p className="mt-3 text-sm text-gray-300 dark:text-gray-700">
-          ClearPolicy exists to cut through the confusion.
-        </p>
-        <p className="mt-3 text-sm text-gray-300 dark:text-gray-700">
-          Unlike Google, news feeds, or government pamphlets, we instantly give you neutral, easy-to-understand summaries—sourced directly from nonpartisan records. No ads, no sponsored messages, no political spin. Just the facts and unbiased context to help you make real choices for your community.
-        </p>
-        <p className="mt-3 text-sm text-gray-300 dark:text-gray-700">
-          You deserve clarity. You deserve trustworthy information. You deserve the power to decide for yourself.
-        </p>
-      </section>
-      <HomeDemo />
-      <Illustration label="App in action" />
-      <section className="card p-6 animate-fade-in-up">
-        <h2 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">Find a bill or proposition</h2>
-        <form
-          id="home-search-form"
-          className="mt-4 flex flex-col gap-2"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            // Get the value directly from the form to ensure we have the latest value
-            const form = e.currentTarget;
-            const input = form.querySelector('input[type="text"]') as HTMLInputElement;
-            const query = input?.value?.trim() || q.trim();
-            console.log("Form submitted with query:", query, "from input:", input?.value, "from state q:", q);
-            if (query) {
-              setShowSuggest(false);
-              // Update q state immediately, then search
-              setQ(query);
-              // Use await to ensure state is set, but doSearch will also set q
-              await doSearch(query).catch(err => {
-                console.error("Search failed in form submit:", err);
-              });
-            } else {
-              console.log("Empty query, not searching");
-            }
-          }}
-          role="search"
-        >
-          <div className="flex gap-2 items-start">
-            <label htmlFor="home-search" className="sr-only">Search</label>
-            <input
-              id="home-search"
-              type="text"
-              value={q}
-              onChange={(e) => {
-                const value = e.target.value;
-                setQ(value);
-                requestSuggestions(value);
-              }}
-              onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
-              onBlur={() => setTimeout(() => setShowSuggest(false), 120)}
-              placeholder="Try: prop 17 retail theft"
-              className="glass-input w-full px-4 py-3 text-base animate-input-pulse"
-              role="combobox"
-              aria-autocomplete="list"
-              aria-expanded={showSuggest && suggestions.length > 0}
-              aria-haspopup="listbox"
-              aria-controls={showSuggest && suggestions.length > 0 ? "search-suggestions" : undefined}
-            />
-            <button
-              type="submit"
-              className="liquid-button px-4 py-2 text-sm font-medium min-w-24"
-              disabled={loading}
-              aria-busy={loading}
-              onClick={(e) => {
-                // Ensure form submission happens
-                const form = e.currentTarget.closest('form');
-                if (form && q.trim()) {
-                  console.log("Button clicked, triggering search for:", q.trim());
-                }
-              }}
-            >
-              {loading ? "Searching…" : "Search"}
-            </button>
-          </div>
+        <Card className="space-y-4">
+          <form
+            id="home-search-form"
+            className="flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const input = form.querySelector("input") as HTMLInputElement | null;
+              const query = input?.value?.trim() || q.trim();
+              if (query) {
+                setShowSuggest(false);
+                setQ(query);
+                await doSearch(query).catch(err => {
+                  console.error("Search failed in form submit:", err);
+                });
+              }
+            }}
+            role="search"
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <label htmlFor="home-search" className="sr-only">Search</label>
+              <SearchInput
+                id="home-search"
+                name="q"
+                type="search"
+                value={q}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setQ(value);
+                  requestSuggestions(value);
+                }}
+                onFocus={() => suggestions.length > 0 && setShowSuggest(true)}
+                onBlur={() => setTimeout(() => setShowSuggest(false), 120)}
+                placeholder="Try: Prop 17 retail theft"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSuggest && suggestions.length > 0}
+                aria-haspopup="listbox"
+                aria-controls={showSuggest && suggestions.length > 0 ? "search-suggestions" : undefined}
+              />
+              <Button
+                type="submit"
+                size="md"
+                disabled={loading}
+                aria-busy={loading}
+              >
+                {loading ? "Searching…" : "Search"}
+              </Button>
+            </div>
 
-          {showSuggest && suggestions.length > 0 && (
-            <ul id="search-suggestions" role="listbox" className="glass-popover mt-2 p-2 text-sm">
-              {suggestions.map((s, i) => (
-                <li key={i} role="option" className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/60 dark:hover:bg-white/5 cursor-pointer"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    if (s.slug) { window.location.href = `/measure/${s.slug}`; } else { setQ(s.label); doSearch(s.label); }
-                  }}
-                >
-                  <span className="text-gray-100 dark:text-gray-900">{s.label}</span>
-                  <span className="text-gray-400 dark:text-gray-600">{s.hint}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </form>
-        <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          <button onClick={() => { setQ("prop 47"); doSearch("prop 47"); }} className="rounded-full border px-3 py-1 focus-ring hover:bg-gray-50 dark:hover:bg-gray-800">“What does Prop 47 change?”</button>
-          <button onClick={() => { setQ("95014"); doSearch("95014"); }} className="rounded-full border px-3 py-1 focus-ring hover:bg-gray-50 dark:hover:bg-gray-800">“Who’s my rep for 95014?”</button>
-        </div>
-        {chips.length > 0 && (
-          <div className="mt-4">
-            <DisambiguatorChips chips={chips} />
+            {showSuggest && suggestions.length > 0 && (
+              <ul id="search-suggestions" role="listbox" className="mt-1 rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm shadow-soft">
+                {suggestions.map((s, i) => (
+                  <li
+                    key={i}
+                    role="option"
+                    aria-selected="false"
+                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 hover:bg-[var(--cp-surface-2)]"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      if (s.slug) { window.location.href = `/measure/${s.slug}`; } else { setQ(s.label); doSearch(s.label); }
+                    }}
+                  >
+                    <span className="text-[var(--cp-text)]">{s.label}</span>
+                    <span className="text-[var(--cp-muted)]">{s.hint}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </form>
+          <div className="space-y-2">
+            <div className="section-title">Try a search</div>
+            <div className="flex flex-wrap gap-2 text-xs text-[var(--cp-muted)]">
+            {[
+              "Prop 17",
+              "Prop 47",
+              "AB 5",
+              "SB 1383",
+              "education",
+              "housing",
+            ].map((item) => (
+              <Button
+                key={item}
+                variant="secondary"
+                size="sm"
+                className="rounded-full"
+                onClick={() => { setQ(item); doSearch(item); }}
+              >
+                {item}
+              </Button>
+            ))}
+            </div>
           </div>
-        )}
+          {chips.length > 0 && (
+            <div>
+              <DisambiguatorChips chips={chips} />
+            </div>
+          )}
+        </Card>
       </section>
 
       {showResults && (
-        <section className="card p-6 animate-fade-in-up" id="search-results-section">
-          <h2 className="section-title" role="heading" aria-level={2}>Search Results</h2>
+        <section className="space-y-4" id="search-results-section">
+          <div className="flex items-center justify-between">
+            <h2 className="section-heading" role="heading" aria-level={2}>Search Results</h2>
+          </div>
           {!hasCaResults && !hasUsResults && (
-            <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-md">
-              <p className="text-sm text-amber-900 dark:text-amber-200">No results for “{q}”. Try one of these:</p>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
+              <p>No results for “{q}”. Try one of these:</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <button onClick={() => { setQ("prop 17"); doSearch("prop 17"); }} className="rounded-full border px-3 py-1 focus-ring hover:bg-gray-50 dark:hover:bg-gray-800">Prop 17</button>
-                <button onClick={() => { setQ("retail theft"); doSearch("retail theft"); }} className="rounded-full border px-3 py-1 focus-ring hover:bg-gray-50 dark:hover:bg-gray-800">Retail theft</button>
-                <button onClick={() => { setQ("campaign finance"); doSearch("campaign finance"); }} className="rounded-full border px-3 py-1 focus-ring hover:bg-gray-50 dark:hover:bg-gray-800">Campaign finance</button>
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setQ("prop 17"); doSearch("prop 17"); }}>Prop 17</Button>
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setQ("retail theft"); doSearch("retail theft"); }}>Retail theft</Button>
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setQ("campaign finance"); doSearch("campaign finance"); }}>Campaign finance</Button>
               </div>
             </div>
           )}
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div>
-              <div className="text-sm font-medium text-gray-100 dark:text-gray-900">California (Open States)</div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3">
+              <div className="text-sm font-semibold text-[var(--cp-text)]">California (Open States)</div>
               {hasCaResults ? (
                 <>
                   {caDirect.length > 0 && (
-                    <ul className="mt-2 space-y-2 text-sm">
+                    <ul className="space-y-2 text-sm">
                       {caDirect.slice(0, 1).map((r: any, i: number) => {
                         const osId = r.id || r.identifier || "";
                         const href = (r as any)._virtual === "prop" && (r as any).propNum
@@ -408,16 +393,16 @@ export default function HomePage() {
                           : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
                         const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                         return (
-                          <li key={i} className="border-2 border-emerald-300 dark:border-emerald-700 rounded-md p-3 bg-emerald-50/40 dark:bg-emerald-900/10">
-                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
-                              <div className="font-medium text-gray-100 dark:text-gray-900">{r.title || r.identifier}</div>
-                              <div className="mt-1 flex items-center gap-2 text-xs">
-                                <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Top pick</span>
-                                {r._reason && <span className="text-gray-300 dark:text-gray-700">{r._reason}</span>}
+                          <li key={i}>
+                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="block rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 transition hover:bg-emerald-50 focus-ring">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-[var(--cp-text)]">{r.title || r.identifier}</span>
+                                <Badge variant="supported">Top pick</Badge>
                               </div>
-                              {r._preview && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">{r._preview}</div>}
-                              {r.classification && <div className="text-gray-400 dark:text-gray-600">{r.classification?.join?.(", ")}</div>}
-                              <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                              {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                              {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
+                              {r.classification && <div className="text-xs text-[var(--cp-muted)]">{r.classification?.join?.(", ")}</div>}
+                              <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                             </a>
                           </li>
                         );
@@ -425,7 +410,7 @@ export default function HomePage() {
                     </ul>
                   )}
                   {caDirect.length > 1 && (
-                    <ul className="mt-2 space-y-2 text-sm">
+                    <ul className="space-y-2 text-sm">
                       {caDirect.slice(1, 5).map((r: any, i: number) => {
                         const osId = r.id || r.identifier || "";
                         const href = (r as any)._virtual === "prop" && (r as any).propNum
@@ -433,14 +418,14 @@ export default function HomePage() {
                           : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
                         const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                         return (
-                          <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
-                              <div className="font-medium text-gray-100 dark:text-gray-900">{r.title || r.identifier}</div>
-                              <div className="mt-1 flex items-center gap-2 text-xs">
-                                <span className="inline-flex items-center rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 border border-emerald-200">Direct</span>
-                                {r._reason && <span className="text-gray-400 dark:text-gray-600">{r._reason}</span>}
+                          <li key={i}>
+                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="block rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-4 transition hover:bg-[var(--cp-surface-2)] focus-ring">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-[var(--cp-text)]">{r.title || r.identifier}</span>
+                                <Badge variant="primary">Direct</Badge>
                               </div>
-                              <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                              {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                              <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                             </a>
                           </li>
                         );
@@ -448,9 +433,9 @@ export default function HomePage() {
                     </ul>
                   )}
                   {caRelated.length > 0 && (
-                    <div className="mt-4">
-                      <div className="text-xs uppercase tracking-wider text-gray-500">See also</div>
-                      <ul className="mt-2 space-y-2 text-sm">
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-[var(--cp-muted)]">See also</div>
+                      <ul className="space-y-2 text-sm">
                         {caRelated.slice(0, 5).map((r: any, i: number) => {
                           const osId = r.id || r.identifier || "";
                           const href = (r as any)._virtual === "prop" && (r as any).propNum
@@ -458,15 +443,15 @@ export default function HomePage() {
                             : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
                           const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                           return (
-                            <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                              <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="focus-ring rounded block">
-                                <div className="font-medium text-gray-100 dark:text-gray-900">{r.title || r.identifier}</div>
-                                <div className="mt-1 flex items-center gap-2 text-xs">
-                                  <span className="inline-flex items-center rounded bg-gray-100 text-gray-700 px-2 py-0.5 border border-gray-200">Related</span>
-                                  {r._reason && <span className="text-gray-400 dark:text-gray-600">{r._reason}</span>}
+                            <li key={i}>
+                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="block rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-4 transition hover:bg-[var(--cp-surface-2)] focus-ring">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-[var(--cp-text)]">{r.title || r.identifier}</span>
+                                  <Badge variant="neutral">Related</Badge>
                                 </div>
-                                {r._preview && <div className="mt-1 text-xs text-gray-400 dark:text-gray-600">{r._preview}</div>}
-                                <div className="mt-1 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                                {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                                {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
+                                <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                               </a>
                             </li>
                           );
@@ -476,39 +461,39 @@ export default function HomePage() {
                   )}
                 </>
               ) : (
-                <p className="mt-2 text-sm text-gray-400 dark:text-gray-600">No California results</p>
+                <p className="text-sm text-[var(--cp-muted)]">No California results</p>
               )}
             </div>
-            <div>
-              <div className="text-sm font-medium text-gray-100 dark:text-gray-900">Federal (Congress.gov)</div>
+            <div className="space-y-3">
+              <div className="text-sm font-semibold text-[var(--cp-text)]">Federal (Congress.gov)</div>
               {hasUsResults ? (
-                <ul className="mt-2 space-y-2 text-sm">
+                <ul className="space-y-2 text-sm">
                   {usBillsArray.slice(0, 5).map((b: any, i: number) => {
                     const id = `${b.congress || b.congressdotgovUrl?.match(/congress=(\d+)/)?.[1] || "118"}:${b.type || b.billType || "hr"}:${b.number?.replace(/\D/g, "") || "0"}`;
                     return (
-                      <li key={i} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <a href={`/measure/live?source=congress&id=${encodeURIComponent(id)}`} className="focus-ring rounded block">
-                          <div className="font-medium text-gray-100 dark:text-gray-900">{b.title || b.number}</div>
-                          {b.latestAction?.text && <div className="text-gray-400 dark:text-gray-600">{b.latestAction.text}</div>}
-                          <div className="mt-1 text-xs text-accent">Open summary →</div>
+                      <li key={i}>
+                        <a href={`/measure/live?source=congress&id=${encodeURIComponent(id)}`} className="block rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-4 transition hover:bg-[var(--cp-surface-2)] focus-ring">
+                          <div className="font-medium text-[var(--cp-text)]">{b.title || b.number}</div>
+                          {b.latestAction?.text && <div className="mt-1 text-xs text-[var(--cp-muted)]">{b.latestAction.text}</div>}
+                          <div className="mt-2 text-xs text-accent">Open summary →</div>
                         </a>
                       </li>
                     );
                   })}
                 </ul>
               ) : (
-                <div className="mt-2 text-sm text-gray-400 dark:text-gray-600">
+                <div className="text-sm text-[var(--cp-muted)]">
                   No federal results
                   {isLikelyFederal && (
                     <>
                       {" — try a format like "}
-                      <span className="font-medium text-gray-200 dark:text-gray-800">H.R. 50</span>
+                      <span className="font-medium text-[var(--cp-text)]">H.R. 50</span>
                       {" or "}
-                      <span className="font-medium text-gray-200 dark:text-gray-800">S. 50</span>
+                      <span className="font-medium text-[var(--cp-text)]">S. 50</span>
                       {". Or open a demo:"}
-                      <div className="mt-2 flex gap-2">
+                      <div className="mt-2 flex flex-wrap gap-2">
                         {federalSamples.map((f) => (
-                          <a key={f.id} href={`/measure/live?source=congress&id=${encodeURIComponent(f.id)}`} className="rounded-full border px-3 py-1 focus-ring hover:bg-gray-50 dark:hover:bg-gray-800">{f.label}</a>
+                          <a key={f.id} href={`/measure/live?source=congress&id=${encodeURIComponent(f.id)}`} className="rounded-full border border-[var(--cp-border)] bg-[var(--cp-surface)] px-3 py-1 text-xs focus-ring hover:bg-[var(--cp-surface-2)]">{f.label}</a>
                         ))}
                       </div>
                     </>
@@ -520,14 +505,21 @@ export default function HomePage() {
         </section>
       )}
 
-      {null}
+      <FeatureGrid />
 
-      <section id="privacy" className="card p-6 animate-fade-in-up">
-        <h2 className="section-title">Privacy</h2>
-        <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">See our full policy on the <a className="text-accent underline" href="/privacy">Privacy page</a>.</p>
-      </section>
+      <Card>
+        <h2 className="section-heading">Why ClearPolicy?</h2>
+        <p className="mt-2 text-sm text-[var(--cp-muted)]">
+          We turn primary sources into neutral summaries you can verify—no ads, no spin, just the facts and citations.
+        </p>
+      </Card>
 
-      {null}
+      <Card id="privacy">
+        <h2 className="section-heading">Privacy</h2>
+        <p className="mt-1 text-sm text-[var(--cp-muted)]">
+          See our full policy on the <a className="inline-link" href="/privacy">Privacy page</a>.
+        </p>
+      </Card>
     </div>
   );
 }

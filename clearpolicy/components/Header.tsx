@@ -1,7 +1,10 @@
 "use client";
+
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Button, SearchInput } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 export default function Header() {
   const router = useRouter();
@@ -9,48 +12,45 @@ export default function Header() {
   const [dark, setDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
+  const showSearch = pathname !== "/";
 
   useEffect(() => {
-    // Just read the current state, don't modify it
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("cp_theme");
       if (stored) {
         setDark(stored === "dark");
       } else {
-        // Check system preference
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        setDark(!prefersDark); // Inverted logic: dark mode is when prefersDark is false
+        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        setDark(!!prefersDark);
       }
     }
 
     const onScroll = () => setScrolled(window.scrollY > 8);
     if (typeof window !== "undefined") {
-      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
-      return () => window.removeEventListener('scroll', onScroll);
+      return () => window.removeEventListener("scroll", onScroll);
     }
   }, []);
 
-  // Close mobile menu on navigation
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
+    const handleClick = (event: MouseEvent) => {
+      if (!moreRef.current) return;
+      if (!moreRef.current.contains(event.target as Node)) {
+        setMoreOpen(false);
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Close menu when clicking outside
   useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [mobileMenuOpen]);
 
@@ -64,36 +64,31 @@ export default function Header() {
 
   return (
     <>
-      <header className={`glass-nav sticky top-0 z-50 ${scrolled ? "shadow-glass-lg" : ""}`}>
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
-          {/* Mobile hamburger button */}
+      <header
+        className={cn(
+          "sticky top-0 z-50 border-b border-[var(--cp-border)] bg-[var(--cp-bg)]",
+          scrolled ? "shadow-sm" : ""
+        )}
+      >
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <button
             type="button"
-            className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 focus:outline-none focus-ring rounded"
+            className="md:hidden rounded-md border border-[var(--cp-border)] p-2 text-[var(--cp-text)] focus-ring"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
           >
-            <span className={`block w-5 h-0.5 bg-gray-100 dark:bg-gray-900 transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-            <span className={`block w-5 h-0.5 bg-gray-100 dark:bg-gray-900 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`} />
-            <span className={`block w-5 h-0.5 bg-gray-100 dark:bg-gray-900 transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+            <span className="block h-0.5 w-5 bg-current" />
+            <span className="mt-1 block h-0.5 w-5 bg-current" />
+            <span className="mt-1 block h-0.5 w-5 bg-current" />
           </button>
 
-          <Link href="/" className="text-lg font-semibold text-gray-100 dark:text-gray-900 focus-ring rounded px-1" aria-label="ClearPolicy home">
+          <Link href="/" className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)] focus-ring rounded">
             {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
           </Link>
 
-          {/* Desktop navigation */}
-          <nav className="hidden md:flex items-center gap-4 text-sm ml-1">
-            {navLinks.map(link => (
-              <Link key={link.href} href={link.href} className="text-gray-200 dark:text-gray-800 hover:text-accent hover:underline focus-ring rounded px-1 transition-colors">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
           <form
-            className="ml-auto flex-1 max-w-xl hidden sm:block"
+            className={cn("hidden flex-1 md:block", showSearch ? "" : "md:hidden")}
             role="search"
             onSubmit={(e) => {
               e.preventDefault();
@@ -103,28 +98,32 @@ export default function Header() {
               router.push(url.toString());
             }}
           >
-            <label className="sr-only" htmlFor="global-search">Search measures</label>
-            <input
-              id="global-search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search a bill or proposition..."
-              className="glass-input w-full px-3 py-2 text-sm"
-            />
+            <label className="sr-only" htmlFor="global-search">
+              Search measures
+            </label>
+            <div className="mx-auto max-w-xl">
+              <SearchInput
+                id="global-search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search a bill, proposition, or topic..."
+                aria-label="Search measures"
+              />
+            </div>
           </form>
 
-          <button
-            type="button"
-            className="liquid-button px-3 py-2 text-sm hidden sm:inline-flex"
+          <Button
+            variant="ghost"
+            size="sm"
             aria-pressed={dark}
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={dark ? "Light mode" : "Dark mode"}
             onClick={(e) => {
               e.preventDefault();
               try {
                 const next = !dark;
                 setDark(next);
                 if (typeof document !== "undefined" && document.documentElement) {
-                  document.documentElement.classList.toggle('dark', next);
+                  document.documentElement.classList.toggle("dark", next);
                 }
                 if (typeof window !== "undefined" && window.localStorage) {
                   localStorage.setItem("cp_theme", next ? "dark" : "light");
@@ -133,140 +132,172 @@ export default function Header() {
                 console.error("Error toggling theme:", error);
               }
             }}
+            className="ml-auto px-2 md:hidden"
           >
-            {dark ? "Light" : "Dark"}
-          </button>
+            {dark ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 4v2m0 12v2m8-8h-2M6 12H4m12.95 5.95-1.41-1.41M7.46 7.46 6.05 6.05m0 11.9 1.41-1.41m9.49-9.49 1.41-1.41" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            )}
+          </Button>
+
+          <div className="ml-auto hidden items-center gap-2 md:flex">
+            <div className="relative" ref={moreRef}>
+              <Button variant="ghost" size="sm" onClick={() => setMoreOpen((v) => !v)}>
+                More
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </Button>
+              {moreOpen && (
+                <div className="absolute right-0 mt-2 w-52 rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm shadow-soft">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="block rounded-md px-3 py-2 text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Link href="/contact" className="hidden lg:block">
+              <Button variant="secondary" size="sm">Feedback</Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={dark}
+              aria-label={dark ? "Light mode" : "Dark mode"}
+              onClick={(e) => {
+                e.preventDefault();
+                try {
+                  const next = !dark;
+                  setDark(next);
+                  if (typeof document !== "undefined" && document.documentElement) {
+                    document.documentElement.classList.toggle("dark", next);
+                  }
+                  if (typeof window !== "undefined" && window.localStorage) {
+                    localStorage.setItem("cp_theme", next ? "dark" : "light");
+                  }
+                } catch (error) {
+                  console.error("Error toggling theme:", error);
+                }
+              }}
+              className="px-2"
+            >
+              {dark ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 4v2m0 12v2m8-8h-2M6 12H4m12.95 5.95-1.41-1.41M7.46 7.46 6.05 6.05m0 11.9 1.41-1.41m9.49-9.49 1.41-1.41" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              )}
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Mobile menu overlay */}
-      <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={() => setMobileMenuOpen(false)}
-        aria-hidden="true"
-      />
-
-      {/* Mobile menu drawer */}
-      <aside
-        className={`fixed top-0 left-0 h-full w-72 max-w-[80vw] z-50 md:hidden transform transition-transform duration-300 ease-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        aria-label="Mobile navigation"
-      >
-        <div className="h-full glass-surface rounded-none border-r border-white/10 flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10">
-            <span className="text-lg font-semibold text-gray-100 dark:text-gray-900">
-              {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
-            </span>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 focus-ring"
-              aria-label="Close menu"
-            >
-              <svg className="w-5 h-5 text-gray-100 dark:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Mobile search */}
-          <div className="p-4 border-b border-white/10">
-            <form
-              role="search"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!q.trim()) return;
-                const url = new URL("/", window.location.origin);
-                url.searchParams.set("q", q);
-                router.push(url.toString());
-                setMobileMenuOpen(false);
-              }}
-            >
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search measures..."
-                className="glass-input w-full px-3 py-2 text-sm"
-              />
-            </form>
-          </div>
-
-          {/* Navigation links */}
-          <nav className="flex-1 py-4">
-            <ul className="space-y-1 px-2">
-              <li>
-                <Link
-                  href="/"
+      {mobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
+          <aside className="fixed left-0 top-0 z-50 h-full w-72 bg-[var(--cp-surface)] shadow-lg">
+            <div className="flex h-full flex-col border-r border-[var(--cp-border)]">
+              <div className="flex items-center justify-between border-b border-[var(--cp-border)] p-4">
+                <span className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)]">
+                  {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
+                </span>
+                <button
+                  type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-100 dark:text-gray-900 hover:bg-white/10 rounded-xl transition-colors"
+                  className="rounded-md border border-[var(--cp-border)] p-2 text-[var(--cp-text)] focus-ring"
+                  aria-label="Close menu"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                   </svg>
-                  Home
-                </Link>
-              </li>
-              {navLinks.map(link => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-100 dark:text-gray-900 hover:bg-white/10 rounded-xl transition-colors"
+                </button>
+              </div>
+              <div className="p-4">
+                <form
+                  role="search"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!q.trim()) return;
+                    const url = new URL("/", window.location.origin);
+                    url.searchParams.set("q", q);
+                    router.push(url.toString());
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <SearchInput
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search measures..."
+                    aria-label="Search measures"
+                  />
+                </form>
+              </div>
+              <nav className="flex-1 px-2">
+                <ul className="space-y-1">
+                  {navLinks.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block rounded-md px-3 py-2 text-sm text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div className="border-t border-[var(--cp-border)] p-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      try {
+                        const next = !dark;
+                        setDark(next);
+                        if (typeof document !== "undefined" && document.documentElement) {
+                          document.documentElement.classList.toggle("dark", next);
+                        }
+                        if (typeof window !== "undefined" && window.localStorage) {
+                          localStorage.setItem("cp_theme", next ? "dark" : "light");
+                        }
+                      } catch (error) {
+                        console.error("Error toggling theme:", error);
+                      }
+                    }}
+                    aria-label={dark ? "Light mode" : "Dark mode"}
                   >
-                    {link.label === "Browse" && (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                      </svg>
-                    )}
-                    {link.label === "Compare" && (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    )}
-                    {link.label === "About" && (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                    {link.label === "Impact" && (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                      </svg>
-                    )}
-                    {link.label === "Contact" && (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    )}
-                    {link.label}
+                    {dark ? "Light mode" : "Dark mode"}
+                  </Button>
+                  <Link href="/contact" className="flex-1">
+                    <Button variant="ghost" size="sm" className="w-full">Feedback</Button>
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Footer with theme toggle */}
-          <div className="p-4 border-t border-white/10">
-            <button
-              type="button"
-              className="w-full liquid-button px-4 py-2.5 text-sm font-medium justify-center"
-              aria-pressed={dark}
-              onClick={() => {
-                const next = !dark;
-                setDark(next);
-                if (typeof document !== "undefined" && document.documentElement) {
-                  document.documentElement.classList.toggle('dark', next);
-                }
-                if (typeof window !== "undefined" && window.localStorage) {
-                  localStorage.setItem("cp_theme", next ? "dark" : "light");
-                }
-              }}
-            >
-              {dark ? "☀️ Light Mode" : "🌙 Dark Mode"}
-            </button>
-          </div>
-        </div>
-      </aside>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
     </>
   );
 }

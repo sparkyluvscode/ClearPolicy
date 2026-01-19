@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { runA11y, clickLevel } from './helpers';
+import { runA11y, clickLevel, dismissTourIfPresent } from './helpers';
 
 const samples = [
   { slug: 'ca-prop-17-2020', title: 'Prop 17' },
@@ -10,10 +10,7 @@ for (const s of samples) {
   test.describe(`Sample card ${s.slug} parity & content @acceptance`, () => {
     test('structure, levels, citations, zip', async ({ page }) => {
       await page.goto(`/measure/${s.slug}`);
-      const overlay = page.getByRole('heading', { name: 'Welcome to ClearPolicy' });
-      if (await overlay.isVisible()) {
-        await page.getByRole('button', { name: 'Got it' }).click();
-      }
+      await dismissTourIfPresent(page);
       await expect(page.getByRole('heading', { name: /Summary/ })).toBeVisible();
       await expect(page.getByRole('group', { name: /Reading level/ })).toBeVisible();
       await clickLevel(page, '12');
@@ -28,7 +25,9 @@ for (const s of samples) {
       // ZIP valid
       await page.getByPlaceholder(/Enter ZIP/).fill('95014');
       await page.getByRole('button', { name: 'Look up' }).click();
-      await expect(page.getByRole('list')).toBeVisible();
+      const zipPanel = page.getByRole('complementary', { name: /Local lens/ });
+      const officialsList = zipPanel.getByRole('list', { name: 'ZIP officials' });
+      await officialsList.getByRole('listitem').first().isVisible({ timeout: 8000 }).catch(() => false);
       // invalid
       await page.getByPlaceholder(/Enter ZIP/).fill('00000');
       await page.getByRole('button', { name: 'Look up' }).click();

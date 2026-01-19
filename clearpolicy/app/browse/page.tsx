@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { Badge, Button, Card, Input } from "@/components/ui";
 
 // Proposition data - would typically come from API
 const propositions = [
@@ -38,116 +39,96 @@ export default function BrowsePage() {
 
     return (
         <div className="space-y-6">
-            {/* Hero */}
-            <section className="card p-6 md:p-8 animate-fade-in-up">
-                <h1 className="text-2xl md:text-3xl font-semibold text-gray-100 dark:text-gray-900">
+            <Card className="space-y-2">
+                <h1 className="page-title">
                     Browse Propositions
                 </h1>
-                <p className="mt-2 text-gray-300 dark:text-gray-700">
-                    Explore California ballot measures with clear, unbiased summaries
+                <p className="page-subtitle">
+                    Explore California ballot measures with clear, unbiased summaries.
                 </p>
-            </section>
+            </Card>
 
-            {/* Search and Filters */}
-            <section className="card p-4 md:p-6 animate-fade-in-up">
-                {/* Search */}
-                <div className="mb-4">
-                    <input
-                        type="text"
-                        placeholder="Search propositions..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="glass-input w-full px-4 py-3 text-base"
-                    />
-                </div>
+            <Card className="space-y-4">
+                <Input
+                    type="text"
+                    placeholder="Search propositions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
 
-                {/* Filter tabs */}
                 <div className="space-y-3">
-                    {/* Status filter */}
                     <div>
                         <span className="section-title block mb-2">Status</span>
                         <div className="flex flex-wrap gap-2">
                             {statuses.map(status => (
-                                <button
+                                <Button
                                     key={status}
+                                    variant={statusFilter === status ? "primary" : "secondary"}
+                                    size="sm"
                                     onClick={() => setStatusFilter(status)}
-                                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${statusFilter === status
-                                            ? 'bg-accent text-white shadow-glow-accent'
-                                            : 'bg-gray-800/50 dark:bg-white/50 text-gray-200 dark:text-gray-800 hover:bg-gray-700/50 dark:hover:bg-white/70'
-                                        }`}
                                 >
                                     {status}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Category filter */}
                     <div>
                         <span className="section-title block mb-2">Category</span>
                         <div className="flex flex-wrap gap-2">
                             {categories.map(cat => (
-                                <button
+                                <Button
                                     key={cat}
+                                    variant={categoryFilter === cat ? "primary" : "secondary"}
+                                    size="sm"
                                     onClick={() => setCategoryFilter(cat)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${categoryFilter === cat
-                                            ? 'bg-accent text-white'
-                                            : 'bg-gray-800/30 dark:bg-white/30 text-gray-300 dark:text-gray-700 hover:bg-gray-700/50 dark:hover:bg-white/50'
-                                        }`}
                                 >
                                     {cat}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Results count */}
-                <div className="mt-4 text-sm text-gray-400 dark:text-gray-600">
+                <div className="text-sm text-[var(--cp-muted)]">
                     Showing {filteredProps.length} proposition{filteredProps.length !== 1 ? 's' : ''}
                 </div>
-            </section>
+            </Card>
 
-            {/* Propositions Grid */}
             <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredProps.map(prop => (
                     <Link
                         key={`${prop.num}-${prop.year}`}
                         href={`/measure/prop/${prop.num}`}
-                        className="card p-5 hover:shadow-glass-lg transition-all duration-300 group"
+                        className="rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-5 transition hover:bg-[var(--cp-surface-2)] focus-ring"
                     >
                         <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2">
                                 <span className="text-xl font-bold text-accent">
                                     Prop {prop.num}
                                 </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-600">
+                                <span className="text-xs text-[var(--cp-muted)]">
                                     ({prop.year})
                                 </span>
                             </div>
-                            <span className={`text-xs px-2 py-1 rounded-full ${prop.status === 'Active'
-                                    ? 'bg-emerald-500/20 text-emerald-400'
-                                    : prop.status === 'Passed'
-                                        ? 'bg-blue-500/20 text-blue-400'
-                                        : 'bg-red-500/20 text-red-400'
-                                }`}>
+                            <Badge variant={prop.status === "Active" ? "supported" : prop.status === "Passed" ? "official" : "analysis"}>
                                 {prop.status}
-                            </span>
+                            </Badge>
                         </div>
 
-                        <h3 className="mt-2 text-sm font-medium text-gray-100 dark:text-gray-900 line-clamp-2 group-hover:text-accent transition-colors">
+                        <h3 className="mt-2 text-sm font-medium text-[var(--cp-text)] line-clamp-2">
                             {prop.title}
                         </h3>
 
-                        <p className="mt-2 text-xs text-gray-400 dark:text-gray-600 line-clamp-3">
+                        <p className="mt-2 text-xs text-[var(--cp-muted)] line-clamp-3">
                             {prop.summary}
                         </p>
 
                         <div className="mt-3 flex items-center justify-between">
-                            <span className="text-xs px-2 py-1 bg-gray-800/50 dark:bg-white/50 rounded-md text-gray-300 dark:text-gray-700">
+                            <span className="text-xs rounded-md border border-[var(--cp-border)] bg-[var(--cp-surface-2)] px-2 py-1 text-[var(--cp-muted)]">
                                 {prop.category}
                             </span>
-                            <span className="text-xs text-accent group-hover:underline">
+                            <span className="text-xs text-accent">
                                 Read more →
                             </span>
                         </div>
@@ -155,27 +136,26 @@ export default function BrowsePage() {
                 ))}
             </section>
 
-            {/* Empty state */}
             {filteredProps.length === 0 && (
-                <section className="card p-8 text-center animate-fade-in-up">
-                    <div className="text-4xl mb-3">🔍</div>
-                    <h3 className="text-lg font-medium text-gray-100 dark:text-gray-900">
+                <Card className="p-8 text-center">
+                    <div className="text-3xl mb-3">🔍</div>
+                    <h3 className="text-lg font-medium text-[var(--cp-text)]">
                         No propositions found
                     </h3>
-                    <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">
-                        Try adjusting your filters or search query
+                    <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                        Try adjusting your filters or search query.
                     </p>
-                    <button
+                    <Button
+                        className="mt-4"
                         onClick={() => {
                             setCategoryFilter("All");
                             setStatusFilter("All");
                             setSearchQuery("");
                         }}
-                        className="mt-4 liquid-button px-4 py-2 text-sm"
                     >
                         Clear filters
-                    </button>
-                </section>
+                    </Button>
+                </Card>
             )}
         </div>
     );

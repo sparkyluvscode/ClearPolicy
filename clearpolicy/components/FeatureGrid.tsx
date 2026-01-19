@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui";
+
 export default function FeatureGrid() {
   const features = [
     {
@@ -43,21 +45,23 @@ export default function FeatureGrid() {
   ];
 
   return (
-    <section className="glass-card p-6" aria-labelledby="features-title">
-      <h2 id="features-title" className="text-lg font-semibold text-gray-100 dark:text-gray-900">How ClearPolicy empowers you</h2>
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {features.map((f, i) => (
-          <div key={i} className="glass-panel p-4 lift group">
-            <div className="flex items-center gap-2 text-accent">
-              <div className="h-8 w-8 rounded-xl bg-accent/10 flex items-center justify-center transition-colors group-hover:bg-accent/20">
-                <span className="text-accent">{f.icon}</span>
+    <section aria-labelledby="features-title">
+      <Card className="space-y-4">
+        <h2 id="features-title" className="section-heading">How ClearPolicy helps</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((f, i) => (
+            <Card key={i} variant="subtle" className="p-4">
+              <div className="flex items-center gap-2 text-accent">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10">
+                  <span className="text-accent">{f.icon}</span>
+                </div>
+                <div className="text-sm font-medium text-[var(--cp-text)]">{f.title}</div>
               </div>
-              <div className="font-medium text-gray-100 dark:text-gray-900">{f.title}</div>
-            </div>
-            <p className="mt-2 text-sm text-gray-300 dark:text-gray-700">{f.desc}</p>
-          </div>
-        ))}
-      </div>
+              <p className="mt-2 text-sm text-[var(--cp-muted)]">{f.desc}</p>
+            </Card>
+          ))}
+        </div>
+      </Card>
     </section>
   );
 }

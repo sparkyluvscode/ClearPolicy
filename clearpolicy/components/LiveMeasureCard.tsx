@@ -4,12 +4,16 @@ import BillCard from "@/components/BillCard";
 import { sourceRatioFrom } from "@/lib/citations";
 import { simplify } from "@/lib/reading";
 import ReadingLevelToggle from "@/components/ReadingLevelToggle";
+import { Card, ToggleButton } from "@/components/ui";
+import type { SummaryLike } from "@/lib/summary-types";
 
 export default function LiveMeasureCard({ payload }: { payload: any }) {
   const [level, setLevel] = useState<"5" | "8" | "12">("8");
+  const [evidenceMode, setEvidenceMode] = useState(false);
 
 
-  const summary = useMemo(() => {
+  const summary = useMemo((): SummaryLike | null => {
+    const MAX_EVIDENCE_LEN = 600;
     const firstSentence = (text: string) => {
       if (!text) return "";
       const parts = text.split(/(?<=[.!?])\s+/);
@@ -74,6 +78,40 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       if (cons.length === 0) cons.push("Could require new processes or resources.");
       return { pros: pros.join(" "), cons: cons.join(" ") };
     };
+    const normalizeQuote = (text: string) => (text || "").replace(/\s+/g, " ").trim();
+    const isSimilar = (a: string, b: string) => {
+      if (!a || !b) return false;
+      if (a === b) return true;
+      const longer = a.length >= b.length ? a : b;
+      const shorter = a.length >= b.length ? b : a;
+      return longer.includes(shorter) && shorter.length / longer.length > 0.8;
+    };
+    const addEvidence = (
+      list: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[],
+      seen: string[],
+      text: string,
+      sourceName: string,
+      url?: string,
+      location?: "tldr" | "what" | "who" | "pros" | "cons"
+    ) => {
+      const cleaned = normalizeQuote(text);
+      if (!cleaned || !/[a-z0-9]/i.test(cleaned)) return;
+      const norm = cleaned.toLowerCase();
+      if (seen.some((s) => isSimilar(s, norm))) return;
+      seen.push(norm);
+      const capped = cleaned.length > MAX_EVIDENCE_LEN ? `${cleaned.slice(0, MAX_EVIDENCE_LEN)}…` : cleaned;
+      list.push({ quote: capped, sourceName, url, location });
+    };
+    const addEvidenceList = (
+      list: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[],
+      seen: string[],
+      items: Array<{ text?: string; label: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }>
+    ) => {
+      items.forEach((item) => {
+        if (!item?.text) return;
+        addEvidence(list, seen, item.text, item.label, item.url, item.location);
+      });
+    };
     if (payload?.kind === "prop" && payload?.raw) {
       const raw = payload.raw;
       const title = raw?.title || raw?.identifier || "California Measure";
@@ -88,16 +126,48 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         const whoAffected = ai.whoAffected || (whoStake ? `It affects ${whoStake}.` : "See official sources for details.");
         
         // Build citations
-        const citations: { quote: string; sourceName: string; url: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+        const citations: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+        const seen: string[] = [];
         const primaryUrl = raw?.openstates_url || raw?.openstatesUrl || raw?.sources?.[0]?.url || "";
-        if (raw?.extras?.impact_clause) {
-          citations.push({ quote: raw.extras.impact_clause, sourceName: "Open States — impact clause", url: primaryUrl, location: "tldr" });
+        addEvidenceList(citations, seen, [
+          { text: raw?.extras?.impact_clause, label: "Open States — impact clause", url: primaryUrl, location: "tldr" },
+          { text: raw?.latest_action_description, label: "Open States — latest action", url: primaryUrl, location: "what" },
+          { text: raw?.latest_action?.description, label: "Open States — latest action", url: primaryUrl, location: "what" },
+          { text: raw?.latest_action?.text, label: "Open States — latest action", url: primaryUrl, location: "what" },
+          { text: raw?.summary, label: "Open States — summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.summary_text, label: "Open States — summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.description, label: "Open States — description", url: primaryUrl, location: "tldr" },
+          { text: raw?.purpose, label: "Open States — purpose", url: primaryUrl, location: "what" },
+          { text: raw?.abstracts?.[0]?.abstract, label: "Open States — abstract", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.summary, label: "Open States — official summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.digest, label: "Open States — digest", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.official_summary, label: "Open States — official summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.analysis, label: "Open States — analysis", url: primaryUrl, location: "what" },
+          { text: raw?.extras?.purpose, label: "Open States — purpose", url: primaryUrl, location: "what" },
+          { text: raw?.extras?.fiscal_impact, label: "Open States — fiscal impact", url: primaryUrl, location: "what" },
+          { text: raw?.extras?.fiscal_note, label: "Open States — fiscal note", url: primaryUrl, location: "what" },
+          { text: raw?.short_title || raw?.shortTitle, label: "Open States — short title", url: primaryUrl, location: "tldr" },
+          { text: title, label: "Open States — title", url: primaryUrl, location: "tldr" },
+        ]);
+        if (Array.isArray(raw?.subjects) && raw.subjects.length) {
+          addEvidence(citations, seen, `Subjects: ${raw.subjects.slice(0, 12).join(", ")}`, "Open States — subjects", primaryUrl, "who");
         }
-        if (raw?.latest_action_description) {
-          citations.push({ quote: pickPolicySentence(raw.latest_action_description), sourceName: "Open States — latest action", url: primaryUrl, location: "what" });
+        if (Array.isArray(raw?.subject) && raw.subject.length) {
+          addEvidence(citations, seen, `Subjects: ${raw.subject.slice(0, 12).join(", ")}`, "Open States — subjects", primaryUrl, "who");
+        }
+        if (Array.isArray(raw?.classification) && raw.classification.length) {
+          addEvidence(citations, seen, `Classification: ${raw.classification.slice(0, 8).join(", ")}`, "Open States — classification", primaryUrl, "who");
+        }
+        if (Array.isArray(raw?.committees) && raw.committees.length) {
+          addEvidence(citations, seen, `Committees: ${raw.committees.slice(0, 6).map((c: any) => c?.name || c).filter(Boolean).join(", ")}`, "Open States — committees", primaryUrl, "who");
+        }
+        if (Array.isArray(raw?.actions)) {
+          raw.actions.slice(0, 4).forEach((a: any) => {
+            addEvidence(citations, seen, a?.description, "Open States — action", primaryUrl, "what");
+          });
         }
         if (citations.length === 0) {
-          citations.push({ quote: firstSentence(title), sourceName: "Open States", url: primaryUrl, location: "tldr" });
+          addEvidence(citations, seen, firstSentence(title), "Open States", primaryUrl, "tldr");
         }
         
         const blocks = [ai.tldr, ai.whatItDoes, whoAffected, ai.pros.join(" "), ai.cons.join(" ")];
@@ -181,22 +251,59 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const pros = pc.pros;
       const cons = pc.cons;
 
-      // Build citations prioritizing substantive quotes (impact clause/abstract/summary/latest action)
-      const citations: { quote: string; sourceName: string; url: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
-      if (impactClause) citations.push({ quote: impactClause, sourceName: "Open States — impact clause", url: primaryUrl || raw?.openstates_url || "", location: "tldr" });
-      if (abstract) citations.push({ quote: pickPolicySentence(abstract), sourceName: "Open States — abstract", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" });
-      if (latestAction) citations.push({ quote: pickPolicySentence(latestAction), sourceName: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" });
-      if (Array.isArray(raw?.sources)) {
-        raw.sources.slice(0, 3).forEach((s: any) => {
-          if (s?.url) citations.push({ quote: s.note || "See source for details.", sourceName: s.note || "Open States", url: s.url });
+      // Build citations from available payload text
+      const citations: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+      const seen: string[] = [];
+      addEvidenceList(citations, seen, [
+        { text: impactClause, label: "Open States — impact clause", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
+        { text: abstract, label: "Open States — abstract", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.summary, label: "Open States — summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.summary_text, label: "Open States — summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.description, label: "Open States — description", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.purpose, label: "Open States — purpose", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.summary, label: "Open States — official summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.extras?.digest, label: "Open States — digest", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.extras?.official_summary, label: "Open States — official summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.extras?.analysis, label: "Open States — analysis", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.purpose, label: "Open States — purpose", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.fiscal_impact, label: "Open States — fiscal impact", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.fiscal_note, label: "Open States — fiscal note", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: latestAction, label: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
+        { text: title, label: "Open States — title", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
+        { text: raw?.short_title || raw?.shortTitle, label: "Open States — short title", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
+        { text: raw?.latest_action?.description, label: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
+        { text: raw?.latest_action_description, label: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
+      ]);
+      if (subjectsArr.length) {
+        addEvidence(citations, seen, `Subjects: ${subjectsArr.slice(0, 10).join(", ")}`, "Open States — subjects", primaryUrl || raw?.openstates_url || "", "who");
+      }
+      if (Array.isArray(raw?.subject) && raw.subject.length) {
+        addEvidence(citations, seen, `Subjects: ${raw.subject.slice(0, 10).join(", ")}`, "Open States — subjects", primaryUrl || raw?.openstates_url || "", "who");
+      }
+      if (Array.isArray(raw?.classification) && raw.classification.length) {
+        addEvidence(citations, seen, `Classification: ${raw.classification.slice(0, 8).join(", ")}`, "Open States — classification", primaryUrl || raw?.openstates_url || "", "who");
+      }
+      if (Array.isArray(raw?.committees) && raw.committees.length) {
+        addEvidence(citations, seen, `Committees: ${raw.committees.slice(0, 6).map((c: any) => c?.name || c).filter(Boolean).join(", ")}`, "Open States — committees", primaryUrl || raw?.openstates_url || "", "who");
+      }
+      if (Array.isArray(raw?.actions)) {
+        raw.actions.slice(0, 4).forEach((a: any) => {
+          addEvidence(citations, seen, a?.description, "Open States — action", primaryUrl || raw?.openstates_url || "", "what");
         });
       }
-      if (citations.length === 0) citations.push({ quote: firstSentence(title), sourceName: "Open States", url: primaryUrl, location: "tldr" });
+      if (Array.isArray(raw?.sources)) {
+        raw.sources.slice(0, 3).forEach((s: any) => {
+          if (s?.url) {
+            addEvidence(citations, seen, s.note || "See source for details.", s.note || "Open States — source", s.url);
+          }
+        });
+      }
+      if (citations.length === 0) addEvidence(citations, seen, firstSentence(title), "Open States", primaryUrl, "tldr");
       const filtered = citations.filter((c) => c.url && !/^https?:\/\/openstates\.org\/?$/.test(c.url));
-      const finalCitations = filtered.length ? filtered : citations;
+      const ratioCitations = filtered.length ? filtered : citations;
       const blocks = [tldr, whatItDoes, whoAffected, pros, cons];
-      const sourceRatio = sourceRatioFrom(blocks, finalCitations);
-      const covered = new Set((finalCitations || []).map((c) => c.location).filter(Boolean) as string[]).size;
+      const sourceRatio = sourceRatioFrom(blocks, ratioCitations);
+      const covered = new Set((ratioCitations || []).map((c) => c.location).filter(Boolean) as string[]).size;
 
       // Create a simple impact example for kid-friendly mode
       const example = (() => {
@@ -215,7 +322,7 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         pros: simplify(pros, level), 
         cons: simplify(cons, level), 
         sourceRatio, 
-        citations: finalCitations, 
+        citations, 
         sourceCount: covered, 
         example 
       };
@@ -227,28 +334,87 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const latest = bill?.latestAction?.text || bill?.latest_action?.text || "See official source";
       const congressUrl = bill?.congressdotgovUrl || "https://www.congress.gov/";
       const summaryText = bill?.summaries?.[0]?.text || "";
-      const subjectsArr = (bill?.subjects || []).map((s: any) => s?.name || "");
+      const subjectsArr = Array.isArray(bill?.subjects)
+        ? bill.subjects.map((s: any) => s?.name || "")
+        : [];
+      const policyArea = bill?.policyArea?.name || "";
+      const committees = Array.isArray(bill?.committees) ? bill.committees.map((c: any) => c?.name || "").filter(Boolean) : [];
+      const actions = Array.isArray(bill?.actions) ? bill.actions : [];
+      const textVersions = Array.isArray(bill?.textVersions) ? bill.textVersions : [];
       const typeStr = String((bill as any)?.type || "");
       const isResolution = /(h|s)\.?res/i.test(typeStr) || /^A\s+resolution/i.test(String(title));
       const cleanedTitle = String(title).replace(/^A\s+resolution\s+/i, "").replace(/\.$/, "").trim();
       const tldr = summaryText
         ? pickPolicySentence(summaryText)
-        : (isResolution
-            ? (cleanedTitle ? pickPolicySentence(`Recognizes or expresses the sense of the Senate on ${cleanedTitle}.`) : "Recognizes or expresses the sense of the Senate on a specific topic.")
-            : (bill?.title ? `This bill addresses ${subjectsArr.slice(0, 5).join(", ") || "federal policy"}.` : `No summary available; see source for details.`)
+        : (bill?.title
+            ? (isResolution
+                ? pickPolicySentence(cleanedTitle ? `Recognizes or expresses the sense of the Senate on ${cleanedTitle}.` : bill.title)
+                : pickPolicySentence(bill.title))
+            : (isResolution
+                ? "Recognizes or expresses the sense of the Senate on a specific topic."
+                : `No summary available; see source for details.`)
           );
       const whatItDoes = isResolution
         ? (cleanedTitle ? `Expresses the Senate’s position: ${cleanedTitle}.` : `Expresses the Senate’s position on a topic.`)
         : (summaryText ? pickPolicySentence(summaryText) : pickPolicySentence(latest) || `No summary available; see source for details.`);
       const whoStake = stakeholdersFrom(subjectsArr, title);
-      const whoAffected = whoStake ? `It affects ${whoStake}.` : (subjectsArr.length ? `Groups involved: ${subjectsArr.slice(0, 5).join(", ")}.` : `No summary available; see source for details.`);
+      const whoAffected = whoStake
+        ? `It affects ${whoStake}.`
+        : subjectsArr.length
+          ? `Groups involved: ${subjectsArr.slice(0, 5).join(", ")}.`
+          : "It may affect people or organizations connected to this topic.";
       const pc = prosConsHeuristics(subjectsArr, title);
       const pros = pc.pros;
       const cons = pc.cons;
-      const citations: { quote: string; sourceName: string; url: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
-      if (summaryText) citations.push({ quote: pickPolicySentence(summaryText), sourceName: "Congress.gov — summary", url: congressUrl, location: "tldr" });
-      citations.push({ quote: pickPolicySentence(latest), sourceName: "Congress.gov — latest action", url: congressUrl, location: "what" });
-      if (subjectsArr.length) citations.push({ quote: `Subjects: ${subjectsArr.slice(0, 5).join(", ")}`, sourceName: "Congress.gov — subjects", url: congressUrl, location: "who" });
+      const citations: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
+      const seen: string[] = [];
+      addEvidenceList(citations, seen, [
+        { text: summaryText, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
+        { text: bill?.summaries?.[1]?.text, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
+        { text: bill?.summaries?.[2]?.text, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
+        { text: bill?.summary?.text, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
+        { text: latest, label: "Congress.gov — latest action", url: congressUrl, location: "what" },
+        { text: bill?.latestAction?.text, label: "Congress.gov — latest action", url: congressUrl, location: "what" },
+        { text: title, label: "Congress.gov — title", url: congressUrl, location: "tldr" },
+        { text: bill?.shortTitle || bill?.short_title, label: "Congress.gov — short title", url: congressUrl, location: "tldr" },
+        { text: bill?.description, label: "Congress.gov — description", url: congressUrl, location: "tldr" },
+        { text: bill?.purpose, label: "Congress.gov — purpose", url: congressUrl, location: "what" },
+      ]);
+      if (Array.isArray(bill?.titles) && bill.titles.length) {
+        const titleList = bill.titles
+          .slice(0, 5)
+          .map((t: any) => `${t?.titleType ? `${t.titleType}: ` : ""}${t?.title || ""}`.trim())
+          .filter(Boolean)
+          .join(" | ");
+        addEvidence(citations, seen, titleList, "Congress.gov — titles", congressUrl, "tldr");
+      }
+      if (subjectsArr.length) {
+        addEvidence(citations, seen, `Subjects: ${subjectsArr.slice(0, 10).join(", ")}`, "Congress.gov — subjects", congressUrl, "who");
+      }
+      if (policyArea) {
+        addEvidence(citations, seen, `Policy area: ${policyArea}`, "Congress.gov — policy area", congressUrl, "who");
+      }
+      if (Array.isArray(bill?.sponsors) && bill.sponsors.length) {
+        const sponsors = bill.sponsors
+          .slice(0, 4)
+          .map((s: any) => [s?.firstName, s?.lastName].filter(Boolean).join(" ").trim() || s?.name)
+          .filter(Boolean)
+          .join(", ");
+        addEvidence(citations, seen, `Sponsors: ${sponsors}`, "Congress.gov — sponsors", congressUrl, "who");
+      }
+      if (committees.length) {
+        addEvidence(citations, seen, `Committees: ${committees.slice(0, 6).join(", ")}`, "Congress.gov — committees", congressUrl, "who");
+      }
+      actions.slice(0, 4).forEach((a: any) => {
+        addEvidence(citations, seen, a?.text || a?.description, "Congress.gov — action", congressUrl, "what");
+      });
+      if (textVersions.length) {
+        const versions = textVersions
+          .map((v: any) => [v?.type, v?.date].filter(Boolean).join(" "))
+          .filter(Boolean)
+          .join(", ");
+        addEvidence(citations, seen, `Text versions: ${versions}`, "Congress.gov — text versions", congressUrl, "tldr");
+      }
       const blocks = [tldr, whatItDoes, whoAffected, pros, cons];
       const sourceRatio = sourceRatioFrom(blocks, citations);
       const covered = new Set((citations || []).map((c) => c.location).filter(Boolean) as string[]).size;
@@ -261,7 +427,7 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       return { tldr, whatItDoes, whoAffected, pros, cons, sourceRatio, citations, sourceCount: covered, example };
     }
     return null;
-  }, [payload]);
+  }, [payload, level]);
 
   if (!summary) {
     // Debug: show what we received
@@ -272,11 +438,11 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       rawKeys: payload?.raw ? Object.keys(payload.raw) : []
     });
     return (
-      <div className="card p-6 text-sm text-gray-400 dark:text-gray-600">
+      <Card className="text-sm text-[var(--cp-muted)]">
         <p>Unable to load live measure.</p>
         {payload?.error && <p className="mt-2 text-xs">Error: {payload.error}</p>}
         {!payload?.raw && <p className="mt-2 text-xs">No raw data available.</p>}
-      </div>
+      </Card>
     );
   }
 
@@ -285,14 +451,25 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
   return (
     <div className="space-y-4">
       {limitedData && (
-        <div className="p-3 rounded-md bg-amber-50 border border-amber-200 text-sm text-amber-900" role="status" aria-live="polite">
-          Some sections may be limited by available live data. See source links for full details.
+        <div className="rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100" role="status" aria-live="polite">
+          <div className="px-3 py-2">
+            Some sections may be limited by available live data. See source links for full details.
+          </div>
         </div>
       )}
-      <div className="flex justify-end">
-        <ReadingLevelToggle level={level} onChange={setLevel} />
-      </div>
-      <BillCard data={summary as any} level={level} />
+      <Card variant="subtle" className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-wider text-[var(--cp-muted)]">Reading level</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ReadingLevelToggle level={level} onChange={setLevel} />
+          <ToggleButton
+            pressed={evidenceMode}
+            onPressedChange={setEvidenceMode}
+            label="Evidence Mode (beta)"
+            data-testid="evidence-toggle"
+          />
+        </div>
+      </Card>
+      <BillCard data={summary as any} level={level} evidenceMode={evidenceMode} />
     </div>
   );
 }

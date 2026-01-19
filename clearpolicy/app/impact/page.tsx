@@ -1,12 +1,13 @@
 import Testimonials from "@/components/Testimonials";
+import { Card } from "@/components/ui";
 
 export default function ImpactPage() {
   return (
     <div className="grid grid-cols-1 gap-6">
-      <header className="card p-6">
-        <h1 className="text-2xl font-semibold text-gray-100 dark:text-gray-900">Impact</h1>
-        <p className="mt-1 text-sm text-gray-400 dark:text-gray-600">Stories from people using ClearPolicy to understand measures faster.</p>
-      </header>
+      <Card>
+        <h1 className="page-title">Impact</h1>
+        <p className="page-subtitle">Stories from people using ClearPolicy to understand measures faster.</p>
+      </Card>
       <Testimonials />
     </div>
   );
