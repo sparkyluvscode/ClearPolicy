@@ -59,8 +59,7 @@ export default function Header() {
         <div className="mx-auto flex max-w-6xl items-center px-4">
           <div
             className={cn(
-              "glass-nav flex w-full items-center gap-4 rounded-full px-4 py-2",
-              scrolled ? "shadow-soft" : "shadow-card"
+              "glass-nav glass-nav--scrolled flex w-full items-center gap-4 rounded-full px-4 py-2 transition-all duration-200 ease-out"
             )}
           >
           <button
