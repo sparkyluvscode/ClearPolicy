@@ -3,16 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --cp-accent: #1e40af;
-  --cp-bg: #f7f8fb;
-  --cp-surface: #ffffff;
-  --cp-surface-2: #f1f5f9;
-  --cp-doc: #ffffff;
+  --cp-accent: #2563eb;
+  --cp-bg: #f6f7fb;
+  --cp-surface: rgba(255, 255, 255, 0.9);
+  --cp-surface-2: rgba(241, 245, 249, 0.95);
+  --cp-doc: rgba(255, 255, 255, 0.98);
   --cp-border: rgba(15, 23, 42, 0.12);
   --cp-text: #0f172a;
-  --cp-muted: #64748b;
+  --cp-muted: #5b6b85;
   --cp-quote: #f8fafc;
-  --cp-ring: rgba(30, 64, 175, 0.25);
+  --cp-ring: rgba(37, 99, 235, 0.25);
+  --cp-good: #16a34a;
+  --cp-warn: #d97706;
+  --cp-bad: #dc2626;
+  --cp-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.08), 0 12px 30px rgba(15, 23, 42, 0.08);
+  --cp-shadow-card: 0 2px 10px rgba(15, 23, 42, 0.1), 0 28px 60px rgba(15, 23, 42, 0.08);
+  --cp-glow-1: rgba(59, 130, 246, 0.12);
+  --cp-glow-2: rgba(16, 185, 129, 0.06);
+  --cp-nav: rgba(255, 255, 255, 0.8);
+  --cp-input: rgba(255, 255, 255, 0.7);
 }
 
 html, body {
@@ -21,20 +30,33 @@ html, body {
 
 body {
   @apply antialiased transition-colors duration-200 ease-out text-[15px] md:text-base;
-  background-color: var(--cp-bg);
+  background:
+    radial-gradient(1200px 800px at 15% -10%, var(--cp-glow-1), transparent 60%),
+    radial-gradient(900px 700px at 85% 0%, var(--cp-glow-2), transparent 55%),
+    var(--cp-bg);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 100% 100%;
   color: var(--cp-text);
 }
 
 html.dark {
-  --cp-bg: #0b0f14;
-  --cp-surface: #111827;
-  --cp-surface-2: #0f172a;
-  --cp-doc: #0b1326;
-  --cp-border: rgba(148, 163, 184, 0.2);
-  --cp-text: #e2e8f0;
-  --cp-muted: #94a3b8;
-  --cp-quote: #0f172a;
-  --cp-ring: rgba(99, 132, 255, 0.35);
+  --cp-accent: #3b82f6;
+  --cp-bg: hsl(225 30% 6%);
+  --cp-surface: rgba(14, 20, 36, 0.62);
+  --cp-surface-2: rgba(12, 18, 32, 0.72);
+  --cp-doc: rgba(10, 16, 30, 0.88);
+  --cp-border: rgba(148, 163, 184, 0.18);
+  --cp-text: #e6eefc;
+  --cp-muted: #9fb0c8;
+  --cp-quote: rgba(11, 16, 30, 0.9);
+  --cp-ring: rgba(59, 130, 246, 0.4);
+  --cp-shadow-soft: 0 1px 2px rgba(3, 6, 15, 0.35), 0 12px 30px rgba(3, 10, 24, 0.35);
+  --cp-shadow-card: 0 2px 10px rgba(3, 10, 24, 0.4), 0 28px 60px rgba(3, 10, 24, 0.35);
+  --cp-glow-1: rgba(59, 130, 246, 0.18);
+  --cp-glow-2: rgba(16, 185, 129, 0.08);
+  --cp-nav: rgba(10, 16, 30, 0.78);
+  --cp-input: rgba(8, 12, 24, 0.6);
 }
 
 a {
@@ -48,7 +70,7 @@ a {
 
 @layer components {
   .divider-h { @apply h-px w-full; background-color: var(--cp-border); }
-  .focus-ring { @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950; }
+  .focus-ring { @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2; box-shadow: 0 0 0 2px var(--cp-ring); }
   .page-title { @apply text-2xl md:text-3xl font-semibold tracking-tight; color: var(--cp-text); }
   .page-subtitle { @apply text-sm md:text-base; color: var(--cp-muted); }
   .section-heading { @apply text-lg font-semibold tracking-tight; color: var(--cp-text); }
@@ -57,6 +79,71 @@ a {
   .muted-link:hover { color: var(--cp-text); }
   .inline-link { color: var(--cp-text); text-decoration: underline; text-underline-offset: 2px; }
   .inline-link:hover { color: var(--cp-accent); }
+  .glass-card {
+    background: var(--cp-surface);
+    border: 1px solid var(--cp-border);
+    box-shadow: var(--cp-shadow-soft);
+    backdrop-filter: blur(14px);
+  }
+  .glass-doc {
+    background: var(--cp-doc);
+    border: 1px solid var(--cp-border);
+    box-shadow: var(--cp-shadow-card);
+    backdrop-filter: blur(10px);
+  }
+  .glass-nav {
+    background: var(--cp-nav);
+    border: 1px solid var(--cp-border);
+    box-shadow: var(--cp-shadow-soft);
+    backdrop-filter: blur(16px);
+  }
+  .glass-input {
+    background: var(--cp-input);
+    border: 1px solid var(--cp-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+    color: #eef5ff;
+    border: 1px solid rgba(96, 165, 250, 0.5);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+  }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-secondary {
+    background: rgba(10, 16, 30, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: var(--cp-text);
+  }
+  .btn-secondary:hover { border-color: rgba(148, 163, 184, 0.4); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--cp-text);
+  }
+  .btn-ghost:hover { background: rgba(148, 163, 184, 0.12); }
+  .surface-lift { @apply transition-transform duration-200 ease-out; }
+  .surface-lift:hover { transform: translateY(-2px); box-shadow: var(--cp-shadow-soft); }
+  .text-glow { text-shadow: 0 0 18px rgba(59, 130, 246, 0.25); }
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: -100% 0 0 -100%;
+    background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.25), transparent 65%);
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .shine:hover::after {
+    opacity: 1;
+    animation: shimmer 1.8s ease-out;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-60%); }
+    100% { transform: translateX(140%); }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

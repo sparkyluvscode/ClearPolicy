@@ -12,8 +12,6 @@ export default function Header() {
   const [dark, setDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement | null>(null);
   const showSearch = true;
 
   useEffect(() => {
@@ -35,16 +33,6 @@ export default function Header() {
     }
   }, []);
 
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      if (!moreRef.current) return;
-      if (!moreRef.current.contains(event.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
@@ -57,9 +45,8 @@ export default function Header() {
     { href: "/about", label: "About" },
     { href: "/browse", label: "Browse" },
     { href: "/compare", label: "Compare" },
-    { href: "/impact", label: "Impact" },
-    { href: "/contact", label: "Contact" },
   ];
+  const primaryLinks = navLinks;
 
   return (
     <>
@@ -153,31 +140,17 @@ export default function Header() {
           </Button>
 
           <div className="ml-auto hidden items-center gap-2 md:flex">
-            <div className="relative" ref={moreRef}>
-              <Button variant="ghost" size="sm" onClick={() => setMoreOpen((v) => !v)}>
-                More
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              </Button>
-              {moreOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm shadow-soft">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="block rounded-xl px-3 py-2 text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
-                      onClick={() => setMoreOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-            <Link href="/contact" className="hidden lg:block">
-              <Button variant="secondary" size="sm">Feedback</Button>
-            </Link>
+            <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+              {primaryLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-full px-3 py-1.5 text-sm text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)] focus-ring"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
             <Button
               variant="ghost"
               size="sm"
@@ -296,9 +269,6 @@ export default function Header() {
                   >
                     {dark ? "Light mode" : "Dark mode"}
                   </Button>
-                  <Link href="/contact" className="flex-1">
-                    <Button variant="ghost" size="sm" className="w-full">Feedback</Button>
-                  </Link>
                 </div>
               </div>
             </div>
