@@ -20,8 +20,8 @@ export default function TourOverlay() {
   if (pathname?.startsWith("/dev/evidence-test")) return null;
   if (typeof window !== "undefined" && window.innerWidth < 640) return null;
   return (
-    <div className="fixed inset-0 z-40 bg-black/40">
-      <Card className="absolute inset-x-0 top-10 mx-auto w-[min(90%,28rem)]" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div className="fixed inset-0 z-[70] bg-black/40">
+      <Card className="absolute inset-x-0 top-[40%] mx-auto w-[min(90%,28rem)] -translate-y-1/2" role="dialog" aria-modal="true" aria-labelledby="tour-title">
         {step === 1 && (
           <>
             <h2 id="tour-title" className="text-lg font-semibold text-[var(--cp-text)]">Welcome to ClearPolicy</h2>
