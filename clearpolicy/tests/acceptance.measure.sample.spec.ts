@@ -23,14 +23,14 @@ for (const s of samples) {
       await expect(page.locator('blockquote').first()).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Local lens' })).toBeVisible();
       // ZIP valid
-      await page.getByPlaceholder(/Enter ZIP/).fill('95014');
-      await page.getByRole('button', { name: 'Look up' }).click();
+      await page.getByTestId("zip-input").fill('95014');
+      await page.getByTestId("zip-submit").click();
       const zipPanel = page.getByRole('complementary', { name: /Local lens/ });
       const officialsList = zipPanel.getByRole('list', { name: 'ZIP officials' });
       await officialsList.getByRole('listitem').first().isVisible({ timeout: 8000 }).catch(() => false);
       // invalid
-      await page.getByPlaceholder(/Enter ZIP/).fill('00000');
-      await page.getByRole('button', { name: 'Look up' }).click();
+      await page.getByTestId("zip-input").fill('00000');
+      await page.getByTestId("zip-submit").click();
       await expect(page.getByText(/ZIP code not found|Enter a 5-digit ZIP/)).toBeVisible();
       await runA11y(page, `Sample ${s.slug}`);
     });

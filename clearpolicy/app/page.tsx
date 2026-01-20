@@ -41,14 +41,11 @@ export default function HomePage() {
     }
     setHasSearched(true);
 
-    console.log("doSearch called with:", trimmedQuery);
     setLoading(true);
 
     try {
       const url = new URL("/api/search", window.location.origin);
       url.searchParams.set("q", trimmedQuery);
-      console.log("Fetching from:", url.toString());
-
       const res = await fetch(url.toString());
       if (!res.ok) {
         throw new Error(`Search failed: ${res.status}`);
@@ -80,15 +77,6 @@ export default function HomePage() {
         return;
       }
 
-      console.log("Search API response:", {
-        caCount: data.ca?.results?.length || 0,
-        usCount: data.us?.bills?.length || data.us?.data?.bills?.length || 0,
-        chipsCount: data.chips?.length || 0,
-        fallbacksCount: data.fallbacks?.length || 0,
-        query: trimmedQuery,
-        rawData: data
-      });
-
       // Normalize CA results
       const caResults = Array.isArray(data.ca?.results)
         ? data.ca.results
@@ -103,27 +91,12 @@ export default function HomePage() {
           ? data.us.data.bills
           : [];
 
-      console.log("Normalized results:", {
-        caResults: caResults.length,
-        usBills: usBillsData.length,
-        caResultsSample: caResults[0],
-        usBillsSample: usBillsData[0]
-      });
-
       // Update state - ensure we're setting the query too
       const newResults = {
         ca: { results: caResults },
         us: { bills: usBillsData, data: { bills: usBillsData } },
         fallbacks: data.fallbacks || []
       };
-
-      console.log("About to update state with:", {
-        caResultsCount: caResults.length,
-        usBillsCount: usBillsData.length,
-        fallbacksCount: (data.fallbacks || []).length,
-        chipsCount: (data.chips || []).length,
-        newResults
-      });
 
       // Update all state together - React will batch these
       // Use functional updates to ensure we have the latest state
@@ -135,13 +108,6 @@ export default function HomePage() {
       // Force a re-render by updating a dummy state if needed
       // Actually, the state updates above should trigger a re-render
 
-      console.log("State updated - q:", trimmedQuery, "results:", {
-        ca: caResults.length,
-        us: usBillsData.length,
-        fallbacks: (data.fallbacks || []).length,
-        chips: (data.chips || []).length,
-        willShowResults: Boolean(trimmedQuery && (caResults.length > 0 || usBillsData.length > 0 || (data.fallbacks || []).length > 0 || (data.chips || []).length > 0))
-      });
     } catch (error) {
       console.error("Search error:", error);
       setChips([]);
@@ -206,48 +172,7 @@ export default function HomePage() {
   const currentQ = q.trim();
   const showResults = Boolean(currentQ && (hasCaResults || hasUsResults || hasFallbacks || chips.length > 0 || hasSearched));
 
-  // Additional debug - log when showResults should be true but isn't showing
-  useEffect(() => {
-    if (currentQ && typeof window !== "undefined") {
-      const shouldShow = hasCaResults || hasUsResults || hasFallbacks || chips.length > 0;
-      if (shouldShow && !showResults) {
-        console.warn("Results available but showResults is false:", {
-          currentQ,
-          hasCaResults,
-          hasUsResults,
-          hasFallbacks,
-          chipsCount: chips.length,
-          showResults,
-          results
-        });
-      }
-    }
-  }, [currentQ, hasCaResults, hasUsResults, hasFallbacks, chips.length, showResults, results]);
-
-  // Debug logging in useEffect to avoid running on every render
-  useEffect(() => {
-    if (q.trim() && typeof window !== "undefined") {
-      const caCount = (results.ca?.results || []).length;
-      const usCount = (results.us?.bills || results.us?.data?.bills || []).length;
-      const fallbacksCount = (results.fallbacks || []).length;
-      console.log("Search state updated:", {
-        q,
-        hasCaResults,
-        hasUsResults,
-        hasFallbacks,
-        chipsCount: chips.length,
-        showResults,
-        caResultsCount: caCount,
-        usBillsCount: usCount,
-        fallbacksCount: fallbacksCount,
-        resultsStructure: {
-          ca: results.ca ? Object.keys(results.ca) : null,
-          us: results.us ? Object.keys(results.us) : null,
-          hasFallbacks: 'fallbacks' in results
-        }
-      });
-    }
-  }, [q, hasCaResults, hasUsResults, hasFallbacks, chips.length, showResults, results]);
+  // Keep derived state lean; avoid console noise in production
 
   const isLikelyFederal = /\b(hr|s|senate|house|congress|federal)\b/i.test(q);
   const caDirect = useMemo(() => caResultsArray.filter((r: any) => r._direct), [caResultsArray]);
@@ -258,8 +183,8 @@ export default function HomePage() {
       <TourOverlay />
       <section id="home-search-section" className="space-y-4">
         <div className="space-y-2">
-          <h1 className="page-title">Find a bill or proposition</h1>
-          <p className="page-subtitle">
+          <h1 className="page-title text-glow" data-testid="home-title">Find a bill or proposition</h1>
+          <p className="page-subtitle" data-testid="home-subtitle">
             Search a bill number, proposition, or topic. We explain it in plain language with sources you can check.
           </p>
         </div>
@@ -288,6 +213,7 @@ export default function HomePage() {
                 id="home-search"
                 name="q"
                 type="search"
+                data-testid="search-input"
                 value={q}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -308,19 +234,20 @@ export default function HomePage() {
                 size="md"
                 disabled={loading}
                 aria-busy={loading}
+                data-testid="search-submit"
               >
                 {loading ? "Searching…" : "Search"}
               </Button>
             </div>
 
             {showSuggest && suggestions.length > 0 && (
-              <ul id="search-suggestions" role="listbox" className="mt-1 rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm shadow-soft">
+              <ul id="search-suggestions" role="listbox" className="mt-1 rounded-2xl glass-card p-2 text-sm">
                 {suggestions.map((s, i) => (
                   <li
                     key={i}
                     role="option"
                     aria-selected="false"
-                    className="flex cursor-pointer items-center justify-between rounded-md px-3 py-2 hover:bg-[var(--cp-surface-2)]"
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 hover:bg-[var(--cp-surface-2)]"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       if (s.slug) { window.location.href = `/measure/${s.slug}`; } else { setQ(s.label); doSearch(s.label); }
@@ -365,7 +292,7 @@ export default function HomePage() {
       </section>
 
       {showResults && (
-        <section className="space-y-4" id="search-results-section">
+        <section className="space-y-4" id="search-results-section" data-testid="search-results">
           <div className="flex items-center justify-between">
             <h2 className="section-heading" role="heading" aria-level={2}>Search Results</h2>
           </div>
@@ -394,15 +321,22 @@ export default function HomePage() {
                         const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                         return (
                           <li key={i}>
-                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="block rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 transition hover:bg-emerald-50 focus-ring">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-[var(--cp-text)]">{r.title || r.identifier}</span>
-                                <Badge variant="supported">Top pick</Badge>
-                              </div>
-                              {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
-                              {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
-                              {r.classification && <div className="text-xs text-[var(--cp-muted)]">{r.classification?.join?.(", ")}</div>}
-                              <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                            <a
+                              href={href}
+                              target={isExternal ? "_blank" : undefined}
+                              rel={isExternal ? "noreferrer noopener" : undefined}
+                              className="block focus-ring rounded-2xl"
+                            >
+                              <Card className="p-4 border-emerald-400/30 bg-emerald-500/10 transition hover:bg-emerald-500/15 surface-lift">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-[var(--cp-text)]" data-testid="result-title">{r.title || r.identifier}</span>
+                                  <Badge variant="supported">Top pick</Badge>
+                                </div>
+                                {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                                {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
+                                {r.classification && <div className="text-xs text-[var(--cp-muted)]">{r.classification?.join?.(", ")}</div>}
+                                <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                              </Card>
                             </a>
                           </li>
                         );
@@ -419,13 +353,20 @@ export default function HomePage() {
                         const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                         return (
                           <li key={i}>
-                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="block rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-4 transition hover:bg-[var(--cp-surface-2)] focus-ring">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-[var(--cp-text)]">{r.title || r.identifier}</span>
-                                <Badge variant="primary">Direct</Badge>
-                              </div>
-                              {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
-                              <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                            <a
+                              href={href}
+                              target={isExternal ? "_blank" : undefined}
+                              rel={isExternal ? "noreferrer noopener" : undefined}
+                              className="block focus-ring rounded-2xl"
+                            >
+                              <Card className="p-4 transition hover:bg-[var(--cp-surface-2)] surface-lift">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-[var(--cp-text)]" data-testid="result-title">{r.title || r.identifier}</span>
+                                  <Badge variant="primary">Direct</Badge>
+                                </div>
+                                {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                                <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
+                              </Card>
                             </a>
                           </li>
                         );
@@ -443,17 +384,24 @@ export default function HomePage() {
                             : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
                           const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
                           return (
-                            <li key={i}>
-                            <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer noopener" : undefined} className="block rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-4 transition hover:bg-[var(--cp-surface-2)] focus-ring">
+                          <li key={i}>
+                            <a
+                              href={href}
+                              target={isExternal ? "_blank" : undefined}
+                              rel={isExternal ? "noreferrer noopener" : undefined}
+                              className="block focus-ring rounded-2xl"
+                            >
+                              <Card className="p-4 transition hover:bg-[var(--cp-surface-2)] surface-lift">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-[var(--cp-text)]">{r.title || r.identifier}</span>
+                                  <span className="font-medium text-[var(--cp-text)]" data-testid="result-title">{r.title || r.identifier}</span>
                                   <Badge variant="neutral">Related</Badge>
                                 </div>
                                 {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
                                 {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
                                 <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
-                              </a>
-                            </li>
+                              </Card>
+                            </a>
+                          </li>
                           );
                         })}
                       </ul>
@@ -472,10 +420,15 @@ export default function HomePage() {
                     const id = `${b.congress || b.congressdotgovUrl?.match(/congress=(\d+)/)?.[1] || "118"}:${b.type || b.billType || "hr"}:${b.number?.replace(/\D/g, "") || "0"}`;
                     return (
                       <li key={i}>
-                        <a href={`/measure/live?source=congress&id=${encodeURIComponent(id)}`} className="block rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-4 transition hover:bg-[var(--cp-surface-2)] focus-ring">
-                          <div className="font-medium text-[var(--cp-text)]">{b.title || b.number}</div>
-                          {b.latestAction?.text && <div className="mt-1 text-xs text-[var(--cp-muted)]">{b.latestAction.text}</div>}
-                          <div className="mt-2 text-xs text-accent">Open summary →</div>
+                        <a
+                          href={`/measure/live?source=congress&id=${encodeURIComponent(id)}`}
+                          className="block focus-ring rounded-2xl"
+                        >
+                          <Card className="p-4 transition hover:bg-[var(--cp-surface-2)] surface-lift">
+                            <div className="font-medium text-[var(--cp-text)]" data-testid="result-title">{b.title || b.number}</div>
+                            {b.latestAction?.text && <div className="mt-1 text-xs text-[var(--cp-muted)]">{b.latestAction.text}</div>}
+                            <div className="mt-2 text-xs text-accent">Open summary →</div>
+                          </Card>
                         </a>
                       </li>
                     );

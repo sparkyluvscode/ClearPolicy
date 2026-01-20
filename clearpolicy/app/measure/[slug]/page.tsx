@@ -41,6 +41,11 @@ export default async function MeasurePage({ params }: { params: { slug: string }
 
     // Default to 12th reading level summary
     const summary12 = measure.summaries.find((s) => s.level === "12") || measure.summaries[0];
+    const localContext = {
+      source: "seeded" as const,
+      jurisdiction: "CA" as const,
+      title: `${measure.number} — ${measure.title}`,
+    };
 
     // Parse citations for all summaries
     const summariesWithCitations = measure.summaries.map((s: any) => ({
@@ -60,7 +65,7 @@ export default async function MeasurePage({ params }: { params: { slug: string }
         <div className="space-y-6">
           <Card>
             <div className="space-y-2">
-              <h1 className="page-title">{measure.number} — {measure.title}</h1>
+              <h1 className="page-title" data-testid="measure-title">{measure.number} — {measure.title}</h1>
               {measure.status && <p className="text-sm text-[var(--cp-muted)]">{measure.status}</p>}
             </div>
           </Card>
@@ -70,7 +75,7 @@ export default async function MeasurePage({ params }: { params: { slug: string }
           <div className="sr-only">{summary12?.tldr}</div>
         </div>
         <div className="space-y-6">
-          <ZipPanel />
+          <ZipPanel context={localContext} />
         </div>
       </div>
     );

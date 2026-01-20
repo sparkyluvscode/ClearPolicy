@@ -43,7 +43,7 @@ export default function BillCard({
   );
 
   return (
-    <Card variant="document" className="space-y-6" aria-labelledby="billcard-heading">
+    <Card variant="document" className="space-y-6" aria-labelledby="billcard-heading" data-testid="measure-summary">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 id="billcard-heading" className="text-lg font-semibold text-[var(--cp-text)]">
@@ -133,6 +133,7 @@ export default function BillCard({
                                   }))
                                 }
                                 label={expanded ? (item.status === "supported" ? "Hide evidence" : "Hide details") : (item.status === "supported" ? "Show evidence" : "Why unverified?")}
+                                buttonProps={{ "data-testid": "show-evidence" }}
                               >
                                 {item.status === "supported" && item.bestCitation ? (
                                   <>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button, SearchInput } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement | null>(null);
-  const pathname = usePathname();
-  const showSearch = pathname !== "/";
+  const showSearch = true;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -66,11 +65,17 @@ export default function Header() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-50 border-b border-[var(--cp-border)] bg-[var(--cp-bg)]",
-          scrolled ? "shadow-sm" : ""
+          "sticky top-0 z-50",
+          scrolled ? "py-2" : "py-4"
         )}
       >
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center px-4">
+          <div
+            className={cn(
+              "glass-nav flex w-full items-center gap-4 rounded-full px-4 py-2",
+              scrolled ? "shadow-soft" : "shadow-card"
+            )}
+          >
           <button
             type="button"
             className="md:hidden rounded-md border border-[var(--cp-border)] p-2 text-[var(--cp-text)] focus-ring"
@@ -83,7 +88,7 @@ export default function Header() {
             <span className="mt-1 block h-0.5 w-5 bg-current" />
           </button>
 
-          <Link href="/" className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)] focus-ring rounded">
+          <Link href="/" className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)] focus-ring rounded text-glow">
             {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
           </Link>
 
@@ -108,6 +113,7 @@ export default function Header() {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search a bill, proposition, or topic..."
                 aria-label="Search measures"
+                data-testid="global-search-input"
               />
             </div>
           </form>
@@ -155,12 +161,12 @@ export default function Header() {
                 </svg>
               </Button>
               {moreOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm shadow-soft">
+                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm shadow-soft">
                   {navLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="block rounded-md px-3 py-2 text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
+                      className="block rounded-xl px-3 py-2 text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
                       onClick={() => setMoreOpen(false)}
                     >
                       {link.label}
@@ -205,6 +211,7 @@ export default function Header() {
                 </svg>
               )}
             </Button>
+          </div>
           </div>
         </div>
       </header>
