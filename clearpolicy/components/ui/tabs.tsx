@@ -27,10 +27,10 @@ export function Tabs({
             aria-selected={active}
             onClick={() => onChange(tab.value)}
             className={cn(
-              "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors focus-ring",
+              "glass-input rounded-xl px-3 py-1.5 text-sm font-medium transition-colors focus-ring",
               active
-                ? "border-[var(--cp-border)] bg-[var(--cp-surface)] text-[var(--cp-text)] shadow-sm"
-                : "border-transparent bg-[var(--cp-surface-2)] text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+                ? "bg-[var(--cp-doc)] text-[var(--cp-text)] shadow-sm"
+                : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
             )}
           >
             {tab.label}

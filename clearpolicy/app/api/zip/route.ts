@@ -2,15 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { openstates } from "@/lib/clients/openstates";
 
-const Params = z.object({ zip: z.string().regex(/^\d{5}$/).optional(), osid: z.string().optional() });
+const Params = z.object({
+  zip: z.string().regex(/^\d{5}$/).optional(),
+  osid: z.string().optional(),
+  include_meta: z.string().optional(),
+});
 
 type Official = { name: string; party?: string; office?: string; urls?: string[]; context?: string; vote?: string; voteUrl?: string };
+type PlaceInfo = { city?: string; state?: string; county?: string };
+type DistrictInfo = { senate?: string; assembly?: string };
+type ZipResponseBase = {
+  officials: Official[];
+  normalizedInput: { line1: string };
+  finderUrl?: string;
+  analysisUrl?: string;
+  offices?: any[];
+  error?: string;
+};
+type ZipResponseMeta = { place?: PlaceInfo; districts?: DistrictInfo };
+type ZipResponse = ZipResponseBase & Partial<ZipResponseMeta>;
 
 export async function GET(req: NextRequest) {
   const zip = req.nextUrl.searchParams.get("zip") ?? undefined;
   const osid = req.nextUrl.searchParams.get("osid") ?? undefined;
-  const parsed = Params.safeParse({ zip, osid });
-  if (!parsed.success || !parsed.data.zip) return NextResponse.json({ error: "Enter a 5-digit ZIP (e.g., 95014).", officials: [], normalizedInput: { line1: zip || "" } }, { status: 200 });
+  const includeMeta = req.nextUrl.searchParams.get("include_meta") === "1";
+  const parsed = Params.safeParse({ zip, osid, include_meta: includeMeta ? "1" : undefined });
+  if (!parsed.success || !parsed.data.zip) {
+    const base: ZipResponseBase = { error: "Enter a 5-digit ZIP (e.g., 95014).", officials: [], normalizedInput: { line1: zip || "" } };
+    return NextResponse.json(base, { status: 200 });
+  }
 
   const normalizedInput = { line1: parsed.data.zip };
   const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
@@ -20,24 +40,34 @@ export async function GET(req: NextRequest) {
       { name: "Evan Low", party: "Democratic", office: "Assemblymember", urls: ["https://a26.asmdc.org/"] },
     ],
   };
+  const curatedPlace: Record<string, PlaceInfo> = {
+    "95014": { city: "Cupertino", state: "CA" },
+  };
   const curatedOfficials = curated[parsed.data.zip];
-  const fallbackResponse = (error?: string) => {
+  const respond = (base: ZipResponseBase, meta?: ZipResponseMeta) => {
+    const payload: ZipResponse = includeMeta && meta ? { ...base, ...meta } : base;
+    return NextResponse.json(payload, { status: 200 });
+  };
+  const fallbackResponse = (error?: string, place?: PlaceInfo, districts?: DistrictInfo) => {
     if (curatedOfficials && curatedOfficials.length) {
       const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(`${parsed.data.zip} California measure impact`)}`;
-      return NextResponse.json({ officials: curatedOfficials, normalizedInput, analysisUrl, finderUrl }, { status: 200 });
+      return respond({ officials: curatedOfficials, normalizedInput, analysisUrl, finderUrl }, { place, districts });
     }
-    return NextResponse.json({ error: error || "ZIP not found. Try a valid CA ZIP like 95014.", officials: [], normalizedInput }, { status: 200 });
+    return respond({ error: error || "ZIP not found. Try a valid CA ZIP like 95014.", officials: [], normalizedInput }, { place, districts });
   };
   try {
     // 1) ZIP -> lat/lon (Zippopotam.us)
     const zipRes = await fetch(`https://api.zippopotam.us/us/${parsed.data.zip}`, { cache: "no-store" });
-    if (!zipRes.ok) return fallbackResponse();
+    if (!zipRes.ok) return fallbackResponse(undefined, curatedPlace[parsed.data.zip]);
     const zipJson: any = await zipRes.json();
     const place = Array.isArray(zipJson?.places) && zipJson.places[0];
     const lat = place ? parseFloat(place.latitude) : NaN;
     const lon = place ? parseFloat(place.longitude) : NaN;
     const city = place?.["place name"] || "";
-    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.");
+    const state = place?.state || place?.["state abbreviation"] || "";
+    const county = place?.county || "";
+    const placeInfo: PlaceInfo = { city, state, county };
+    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.", placeInfo);
 
     // 2) lat/lon -> districts (Census Geocoder, ACS2025 layers)
     const params = new URLSearchParams({
@@ -67,7 +97,7 @@ export async function GET(req: NextRequest) {
     const divisionIds: string[] = [];
     if (upperNum) divisionIds.push(`ocd-division/country:us/state:ca/sldu:${upperNum}`);
     if (lowerNum) divisionIds.push(`ocd-division/country:us/state:ca/sldl:${lowerNum}`);
-    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.");
+    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.", placeInfo);
 
     // 3) OpenStates: fetch people for each division_id
     // Fetch by district number and filter by chamber from current_role to ensure correctness
@@ -131,6 +161,10 @@ export async function GET(req: NextRequest) {
       peopleLower = rosterL.filter((p: any) => String(p?.current_role?.district || "").trim() === String(lowerNum));
     }
     const peopleLists = [peopleUpper, peopleLower];
+    const districts: DistrictInfo = {
+      senate: upperNum || undefined,
+      assembly: lowerNum || undefined,
+    };
 
     const seen = new Set<string>();
     const officials: Official[] = [];
@@ -257,7 +291,7 @@ export async function GET(req: NextRequest) {
         if (upperNum) officials.push({ name: `Senator — SD ${upperNum}`, office: "Senator", urls: [`https://sd${pad2(upperNum)}.senate.ca.gov/`] });
         if (lowerNum) officials.push({ name: `Assemblymember — AD ${lowerNum}`, office: "Assemblymember", urls: [finderUrl] });
       }
-      return NextResponse.json({ officials, normalizedInput, finderUrl }, { status: 200 });
+      return respond({ officials, normalizedInput, finderUrl }, { place: placeInfo, districts });
     }
 
     // Optional measure context: attach simple context note
@@ -309,9 +343,9 @@ export async function GET(req: NextRequest) {
     const analysisQuery = contextLine ? `${contextLine} ${city} California` : `${parsed.data.zip} California measure impact`;
     const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(analysisQuery)}`;
 
-    return NextResponse.json({ officials, normalizedInput, offices: [], analysisUrl, finderUrl }, { status: 200 });
+    return respond({ officials, normalizedInput, offices: [], analysisUrl, finderUrl }, { place: placeInfo, districts });
   } catch (e) {
-    return fallbackResponse("Lookup failed. Try again later.");
+    return fallbackResponse("Lookup failed. Try again later.", curatedPlace[parsed.data.zip]);
   }
 }
 

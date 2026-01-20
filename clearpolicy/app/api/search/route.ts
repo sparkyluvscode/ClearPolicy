@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { openstates } from "@/lib/clients/openstates";
 import { congress } from "@/lib/clients/congress";
 import { disambiguate } from "@/lib/normalize";
+import { generateSummary } from "@/lib/ai";
 import { z } from "zod";
 
 const QuerySchema = z.object({ q: z.string().default("") });
@@ -360,7 +361,35 @@ export async function GET(req: NextRequest) {
       }
     } catch {}
 
-    return NextResponse.json({ chips, ca, us, fallbacks });
+    const hasCaResults = Array.isArray((ca as any).results) && (ca as any).results.length > 0;
+    const usBills = (us as any)?.bills || (us as any)?.data?.bills || [];
+    const hasUsResults = Array.isArray(usBills) && usBills.length > 0;
+    const qTokens = parsed.data.q.toLowerCase().split(/\s+/).filter(Boolean);
+    const billMatchesQuery = (b: any) => {
+      const title = String(b?.title || b?.shortTitle || b?.number || "").toLowerCase();
+      if (!title) return false;
+      const matched = qTokens.filter((t) => title.includes(t));
+      return matched.length >= Math.max(1, Math.ceil(qTokens.length / 3));
+    };
+    const hasRelevantUs = Array.isArray(usBills) && usBills.some(billMatchesQuery);
+    const hasRelevantCa = Array.isArray((ca as any).results)
+      && (ca as any).results.some((r: any) => String(r?.title || r?.identifier || "").toLowerCase().includes(parsed.data.q.toLowerCase()));
+    let aiFallback = null;
+    if (!hasRelevantCa && !hasRelevantUs && parsed.data.q.trim().length > 2) {
+      try {
+        aiFallback = await generateSummary({
+          title: parsed.data.q,
+          content: `User query: ${parsed.data.q}. Provide a neutral overview of this policy or act, even if it is a general national policy topic.`,
+          subjects: [],
+          identifier: parsed.data.q,
+          type: "bill",
+        });
+      } catch (error) {
+        console.error("AI fallback summary failed:", error);
+      }
+    }
+
+    return NextResponse.json({ chips, ca, us, fallbacks, aiFallback });
   } catch (e: any) {
     return NextResponse.json({ chips: [], ca: { results: [] }, us: { data: { bills: [] } }, fallbacks: [], error: e?.message || "search failed" }, { status: 200 });
   }

@@ -25,7 +25,7 @@ export function SegmentedControl({
     <div
       role="group"
       aria-label={ariaLabel}
-      className={cn("inline-flex rounded-md border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-1", className)}
+      className={cn("glass-input inline-flex rounded-xl p-1", className)}
     >
       {options.map((opt) => {
         const active = opt.value === value;
@@ -38,10 +38,10 @@ export function SegmentedControl({
             title={opt.title}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "rounded-md px-3 py-1.5 font-medium transition-colors focus-ring",
+              "rounded-lg px-3 py-1.5 font-medium transition-colors focus-ring",
               sizeClasses,
               active
-                ? "bg-[var(--cp-surface)] text-[var(--cp-text)] shadow-sm"
+                ? "bg-[var(--cp-doc)] text-[var(--cp-text)] shadow-sm"
                 : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
             )}
           >
@@ -71,10 +71,10 @@ export function ToggleButton({
       aria-pressed={pressed}
       onClick={() => onPressedChange(!pressed)}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md border border-[var(--cp-border)] px-3 py-2 text-sm font-medium transition-colors focus-ring",
+        "glass-input inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-ring",
         pressed
-          ? "bg-[var(--cp-surface)] text-[var(--cp-text)] shadow-sm"
-          : "bg-[var(--cp-surface-2)] text-[var(--cp-muted)] hover:text-[var(--cp-text)]",
+          ? "bg-[var(--cp-doc)] text-[var(--cp-text)] shadow-sm"
+          : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]",
         className
       )}
       {...props}
@@ -83,7 +83,7 @@ export function ToggleButton({
         aria-hidden="true"
         className={cn(
           "h-4 w-8 rounded-full border border-[var(--cp-border)] bg-[var(--cp-bg)] transition-colors",
-          pressed ? "bg-emerald-500/20" : "bg-[var(--cp-bg)]"
+          pressed ? "bg-emerald-500/25" : "bg-[var(--cp-bg)]"
         )}
       >
         <span

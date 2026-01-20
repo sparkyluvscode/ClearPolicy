@@ -26,6 +26,18 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
   const data = await res.json();
 
   const missing = !data || !!data.error || !data.raw;
+  const localContext = {
+    source,
+    jurisdiction: data?.jurisdiction || (source === "os" ? "CA" : "US"),
+    title: source === "os"
+      ? (data?.raw?.title || data?.raw?.identifier || "California measure")
+      : (data?.raw?.bill?.title || data?.raw?.bill?.number || "Federal bill"),
+    id,
+    subjects: source === "os"
+      ? (Array.isArray(data?.raw?.subjects) ? data.raw.subjects : (data?.raw?.subject ? [data.raw.subject] : []))
+      : (Array.isArray(data?.raw?.bill?.subjects) ? data.raw.bill.subjects.map((s: any) => s?.name).filter(Boolean) : []),
+    policyArea: source === "congress" ? data?.raw?.bill?.policyArea?.name : undefined,
+  };
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[2.2fr,1fr]">
@@ -45,7 +57,7 @@ export default async function LiveMeasurePage({ searchParams }: { searchParams: 
         <LiveMeasureCardClient payload={data} />
       </div>
       <div className="space-y-6">
-        <ZipPanel contextId={source === "os" ? id : undefined} />
+        <ZipPanel contextId={source === "os" ? id : undefined} context={localContext} />
       </div>
     </div>
   );

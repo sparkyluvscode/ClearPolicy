@@ -10,14 +10,14 @@ export function Card({
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { variant?: CardVariant }) {
   const variantClasses: Record<CardVariant, string> = {
-    default: "bg-[var(--cp-surface)] border border-[var(--cp-border)] shadow-soft",
+    default: "glass-card",
     subtle: "bg-[var(--cp-surface-2)] border border-[var(--cp-border)]",
-    document: "bg-[var(--cp-doc)] border border-[var(--cp-border)] shadow-card",
+    document: "glass-doc",
     inset: "bg-[var(--cp-surface-2)] border border-[var(--cp-border)]",
   };
   return (
     <div
-      className={cn("card rounded-xl p-5 md:p-6 text-[var(--cp-text)]", variantClasses[variant], className)}
+      className={cn("card rounded-2xl p-5 md:p-6 text-[var(--cp-text)]", variantClasses[variant], className)}
       {...props}
     />
   );
