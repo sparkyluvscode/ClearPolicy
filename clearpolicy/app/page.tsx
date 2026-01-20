@@ -32,7 +32,7 @@ function HomePageContent() {
     doSearch(trimmed).catch((err) => {
       console.error("Initial search failed:", err);
     });
-  }, [queryParam]);
+  }, [queryParam, q]);
 
   async function doSearch(query: string) {
     if (typeof window === "undefined") return;
