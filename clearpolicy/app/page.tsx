@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import DisambiguatorChips from "@/components/DisambiguatorChips";
 import FeatureGrid from "@/components/FeatureGrid";
@@ -7,12 +7,14 @@ import TourOverlay from "@/components/TourOverlay";
 import { Badge, Button, Card, SearchInput } from "@/components/ui";
 
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+function HomePageContent() {
   const searchParams = useSearchParams();
   const [q, setQ] = useState("");
   const [chips, setChips] = useState<{ label: string; hint: string; slug?: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<{ ca?: { results?: any[] }; us?: { bills?: any[]; data?: { bills?: any[] } }; fallbacks?: any[] }>({});
+  const [results, setResults] = useState<{ ca?: { results?: any[] }; us?: { bills?: any[]; data?: { bills?: any[] } }; fallbacks?: any[]; aiFallback?: any | null }>({});
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState<{ label: string; hint: string; slug?: string }[]>([]);
   const [showSuggest, setShowSuggest] = useState(false);
@@ -95,7 +97,8 @@ export default function HomePage() {
       const newResults = {
         ca: { results: caResults },
         us: { bills: usBillsData, data: { bills: usBillsData } },
-        fallbacks: data.fallbacks || []
+        fallbacks: data.fallbacks || [],
+        aiFallback: data.aiFallback || null
       };
 
       // Update all state together - React will batch these
@@ -260,29 +263,6 @@ export default function HomePage() {
               </ul>
             )}
           </form>
-          <div className="space-y-2">
-            <div className="section-title">Try a search</div>
-            <div className="flex flex-wrap gap-2 text-xs text-[var(--cp-muted)]">
-            {[
-              "Prop 17",
-              "Prop 47",
-              "AB 5",
-              "SB 1383",
-              "education",
-              "housing",
-            ].map((item) => (
-              <Button
-                key={item}
-                variant="secondary"
-                size="sm"
-                className="rounded-full"
-                onClick={() => { setQ(item); doSearch(item); }}
-              >
-                {item}
-              </Button>
-            ))}
-            </div>
-          </div>
           {chips.length > 0 && (
             <div>
               <DisambiguatorChips chips={chips} />
@@ -458,6 +438,32 @@ export default function HomePage() {
         </section>
       )}
 
+      {showResults && !hasCaResults && !hasUsResults && results.aiFallback && (
+        <section className="space-y-4">
+          <Card className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="section-heading">AI fallback summary</h2>
+              <Badge variant="analysis">AI</Badge>
+            </div>
+            <p className="text-sm text-[var(--cp-muted)]">
+              We couldn&apos;t find an exact bill match. This is a best-effort neutral summary for your query.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  const encoded = encodeURIComponent(q.trim());
+                  window.location.href = `/measure/ai?query=${encoded}`;
+                }}
+              >
+                Open AI summary →
+              </Button>
+            </div>
+          </Card>
+        </section>
+      )}
+
       <FeatureGrid />
 
       <Card>
@@ -474,5 +480,13 @@ export default function HomePage() {
         </p>
       </Card>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="text-sm text-[var(--cp-muted)]">Loading…</div>}>
+      <HomePageContent />
+    </Suspense>
   );
 }

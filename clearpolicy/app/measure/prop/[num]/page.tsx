@@ -1,9 +1,16 @@
-import dynamic from "next/dynamic";
-import { headers } from "next/headers";
+import dynamicImport from "next/dynamic";
 import { Card } from "@/components/ui";
 
-const ProvisionalCard = dynamic(() => import("@/components/ProvisionalCard"), { ssr: false });
-const ZipPanel = dynamic(() => import("@/components/ZipPanel"), { ssr: false });
+const ProvisionalCard = dynamicImport(() => import("@/components/ProvisionalCard"), { ssr: false });
+const ZipPanel = dynamicImport(() => import("@/components/ZipPanel"), { ssr: false });
+
+export const dynamic = "force-static";
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  const maxProp = 99;
+  return Array.from({ length: maxProp }, (_, i) => ({ num: String(i + 1) }));
+}
 
 export default async function PropositionPage({ params }: { params: { num: string } }) {
   const n = String(params.num || "").replace(/[^0-9]/g, "");
@@ -11,17 +18,23 @@ export default async function PropositionPage({ params }: { params: { num: strin
     return <Card className="text-sm text-[var(--cp-muted)]">Missing proposition number.</Card>;
   }
 
-  const hdrs = headers();
-  const host = hdrs.get("x-forwarded-host") || hdrs.get("host") || "localhost:3000";
-  const proto = hdrs.get("x-forwarded-proto") || "http";
-  const base = `${proto}://${host}`;
+  const envBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
+  const base = envBase
+    ? (envBase.startsWith("http") ? envBase : `https://${envBase}`)
+    : "http://localhost:3000";
   const query = `California Proposition ${n}`;
   const [searchRes, propRes] = await Promise.all([
-    fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
-    fetch(`${base}/api/prop/${encodeURIComponent(n)}`, { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+    fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { cache: "force-cache" }).then(r => r.json()).catch(() => ({})),
+    fetch(`${base}/api/prop/${encodeURIComponent(n)}`, { cache: "force-cache" }).then(r => r.json()).catch(() => ({})),
   ]);
   const fallbacks = Array.isArray(searchRes?.fallbacks) ? searchRes.fallbacks : [];
   const bp = propRes?.sources?.ballotpedia as string | null;
+  const localContext = {
+    source: "seeded" as const,
+    jurisdiction: "CA" as const,
+    title: `California Proposition ${n}${propRes?.year ? ` (${propRes.year})` : ""}`,
+    subjects: propRes?.tags || propRes?.topics || [],
+  };
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[2.2fr,1fr]">
@@ -40,7 +53,7 @@ export default async function PropositionPage({ params }: { params: { num: strin
         <ProvisionalCard query={query} fallbacks={fallbacks} seed={{ tldr: propRes?.tldr, whatItDoes: propRes?.whatItDoes, pros: propRes?.pros, cons: propRes?.cons, year: propRes?.year, levels: propRes?.levels }} />
       </div>
       <div className="space-y-6">
-        <ZipPanel />
+        <ZipPanel context={localContext} />
       </div>
     </div>
   );

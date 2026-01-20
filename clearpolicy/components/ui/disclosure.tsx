@@ -8,12 +8,16 @@ export function Disclosure({
   label,
   children,
   className,
+  buttonProps,
 }: {
   open: boolean;
   onToggle: () => void;
   label: string;
   children: React.ReactNode;
   className?: string;
+  buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    "data-testid"?: string;
+  };
 }) {
   return (
     <div className={cn("space-y-2", className)}>
@@ -21,7 +25,8 @@ export function Disclosure({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="inline-flex items-center gap-2 text-sm font-medium text-[var(--cp-text)] hover:text-accent focus-ring rounded"
+        className="inline-flex items-center gap-2 text-sm font-medium text-[var(--cp-text)] hover:text-[var(--cp-accent)] focus-ring rounded"
+        {...buttonProps}
       >
         {label}
         <svg
