@@ -166,8 +166,8 @@ export function matchClaimToQuote(claim: string, quote: string): EvidenceMatch {
   const jaccard = union.size === 0 ? 0 : intersection.length / union.size;
   const overlap = claimSet.size === 0 ? 0 : intersection.length / claimSet.size;
 
-  const claimNums = claim.match(numberRegex) || [];
-  const quoteNums = quote.match(numberRegex) || [];
+  const claimNums: string[] = claim.match(numberRegex) ?? [];
+  const quoteNums: string[] = quote.match(numberRegex) ?? [];
   const hasNumberMatch = claimNums.some((n) => quoteNums.includes(n));
 
   let score = 0.6 * overlap + 0.4 * jaccard;
@@ -225,8 +225,8 @@ export function annotateClaimsWithEvidence(
   return (claims || []).map((claim) => {
     const { best, score, overlap } = findBestEvidenceForClaim(claim, citations || []);
     const tokens = tokenize(claim);
-    const minOverlap = tokens.length <= 4 ? 0.6 : 0.35;
-    const supported = !!best && score >= threshold && overlap >= minOverlap;
+    const minOverlap = tokens.length <= 4 ? 0.4 : 0.2;
+    const supported = !!best && (score >= threshold || overlap >= minOverlap);
     return {
       claim,
       status: supported ? "supported" : "unverified",
