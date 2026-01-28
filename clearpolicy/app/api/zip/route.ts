@@ -32,8 +32,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(base, { status: 200 });
   }
 
-  const normalizedInput = { line1: parsed.data.zip };
-  const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(parsed.data.zip)}`;
+  const zipCode = parsed.data.zip; // Guaranteed non-null after line 30 check
+  const normalizedInput = { line1: zipCode };
+  const finderUrl = `https://findyourrep.legislature.ca.gov/?myZip=${encodeURIComponent(zipCode)}`;
   const curated: Record<string, Official[]> = {
     "95014": [
       { name: "Josh Becker", party: "Democratic", office: "Senator", urls: ["https://sd13.senate.ca.gov/"] },
@@ -51,23 +52,23 @@ export async function GET(req: NextRequest) {
     "95014": { senate: "13", assembly: "26" },
     "95762": { senate: "01", assembly: "06" },
   };
-  const curatedOfficials = curated[parsed.data.zip];
+  const curatedOfficials = curated[zipCode];
   const respond = (base: ZipResponseBase, meta?: ZipResponseMeta) => {
     const payload: ZipResponse = includeMeta && meta ? { ...base, ...meta } : base;
     return NextResponse.json(payload, { status: 200 });
   };
   const fallbackResponse = (error?: string, place?: PlaceInfo, districts?: DistrictInfo) => {
     if (curatedOfficials && curatedOfficials.length) {
-      const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(`${parsed.data.zip} California measure impact`)}`;
-      const metaDistricts = districts || curatedDistricts[parsed.data.zip];
+      const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(`${zipCode} California measure impact`)}`;
+      const metaDistricts = districts || curatedDistricts[zipCode];
       return respond({ officials: curatedOfficials, normalizedInput, analysisUrl, finderUrl }, { place, districts: metaDistricts });
     }
     return respond({ error: error || "ZIP not found. Try a valid CA ZIP like 95014.", officials: [], normalizedInput }, { place, districts });
   };
   try {
     // 1) ZIP -> lat/lon (Zippopotam.us)
-    const zipRes = await fetch(`https://api.zippopotam.us/us/${parsed.data.zip}`, { cache: "no-store" });
-    if (!zipRes.ok) return fallbackResponse(undefined, curatedPlace[parsed.data.zip], curatedDistricts[parsed.data.zip]);
+    const zipRes = await fetch(`https://api.zippopotam.us/us/${zipCode}`, { cache: "no-store" });
+    if (!zipRes.ok) return fallbackResponse(undefined, curatedPlace[zipCode], curatedDistricts[zipCode]);
     const zipJson: any = await zipRes.json();
     const place = Array.isArray(zipJson?.places) && zipJson.places[0];
     const lat = place ? parseFloat(place.latitude) : NaN;
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
     const state = place?.state || place?.["state abbreviation"] || "";
     const county = place?.county || "";
     const placeInfo: PlaceInfo = { city, state, county };
-    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.", placeInfo, curatedDistricts[parsed.data.zip]);
+    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.", placeInfo, curatedDistricts[zipCode]);
 
     // 2) lat/lon -> districts (Census Geocoder, ACS2025 layers)
     const params = new URLSearchParams({
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
     const divisionIds: string[] = [];
     if (upperNum) divisionIds.push(`ocd-division/country:us/state:ca/sldu:${upperNum}`);
     if (lowerNum) divisionIds.push(`ocd-division/country:us/state:ca/sldl:${lowerNum}`);
-    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.", placeInfo, curatedDistricts[parsed.data.zip]);
+    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.", placeInfo, curatedDistricts[zipCode]);
 
     // 3) OpenStates: fetch people for each division_id
     // Fetch by district number and filter by chamber from current_role to ensure correctness
@@ -349,12 +350,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const analysisQuery = contextLine ? `${contextLine} ${city} California` : `${parsed.data.zip} California measure impact`;
+    const analysisQuery = contextLine ? `${contextLine} ${city} California` : `${zipCode} California measure impact`;
     const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(analysisQuery)}`;
 
     return respond({ officials, normalizedInput, offices: [], analysisUrl, finderUrl }, { place: placeInfo, districts });
   } catch (e) {
-    return fallbackResponse("Lookup failed. Try again later.", curatedPlace[parsed.data.zip]);
+    return fallbackResponse("Lookup failed. Try again later.", curatedPlace[zipCode]);
   }
 }
 
