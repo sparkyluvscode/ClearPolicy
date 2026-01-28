@@ -523,6 +523,9 @@ const KNOWN: KnownEntry[] = [
 export function matchKnownSummary(req: SummaryRequest): GeneratedSummary | null {
   const haystack = `${req.title} ${req.identifier || ""} ${req.content || ""}`.toLowerCase();
   for (const entry of KNOWN) {
+    // If a specific year was requested, don't return a known entry for a different year.
+    // This prevents incorrectly labeling an older proposition summary as the requested year.
+    if (req.year && entry.year && String(req.year) !== String(entry.year)) continue;
     if (entry.match.test(haystack)) {
       return { levels: entry.levels, year: entry.year, citations: entry.citations };
     }

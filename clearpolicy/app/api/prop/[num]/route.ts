@@ -215,6 +215,7 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   if (!n) return NextResponse.json({ error: "missing" }, { status: 400 });
   const yearParam = String(_req.nextUrl.searchParams.get("year") || "").replace(/[^0-9]/g, "");
   const requestedYear = yearParam && yearParam.length === 4 ? yearParam : "";
+  let yearMismatchInfo: { requestedYear: string; resolvedYear?: string; note: string } | null = null;
   const startAt = Date.now();
   const shouldContinue = () => Date.now() - startAt < 10000;
 
@@ -440,8 +441,10 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
       }
     }
 
-    // Always use generateSummary to get enhanced fallback (includes known props)
-    // This MUST be called to get known props data
+    // Always use generateSummary to get enhanced fallback.
+    // If a specific year was requested, we try that year first (and we avoid returning known summaries
+    // for a different year). If that fails, we may fall back to the closest known year but will
+    // explicitly mark the year mismatch in the response.
     const allContent = [
       collectedContent,
       collectedTitle,
@@ -451,28 +454,59 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
 
     // Use generateSummary which will handle known props and AI
     try {
-      const summary = await generateSummary({
+      const summaryPrimary = await generateSummary({
         title: collectedTitle || `California Proposition ${n}`,
         content: allContent || `California Proposition ${n} ballot measure`,
         subjects: collectedSubjects,
         identifier: `Prop ${n}`,
         type: "proposition",
-        year: foundYear // Pass the year we found
+        year: requestedYear || foundYear, // Prefer user-requested year context
       });
 
-      // Always use the summary - it has known props data
-      if (summary.levels) {
+      // Always use the summary (it may be AI or known)
+      if (summaryPrimary.levels) {
         // Use level 8 (standard) for top-level backward compatibility
-        const standard = summary.levels["8"];
+        const standard = summaryPrimary.levels["8"];
         if (standard) {
           tldr = standard.tldr;
           if (standard.pros.length > 0) pros = standard.pros;
           if (standard.cons.length > 0) cons = standard.cons;
         }
-        if (summary.year) foundYear = summary.year;
+        if (summaryPrimary.year) foundYear = summaryPrimary.year;
 
         // Store the full levels object to return
-        levels = summary.levels;
+        levels = summaryPrimary.levels;
+      }
+
+      // If the user requested a year and we didn't resolve that year, attempt a second pass
+      // without year constraint to get a known summary, and mark mismatch explicitly.
+      if (requestedYear && (!foundYear || foundYear !== requestedYear)) {
+        const summaryFallback = await generateSummary({
+          title: collectedTitle || `California Proposition ${n}`,
+          content: allContent || `California Proposition ${n} ballot measure`,
+          subjects: collectedSubjects,
+          identifier: `Prop ${n}`,
+          type: "proposition",
+          // omit year to allow known summaries for other years
+        });
+        if (summaryFallback?.levels) {
+          const standard2 = summaryFallback.levels["8"];
+          if (standard2) {
+            tldr = standard2.tldr;
+            if (standard2.pros.length > 0) pros = standard2.pros;
+            if (standard2.cons.length > 0) cons = standard2.cons;
+          }
+          levels = summaryFallback.levels;
+          const resolved = summaryFallback.year || foundYear || "";
+          if (resolved && resolved !== requestedYear) {
+            yearMismatchInfo = {
+              requestedYear,
+              resolvedYear: resolved,
+              note: `No matching Proposition ${n} content was found for ${requestedYear}. Showing the closest available summary (${resolved}).`,
+            };
+            foundYear = resolved;
+          }
+        }
       }
     } catch (e) {
       console.error(`[Prop ${n}] Summary generation failed:`, e);
@@ -538,9 +572,22 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   if (pros.length) citations.push({ quote: pros[0], sourceName: primarySourceName, url: primaryUrl, location: "pros" });
   if (cons.length) citations.push({ quote: cons[0], sourceName: primarySourceName, url: primaryUrl, location: "cons" });
 
+  const requestedYearOut = requestedYear || undefined;
+  const yearMismatchOut =
+    yearMismatchInfo ||
+    (requestedYear && foundYear && requestedYear !== foundYear
+      ? {
+          requestedYear,
+          resolvedYear: foundYear,
+          note: `Requested year ${requestedYear} did not match the available proposition year (${foundYear}).`,
+        }
+      : undefined);
+
   return NextResponse.json({
     number: n,
     year: foundYear, // Include year in response
+    requestedYear: requestedYearOut,
+    yearMismatch: yearMismatchOut,
     sources: {
       ballotpedia: ballotpediaUrl,
       lao: laoUrl,
