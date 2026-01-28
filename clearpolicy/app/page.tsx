@@ -173,13 +173,26 @@ function HomePageContent() {
 
   // Calculate showResults - ensure we check the actual state values
   const currentQ = q.trim();
-  const showResults = Boolean(currentQ && (hasCaResults || hasUsResults || hasFallbacks || chips.length > 0 || hasSearched));
+  const showResults = Boolean(currentQ && !loading && (hasCaResults || hasUsResults || hasFallbacks || chips.length > 0 || hasSearched));
+  const showSearching = Boolean(currentQ && loading);
 
   // Keep derived state lean; avoid console noise in production
 
   const isLikelyFederal = /\b(hr|s|senate|house|congress|federal)\b/i.test(q);
   const caDirect = useMemo(() => caResultsArray.filter((r: any) => r._direct), [caResultsArray]);
   const caRelated = useMemo(() => caResultsArray.filter((r: any) => !r._direct), [caResultsArray]);
+  const formatCaMeta = (r: any) => {
+    const session = String(r?.session || "");
+    const yearMatch = session.match(/\b(19|20)\d{2}\b/);
+    const year = r?._year || r?.year || (yearMatch ? yearMatch[0] : "");
+    const status = r?._status || r?.status || r?.latest_action_description || r?.latest_action?.description || "";
+    return [year, status].filter(Boolean).join(" • ");
+  };
+  const formatUsMeta = (b: any) => {
+    const year = b?._year || (typeof b?.introducedDate === "string" ? b.introducedDate.slice(0, 4) : "");
+    const status = b?._status || b?.latestAction?.text || b?.latest_action?.text || "";
+    return [year, status].filter(Boolean).join(" • ");
+  };
 
   return (
     <div className="space-y-10">
@@ -271,12 +284,23 @@ function HomePageContent() {
         </Card>
       </section>
 
+      {showSearching && (
+        <section className="space-y-4" id="search-results-loading" data-testid="search-results-loading">
+          <div className="flex items-center justify-between">
+            <h2 className="section-heading" role="heading" aria-level={2}>Search Results</h2>
+          </div>
+          <div className="rounded-lg border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-4 text-sm text-[var(--cp-muted)]">
+            Searching for “{q}”… please wait.
+          </div>
+        </section>
+      )}
+
       {showResults && (
         <section className="space-y-4" id="search-results-section" data-testid="search-results">
           <div className="flex items-center justify-between">
             <h2 className="section-heading" role="heading" aria-level={2}>Search Results</h2>
           </div>
-          {!hasCaResults && !hasUsResults && (
+          {!loading && !hasCaResults && !hasUsResults && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
               <p>No results for “{q}”. Try one of these:</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -295,10 +319,15 @@ function HomePageContent() {
                     <ul className="space-y-2 text-sm">
                       {caDirect.slice(0, 1).map((r: any, i: number) => {
                         const osId = r.id || r.identifier || "";
-                        const href = (r as any)._virtual === "prop" && (r as any).propNum
-                          ? `/measure/prop/${encodeURIComponent((r as any).propNum)}`
-                          : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
-                        const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
+                        const yearHint = (r as any)._yearHint;
+                        const href = (r as any)._slug
+                          ? `/measure/${(r as any)._slug}`
+                          : (r as any)._virtual === "prop" && (r as any).propNum
+                            ? `/measure/prop/${encodeURIComponent((r as any).propNum)}${yearHint ? `?year=${encodeURIComponent(yearHint)}` : ""}`
+                            : (r as any)._aiQuery
+                              ? `/measure/ai?query=${encodeURIComponent((r as any)._aiQuery)}`
+                              : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
+                        const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop") && !(r as any)._aiQuery && !(r as any)._slug;
                         return (
                           <li key={i}>
                             <a
@@ -312,7 +341,9 @@ function HomePageContent() {
                                   <span className="font-semibold text-[var(--cp-text)]" data-testid="result-title">{r.title || r.identifier}</span>
                                   <Badge variant="supported">Top pick</Badge>
                                 </div>
+                                {formatCaMeta(r) && <div className="mt-1 text-xs text-[var(--cp-muted)]">{formatCaMeta(r)}</div>}
                                 {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                                {(r as any)._aiQuery && <div className="mt-1 text-xs text-[var(--cp-muted)]">AI summary available</div>}
                                 {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
                                 {r.classification && <div className="text-xs text-[var(--cp-muted)]">{r.classification?.join?.(", ")}</div>}
                                 <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
@@ -327,10 +358,15 @@ function HomePageContent() {
                     <ul className="space-y-2 text-sm">
                       {caDirect.slice(1, 5).map((r: any, i: number) => {
                         const osId = r.id || r.identifier || "";
-                        const href = (r as any)._virtual === "prop" && (r as any).propNum
-                          ? `/measure/prop/${encodeURIComponent((r as any).propNum)}`
-                          : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
-                        const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
+                        const yearHint = (r as any)._yearHint;
+                        const href = (r as any)._slug
+                          ? `/measure/${(r as any)._slug}`
+                          : (r as any)._virtual === "prop" && (r as any).propNum
+                            ? `/measure/prop/${encodeURIComponent((r as any).propNum)}${yearHint ? `?year=${encodeURIComponent(yearHint)}` : ""}`
+                            : (r as any)._aiQuery
+                              ? `/measure/ai?query=${encodeURIComponent((r as any)._aiQuery)}`
+                              : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
+                        const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop") && !(r as any)._aiQuery && !(r as any)._slug;
                         return (
                           <li key={i}>
                             <a
@@ -344,7 +380,9 @@ function HomePageContent() {
                                   <span className="font-medium text-[var(--cp-text)]" data-testid="result-title">{r.title || r.identifier}</span>
                                   <Badge variant="primary">Direct</Badge>
                                 </div>
+                                {formatCaMeta(r) && <div className="mt-1 text-xs text-[var(--cp-muted)]">{formatCaMeta(r)}</div>}
                                 {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                                {(r as any)._aiQuery && <div className="mt-1 text-xs text-[var(--cp-muted)]">AI summary available</div>}
                                 <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                               </Card>
                             </a>
@@ -359,10 +397,15 @@ function HomePageContent() {
                       <ul className="space-y-2 text-sm">
                         {caRelated.slice(0, 5).map((r: any, i: number) => {
                           const osId = r.id || r.identifier || "";
-                          const href = (r as any)._virtual === "prop" && (r as any).propNum
-                            ? `/measure/prop/${encodeURIComponent((r as any).propNum)}`
-                            : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
-                          const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop");
+                        const yearHint = (r as any)._yearHint;
+                        const href = (r as any)._slug
+                            ? `/measure/${(r as any)._slug}`
+                            : (r as any)._virtual === "prop" && (r as any).propNum
+                            ? `/measure/prop/${encodeURIComponent((r as any).propNum)}${yearHint ? `?year=${encodeURIComponent(yearHint)}` : ""}`
+                              : (r as any)._aiQuery
+                                ? `/measure/ai?query=${encodeURIComponent((r as any)._aiQuery)}`
+                                : (r as any).externalUrl || `/measure/live?source=os&id=${encodeURIComponent(osId)}`;
+                          const isExternal = Boolean((r as any).externalUrl) && !((r as any)._virtual === "prop") && !(r as any)._aiQuery && !(r as any)._slug;
                           return (
                           <li key={i}>
                             <a
@@ -376,7 +419,9 @@ function HomePageContent() {
                                   <span className="font-medium text-[var(--cp-text)]" data-testid="result-title">{r.title || r.identifier}</span>
                                   <Badge variant="neutral">Related</Badge>
                                 </div>
+                                {formatCaMeta(r) && <div className="mt-1 text-xs text-[var(--cp-muted)]">{formatCaMeta(r)}</div>}
                                 {r._reason && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._reason}</div>}
+                                {(r as any)._aiQuery && <div className="mt-1 text-xs text-[var(--cp-muted)]">AI summary available</div>}
                                 {r._preview && <div className="mt-1 text-xs text-[var(--cp-muted)]">{r._preview}</div>}
                                 <div className="mt-2 text-xs text-accent">{isExternal ? "Open overview →" : "Open summary →"}</div>
                               </Card>
@@ -406,7 +451,7 @@ function HomePageContent() {
                         >
                           <Card className="p-4 transition hover:bg-[var(--cp-surface-2)] surface-lift">
                             <div className="font-medium text-[var(--cp-text)]" data-testid="result-title">{b.title || b.number}</div>
-                            {b.latestAction?.text && <div className="mt-1 text-xs text-[var(--cp-muted)]">{b.latestAction.text}</div>}
+                            {formatUsMeta(b) && <div className="mt-1 text-xs text-[var(--cp-muted)]">{formatUsMeta(b)}</div>}
                             <div className="mt-2 text-xs text-accent">Open summary →</div>
                           </Card>
                         </a>

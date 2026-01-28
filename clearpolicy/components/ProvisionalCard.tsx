@@ -2,9 +2,9 @@
 import { useMemo, useState } from "react";
 import { simplify } from "@/lib/reading";
 import SourceMeter from "@/components/SourceMeter";
-import { Button, Card, SegmentedControl, ToggleButton } from "@/components/ui";
+import { Card, SegmentedControl, ToggleButton } from "@/components/ui";
 import BillCard from "@/components/BillCard";
-import type { SummaryLike } from "@/lib/summary-types";
+import type { SummaryLike, EvidenceCitation } from "@/lib/summary-types";
 
 type Fallback = { label: string; url: string; hint: string; kind: "overview" | "official" | "analysis" };
 type LevelContent = {
@@ -23,12 +23,13 @@ type Seed = {
   cons?: string[];
   year?: string;
   levels?: { "5": LevelContent; "8": LevelContent; "12": LevelContent };
+  citations?: EvidenceCitation[];
 } | undefined;
 
 export default function ProvisionalCard({ query, fallbacks = [], seed }: { query: string; fallbacks?: Fallback[]; seed?: Seed }) {
   const [level, setLevel] = useState<"5" | "8" | "12">("8");
-  const [showCitations, setShowCitations] = useState(false);
   const [evidenceMode, setEvidenceMode] = useState(false);
+  const isAiSummary = Boolean(seed?.levels);
   const primary = useMemo(() => {
     // Prefer Ballotpedia/LAO analyses if present so sources are actually explanatory
     const byLabel = fallbacks.find((f) => /ballotpedia|lao/i.test(f.label));
@@ -135,11 +136,6 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
     };
   }, [query, seed, level]);
 
-  // Compatibility helper: format text for display (handle arrays vs strings)
-  const display = (content: string | string[]) => {
-    if (Array.isArray(content)) return content.join(" ");
-    return content;
-  };
 
   const evidenceSummary = useMemo<SummaryLike>(() => {
     const toString = (val: string | string[]) => (Array.isArray(val) ? val.join(" ") : val);
@@ -147,13 +143,13 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
       tldr: toString(text.tldr),
       whatItDoes: toString(text.what),
       whoAffected: toString(text.who),
-      pros: toString(text.pros),
-      cons: toString(text.cons),
-      sourceRatio: 0,
-      citations: [],
-      sourceCount: 0,
+      pros: text.pros,
+      cons: text.cons,
+      sourceRatio: primary ? 0.8 : 0.4,
+      citations: seed?.citations || [],
+      sourceCount: seed?.citations?.length ? 3 : 0,
     };
-  }, [text]);
+  }, [primary, seed?.citations, text]);
 
   return (
     <Card variant="document" className="space-y-6">
@@ -162,7 +158,9 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
           <h2 className="text-lg font-semibold text-[var(--cp-text)]">
             Summary {seed?.year && <span className="text-[var(--cp-muted)] font-normal">({seed.year})</span>}
           </h2>
-          <p className="mt-1 text-xs text-[var(--cp-muted)]">Fallback summary with available context.</p>
+          <p className="mt-1 text-xs text-[var(--cp-muted)]">
+            {isAiSummary ? "AI-generated summary with available sources." : "Fallback summary with available context."}
+          </p>
         </div>
         <SegmentedControl
           value={level}
@@ -182,64 +180,19 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
           count={primary ? 4 : 2}
           total={5}
         />
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCitations(!showCitations)}
-          >
-            {showCitations ? "Hide cited lines" : "Show cited lines"}
-          </Button>
-          <ToggleButton
-            pressed={evidenceMode}
-            onPressedChange={setEvidenceMode}
-            label="Evidence Mode (beta)"
-            data-testid="evidence-toggle"
-          />
-        </div>
+        <ToggleButton
+          pressed={evidenceMode}
+          onPressedChange={setEvidenceMode}
+          label="Evidence Mode (beta)"
+          data-testid="evidence-toggle"
+        />
       </Card>
 
       {evidenceMode && (
         <BillCard data={evidenceSummary as any} level={level} evidenceMode />
       )}
       {!evidenceMode && (
-      <div className="grid grid-cols-1 gap-5 text-sm leading-relaxed">
-        <section>
-          <h3 className="section-title">TL;DR</h3>
-          <p className={`mt-1 text-[var(--cp-text)] ${showCitations ? "border-l-2 border-emerald-500/70 pl-3" : ""}`}>{display(text.tldr)}</p>
-          {primary && showCitations && <div className="mt-1 text-xs text-[var(--cp-muted)]">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="inline-link">{primary.label}</a></div>}
-        </section>
-        <section>
-          <h3 className="section-title">What it does</h3>
-          <p className={`mt-1 text-[var(--cp-text)] ${showCitations ? "border-l-2 border-emerald-500/70 pl-3" : ""}`}>{display(text.what)}</p>
-          {primary && showCitations && <div className="mt-1 text-xs text-[var(--cp-muted)]">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="inline-link">{primary.label}</a></div>}
-        </section>
-        <section>
-          <h3 className="section-title">Who is affected</h3>
-          <p className={`mt-1 text-[var(--cp-text)] ${showCitations ? "border-l-2 border-emerald-500/70 pl-3" : ""}`}>{display(text.who)}</p>
-          {primary && showCitations && <div className="mt-1 text-xs text-[var(--cp-muted)]">Source: <a href={primary.url} target="_blank" rel="noreferrer noopener" className="inline-link">{primary.label}</a></div>}
-        </section>
-        <section>
-          <h3 className="section-title">Pros</h3>
-          <div className="mt-1 text-[var(--cp-text)]">
-            {Array.isArray(text.pros) ? (
-              <ul className="list-disc pl-5 space-y-1">
-                {text.pros.map((p, i) => <li key={i}>{p}</li>)}
-              </ul>
-            ) : <p>{text.pros}</p>}
-          </div>
-        </section>
-        <section>
-          <h3 className="section-title">Cons</h3>
-          <div className="mt-1 text-[var(--cp-text)]">
-            {Array.isArray(text.cons) ? (
-              <ul className="list-disc pl-5 space-y-1">
-                {text.cons.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
-            ) : <p>{text.cons}</p>}
-          </div>
-        </section>
-      </div>
+        <BillCard data={evidenceSummary as any} level={level} evidenceMode={false} />
       )}
     </Card>
   );

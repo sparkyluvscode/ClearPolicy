@@ -28,7 +28,30 @@ export default function BillCard({
   // Data already comes pre-simplified for the selected level, so we don't need to simplify again
   // Only add "In simple words" prefix for 5th grade
   const simple = (t: string) => (level === "5" && t ? `In simple words: ${t}` : t);
-  const tldrText = String(data.tldr || "");
+  const toString = (val: string | string[] | null | undefined) =>
+    Array.isArray(val) ? val.join(" ") : String(val || "");
+  const tldrText = toString(data.tldr);
+  const toParagraphs = (val: string | string[] | null | undefined) => {
+    if (Array.isArray(val)) return val.filter(Boolean);
+    const raw = String(val || "").trim();
+    if (!raw) return [];
+    return raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  };
+  const toList = (val: string | string[] | null | undefined) => {
+    if (Array.isArray(val)) return val.filter(Boolean);
+    const raw = String(val || "").trim();
+    if (!raw) return [];
+    if (raw.includes("\n")) {
+      return raw.split(/\n+/).map((p) => p.replace(/^[-•]\s*/, "").trim()).filter(Boolean);
+    }
+    if (raw.includes("•")) {
+      return raw.split("•").map((p) => p.trim()).filter(Boolean);
+    }
+    if (raw.includes(";")) {
+      return raw.split(";").map((p) => p.trim()).filter(Boolean);
+    }
+    return raw ? [raw] : [];
+  };
 
   const annotatedClaims: AnnotatedClaim[] = useMemo(() => {
     if (!evidenceMode) return [];
@@ -59,9 +82,11 @@ export default function BillCard({
           <h3 className="section-title">TL;DR</h3>
           {!evidenceMode && (
             <>
-              <p className="mt-1 text-[var(--cp-text)]">
-                {simple(data.tldr || "No TL;DR available; see sources below.")}
-              </p>
+              {toParagraphs(data.tldr).map((p, i) => (
+                <p key={i} className="mt-1 text-[var(--cp-text)]">
+                  {simple(p || "No TL;DR available; see sources below.")}
+                </p>
+              ))}
               {firstFor("tldr") && (
                 <div className="mt-1 text-xs text-[var(--cp-muted)]">
                   Source:{" "}
@@ -181,10 +206,12 @@ export default function BillCard({
         </section>
         <section>
           <h3 className="section-title">What it does</h3>
-          <p className="mt-1 text-[var(--cp-text)]">
-            {simple(data.whatItDoes || "No section summary available; see official source.")}{" "}
-            {level === "5" && data.example ? `For example: ${data.example}` : ""}
-          </p>
+          {toParagraphs(data.whatItDoes).map((p, i) => (
+            <p key={i} className="mt-1 text-[var(--cp-text)]">
+              {simple(p || "No section summary available; see official source.")}{" "}
+              {level === "5" && data.example && i === 0 ? `For example: ${data.example}` : ""}
+            </p>
+          ))}
           {firstFor("what") && (
             <div className="mt-1 text-xs text-[var(--cp-muted)]">
               Source:{" "}
@@ -205,9 +232,23 @@ export default function BillCard({
         </section>
         <section>
           <h3 className="section-title">Who is affected</h3>
-          <p className="mt-1 text-[var(--cp-text)]">
-            {simple(data.whoAffected || "No audience summary available; see official source.")}
-          </p>
+          {(() => {
+            const items = toList(data.whoAffected);
+            if (items.length > 1) {
+              return (
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--cp-text)]">
+                  {items.map((item, idx) => (
+                    <li key={idx}>{simple(item)}</li>
+                  ))}
+                </ul>
+              );
+            }
+            return (
+              <p className="mt-1 text-[var(--cp-text)]">
+                {simple(items[0] || "No audience summary available; see official source.")}
+              </p>
+            );
+          })()}
           {firstFor("who") && (
             <div className="mt-1 text-xs text-[var(--cp-muted)]">
               Source:{" "}
@@ -228,9 +269,23 @@ export default function BillCard({
         </section>
         <section>
           <h3 className="section-title">Pros</h3>
-          <p className="mt-1 text-[var(--cp-text)]">
-            {simple(data.pros || "No stated benefits available from sources.")}
-          </p>
+          {(() => {
+            const items = toList(data.pros);
+            if (items.length > 1) {
+              return (
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--cp-text)]">
+                  {items.map((item, idx) => (
+                    <li key={idx}>{simple(item)}</li>
+                  ))}
+                </ul>
+              );
+            }
+            return (
+              <p className="mt-1 text-[var(--cp-text)]">
+                {simple(items[0] || "No stated benefits available from sources.")}
+              </p>
+            );
+          })()}
           {firstFor("pros") && (
             <div className="mt-1 text-xs text-[var(--cp-muted)]">
               Source:{" "}
@@ -251,9 +306,23 @@ export default function BillCard({
         </section>
         <section>
           <h3 className="section-title">Cons</h3>
-          <p className="mt-1 text-[var(--cp-text)]">
-            {simple(data.cons || "No stated drawbacks available from sources.")}
-          </p>
+          {(() => {
+            const items = toList(data.cons);
+            if (items.length > 1) {
+              return (
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--cp-text)]">
+                  {items.map((item, idx) => (
+                    <li key={idx}>{simple(item)}</li>
+                  ))}
+                </ul>
+              );
+            }
+            return (
+              <p className="mt-1 text-[var(--cp-text)]">
+                {simple(items[0] || "No stated drawbacks available from sources.")}
+              </p>
+            );
+          })()}
           {firstFor("cons") && (
             <div className="mt-1 text-xs text-[var(--cp-muted)]">
               Source:{" "}

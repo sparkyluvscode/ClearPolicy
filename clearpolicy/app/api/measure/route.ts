@@ -15,7 +15,14 @@ export async function GET(req: NextRequest) {
   if (parsed.data.source === "os") {
     const data = await openstates.billById(parsed.data.id).catch(() => null);
     if (!data) {
-      return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "openstates unavailable" });
+      const aiSummary = await generateSummary({
+        title: `Open States bill ${parsed.data.id}`,
+        content: `Open States bill ${parsed.data.id}. Live data unavailable.`,
+        subjects: [],
+        identifier: parsed.data.id,
+        type: "bill",
+      });
+      return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "openstates unavailable", aiSummary });
     }
     // Handle both {results: [...]} and direct object responses
     let billData: any = data;
@@ -27,7 +34,14 @@ export async function GET(req: NextRequest) {
             billData = data.results[0];
           } else {
             // Empty results array - bill not found in OpenStates
-            return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "bill not found" });
+            const aiSummary = await generateSummary({
+              title: `Open States bill ${parsed.data.id}`,
+              content: `Open States bill ${parsed.data.id}. Bill not found.`,
+              subjects: [],
+              identifier: parsed.data.id,
+              type: "bill",
+            });
+            return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "bill not found", aiSummary });
           }
         } else if (typeof data.results === "object" && !Array.isArray(data.results)) {
           billData = data.results;
@@ -41,17 +55,31 @@ export async function GET(req: NextRequest) {
     
     // Validate we have actual bill data
     if (!billData || (Array.isArray(billData) && billData.length === 0)) {
-      return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "bill data invalid" });
+      const aiSummary = await generateSummary({
+        title: `Open States bill ${parsed.data.id}`,
+        content: `Open States bill ${parsed.data.id}. Bill data invalid.`,
+        subjects: [],
+        identifier: parsed.data.id,
+        type: "bill",
+      });
+      return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "bill data invalid", aiSummary });
     }
     
     // Additional validation - check if billData has at least some identifying information
     if (!billData.id && !billData.title && !billData.identifier && !billData.extras && !billData.latest_action_description) {
-      return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "bill data incomplete" });
+      const aiSummary = await generateSummary({
+        title: `Open States bill ${parsed.data.id}`,
+        content: `Open States bill ${parsed.data.id}. Bill data incomplete.`,
+        subjects: [],
+        identifier: parsed.data.id,
+        type: "bill",
+      });
+      return NextResponse.json({ kind: "prop", jurisdiction: "CA", raw: null, error: "bill data incomplete", aiSummary });
     }
     
     // Enhance with AI-generated summary if we have enough content
     let aiSummary = null;
-    if (billData && process.env.GEMINI_API_KEY) {
+    if (billData) {
       try {
         const title = billData.title || billData.identifier || "";
         // Collect ALL available content for better AI analysis
@@ -93,11 +121,21 @@ export async function GET(req: NextRequest) {
   if (parsed.data.source === "congress") {
     const [congressNum, billType, billNumber] = parsed.data.id.split(":");
     const data = await congress.billDetail(congressNum, billType, billNumber).catch(() => null);
-    if (!data) return NextResponse.json({ kind: "bill", jurisdiction: "US", raw: null, error: "congress.gov unavailable" });
+    if (!data) {
+      const ident = [billType, billNumber].filter(Boolean).join(" ").toUpperCase() || parsed.data.id;
+      const aiSummary = await generateSummary({
+        title: `Federal bill ${ident}`,
+        content: `Federal bill ${ident}. Congress.gov data unavailable.`,
+        subjects: [],
+        identifier: ident,
+        type: "bill",
+      });
+      return NextResponse.json({ kind: "bill", jurisdiction: "US", raw: null, error: "congress.gov unavailable", aiSummary });
+    }
     
     // Enhance with AI-generated summary if we have enough content
     let aiSummary = null;
-    if (data?.bill && process.env.GEMINI_API_KEY) {
+    if (data?.bill) {
       try {
         const bill = data.bill;
         const title = bill.title || bill.number || "";

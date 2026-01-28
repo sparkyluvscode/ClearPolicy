@@ -71,6 +71,36 @@ export function simplify(text: string, level: "5" | "8" | "12") {
   return ensurePeriod(out);
 }
 
+export function fleschKincaidGrade(text: string): number {
+  const cleaned = String(text || "")
+    .replace(/\s+/g, " ")
+    .replace(/[^a-zA-Z0-9.!? ]+/g, "")
+    .trim();
+  if (!cleaned) return 0;
+  const sentences = Math.max(1, cleaned.split(/[.!?]+/).filter(Boolean).length);
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  const wordCount = Math.max(1, words.length);
+  const syllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
+  const grade = 0.39 * (wordCount / sentences) + 11.8 * (syllables / wordCount) - 15.59;
+  return Math.max(0, Math.round(grade * 10) / 10);
+}
+
+function countSyllables(word: string): number {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return 0;
+  if (w.length <= 3) return 1;
+  const vowels = "aeiouy";
+  let count = 0;
+  let prevVowel = false;
+  for (let i = 0; i < w.length; i++) {
+    const isVowel = vowels.includes(w[i]);
+    if (isVowel && !prevVowel) count += 1;
+    prevVowel = isVowel;
+  }
+  if (w.endsWith("e")) count -= 1;
+  return Math.max(1, count);
+}
+
 function splitSentences(text: string): string[] {
   const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
   if (parts.length === 0) return [text];

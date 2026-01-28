@@ -2,7 +2,6 @@
 import { useMemo, useState } from "react";
 import BillCard from "@/components/BillCard";
 import { sourceRatioFrom } from "@/lib/citations";
-import { simplify } from "@/lib/reading";
 import ReadingLevelToggle from "@/components/ReadingLevelToggle";
 import { Card, ToggleButton } from "@/components/ui";
 import type { SummaryLike } from "@/lib/summary-types";
@@ -112,13 +111,31 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         addEvidence(list, seen, item.text, item.label, item.url, item.location);
       });
     };
+    if (payload?.aiSummary?.levels) {
+      const ai = payload.aiSummary.levels[level] || payload.aiSummary.levels["8"] || payload.aiSummary.levels["12"];
+      const citations = Array.isArray(payload?.aiSummary?.citations) ? payload.aiSummary.citations : [];
+      const blocks = [ai?.tldr, ai?.whatItDoes, ai?.whoAffected, (ai?.pros || []).join(" "), (ai?.cons || []).join(" ")];
+      const sourceRatio = citations.length ? sourceRatioFrom(blocks, citations as any) : 0;
+      const covered = new Set((citations || []).map((c: any) => c.location).filter(Boolean) as string[]).size;
+      return {
+        tldr: ai?.tldr || "",
+        whatItDoes: ai?.whatItDoes || "",
+        whoAffected: ai?.whoAffected || "",
+        pros: Array.isArray(ai?.pros) ? ai.pros : ai?.pros ? [ai.pros] : [],
+        cons: Array.isArray(ai?.cons) ? ai.cons : ai?.cons ? [ai.cons] : [],
+        sourceRatio,
+        citations,
+        sourceCount: covered,
+        example: "",
+      };
+    }
     if (payload?.kind === "prop" && payload?.raw) {
       const raw = payload.raw;
       const title = raw?.title || raw?.identifier || "California Measure";
       
       // Use AI summary if available (generated server-side)
-      if (payload?.aiSummary) {
-        const ai = payload.aiSummary;
+      if (payload?.aiSummary?.levels) {
+        const ai = payload.aiSummary.levels[level] || payload.aiSummary.levels["8"] || payload.aiSummary;
         const whoStake = stakeholdersFrom(
           Array.isArray(raw?.subject) ? raw.subject : (raw?.subject ? [raw.subject] : []),
           title
@@ -129,6 +146,7 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         const citations: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
         const seen: string[] = [];
         const primaryUrl = raw?.openstates_url || raw?.openstatesUrl || raw?.sources?.[0]?.url || "";
+        const aiCitations = Array.isArray(payload?.aiSummary?.citations) ? payload.aiSummary.citations : [];
         addEvidenceList(citations, seen, [
           { text: raw?.extras?.impact_clause, label: "Open States — impact clause", url: primaryUrl, location: "tldr" },
           { text: raw?.latest_action_description, label: "Open States — latest action", url: primaryUrl, location: "what" },
@@ -169,17 +187,22 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         if (citations.length === 0) {
           addEvidence(citations, seen, firstSentence(title), "Open States", primaryUrl, "tldr");
         }
+        if (aiCitations.length) {
+          aiCitations.forEach((c: any) => {
+            addEvidence(citations, seen, c?.quote || "", c?.sourceName || "AI source", c?.url, c?.location);
+          });
+        }
         
-        const blocks = [ai.tldr, ai.whatItDoes, whoAffected, ai.pros.join(" "), ai.cons.join(" ")];
+        const blocks = [ai.tldr, ai.whatItDoes, whoAffected, ai.pros?.join(" ") || "", ai.cons?.join(" ") || ""];
         const sourceRatio = sourceRatioFrom(blocks, citations);
         const covered = new Set((citations || []).map((c) => c.location).filter(Boolean) as string[]).size;
         
         return {
           tldr: ai.tldr,
           whatItDoes: ai.whatItDoes,
-          whoAffected: simplify(ai.whoAffected || whoAffected, level),
-          pros: simplify(ai.pros.join(" "), level),
-          cons: simplify(ai.cons.join(" "), level),
+          whoAffected: ai.whoAffected || whoAffected,
+          pros: Array.isArray(ai.pros) ? ai.pros : ai.pros ? [ai.pros] : [],
+          cons: Array.isArray(ai.cons) ? ai.cons : ai.cons ? [ai.cons] : [],
           sourceRatio,
           citations,
           sourceCount: covered,
@@ -314,13 +337,12 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         return "";
       })();
 
-      // Apply reading level simplification
       return { 
-        tldr: simplify(tldr, level), 
-        whatItDoes: simplify(whatItDoes, level), 
-        whoAffected: simplify(whoAffected, level), 
-        pros: simplify(pros, level), 
-        cons: simplify(cons, level), 
+        tldr, 
+        whatItDoes, 
+        whoAffected, 
+        pros,
+        cons,
         sourceRatio, 
         citations, 
         sourceCount: covered, 

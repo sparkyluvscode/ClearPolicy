@@ -13,9 +13,14 @@ export default async function AiMeasurePage({ searchParams }: { searchParams: { 
   }
 
   const hdrs = headers();
-  const host = hdrs.get("x-forwarded-host") || hdrs.get("host") || "localhost:3000";
-  const proto = hdrs.get("x-forwarded-proto") || "http";
-  const base = `${proto}://${host}`;
+  const host = hdrs.get("x-forwarded-host") || hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") || (process.env.NODE_ENV === "production" ? "https" : "http");
+  const envBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
+  const base = host
+    ? `${proto}://${host}`
+    : envBase
+      ? (envBase.startsWith("http") ? envBase : `https://${envBase}`)
+      : "http://localhost:3000";
 
   let seed = undefined;
   try {

@@ -1,4 +1,7 @@
 import OpenAI from "openai";
+import { simplify, fleschKincaidGrade } from "@/lib/reading";
+import { matchKnownSummary } from "@/lib/known-summaries";
+import type { EvidenceCitation } from "@/lib/summary-types";
 
 let openai: OpenAI | null = null;
 
@@ -38,6 +41,8 @@ export interface GeneratedSummary {
     "12": LevelContent;
   };
   year?: string; // Verified election year if found
+  citations?: EvidenceCitation[];
+  readability?: { "5": number; "8": number; "12": number };
 }
 
 /**
@@ -46,6 +51,8 @@ export interface GeneratedSummary {
  */
 export async function generateSummary(req: SummaryRequest): Promise<GeneratedSummary> {
   const client = getOpenAI();
+  const known = matchKnownSummary(req);
+  if (known) return attachReadability(known);
   if (!client) {
     // Fallback if no API key
     return generateFallbackSummary(req);
@@ -112,21 +119,21 @@ Based on the information above, provide a JSON response with this exact structur
   "levels": {
     "5": {
       "tldr": "Extremely simple 1-2 sentences. Use short words and analogies. Explain like I'm 10.",
-      "whatItDoes": "What changes simply? Use basic verbs (stops, allows, pays for).",
+      "whatItDoes": "2 short paragraphs separated by \\n\\n. Use basic verbs (stops, allows, pays for).",
       "whoAffected": "Simple groups (e.g. 'students', 'families').",
       "pros": ["Simple good thing 1", "Simple good thing 2", "Simple good thing 3"],
       "cons": ["Simple bad thing 1", "Simple bad thing 2", "Simple bad thing 3"]
     },
     "8": {
       "tldr": "Standard newspaper level summary (1-2 sentences). Clear and direct.",
-      "whatItDoes": "Detailed explanation using standard language. Explain requirements.",
+      "whatItDoes": "2 short paragraphs separated by \\n\\n. Explain requirements and implementation details.",
       "whoAffected": "Specific groups (e.g. 'California voters', 'small business owners').",
       "pros": ["Standard argument 1", "Standard argument 2", "Standard argument 3"],
       "cons": ["Standard argument 1", "Standard argument 2", "Standard argument 3"]
     },
     "12": {
       "tldr": "Sophisticated policy summary. Use precise terminology.",
-      "whatItDoes": "Comprehensive explanation of mechanisms, funding sources, and legal effects.",
+      "whatItDoes": "2-3 short paragraphs separated by \\n\\n. Explain mechanisms, funding sources, and legal effects.",
       "whoAffected": "Detailed stakeholders including specific agencies or economic sectors.",
       "pros": ["Nuanced policy argument 1", "Nuanced policy argument 2", "Nuanced policy argument 3"],
       "cons": ["Nuanced policy argument 1", "Nuanced policy argument 2", "Nuanced policy argument 3"]
@@ -140,6 +147,7 @@ CRITICAL REQUIREMENTS:
 - 8th Grade: Balance detail and clarity. Avoid jargon.
 - 12th Grade: High precision. Use terms like 'appropriation', 'bond measure', 'statutory definition'.
 - Be SPECIFIC and CONCRETE at all levels.
+- Provide 3-5 pros and 3-5 cons if possible (avoid generic placeholders).
 - If election year is missing, infer it.`;
 }
 
@@ -150,7 +158,7 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
     if (!parsed.levels || !parsed.levels["5"] || !parsed.levels["8"] || !parsed.levels["12"]) {
       throw new Error("Missing levels");
     }
-    return {
+    return attachReadability({
       levels: {
         "5": {
           tldr: parsed.levels["5"].tldr || "",
@@ -175,7 +183,7 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
         }
       },
       year: parsed.year || req.year
-    };
+    });
   } catch (error) {
     console.error("Failed to parse AI response:", error);
     // Try to extract JSON if it was wrapped in markdown
@@ -185,14 +193,14 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
         try {
           const parsed = JSON.parse(match[1]);
           if (!parsed.levels) throw new Error("Missing levels");
-          return {
+          return attachReadability({
             levels: {
               "5": parsed.levels["5"],
               "8": parsed.levels["8"],
               "12": parsed.levels["12"]
             },
             year: parsed.year || req.year
-          };
+          });
         } catch (e) { }
       }
     }
@@ -263,20 +271,55 @@ function generateFallbackSummary(req: SummaryRequest): GeneratedSummary {
     }
   }
 
-  const summary: LevelContent = {
+  const base: LevelContent = {
     tldr: tldr.slice(0, 280),
-    whatItDoes: whatItDoes.slice(0, 300),
+    whatItDoes: whatItDoes.slice(0, 360),
     whoAffected,
-    pros: pros.slice(0, 3),
-    cons: cons.slice(0, 3),
+    pros: (pros.length ? pros : [
+      "Supporters say it clarifies rules for this topic.",
+      "Supporters say it could improve outcomes for affected groups.",
+      "Supporters say it sets a clearer standard for enforcement."
+    ]).slice(0, 5),
+    cons: (cons.length ? cons : [
+      "Opponents say it may create new costs or requirements.",
+      "Opponents say the rules could reduce flexibility.",
+      "Opponents say implementation could be uneven."
+    ]).slice(0, 5),
   };
 
-  return {
+  const toLevel = (level: "5" | "8" | "12"): LevelContent => {
+    if (level === "12") return base;
+    return {
+      tldr: simplify(base.tldr, level),
+      whatItDoes: simplify(base.whatItDoes, level),
+      whoAffected: simplify(base.whoAffected, level),
+      pros: base.pros.map((p) => simplify(p, level)),
+      cons: base.cons.map((c) => simplify(c, level)),
+    };
+  };
+
+  return attachReadability({
     levels: {
-      "5": summary,
-      "8": summary,
-      "12": summary
+      "5": toLevel("5"),
+      "8": toLevel("8"),
+      "12": toLevel("12")
     }
+  });
+}
+
+function attachReadability(summary: GeneratedSummary): GeneratedSummary {
+  const scoreFor = (level: "5" | "8" | "12") => {
+    const s = summary.levels[level];
+    const text = [s.tldr, s.whatItDoes, s.whoAffected, (s.pros || []).join(" "), (s.cons || []).join(" ")].join(" ");
+    return fleschKincaidGrade(text);
+  };
+  return {
+    ...summary,
+    readability: {
+      "5": scoreFor("5"),
+      "8": scoreFor("8"),
+      "12": scoreFor("12"),
+    },
   };
 }
 

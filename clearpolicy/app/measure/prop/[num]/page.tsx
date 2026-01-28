@@ -1,38 +1,58 @@
 import dynamicImport from "next/dynamic";
 import { Card } from "@/components/ui";
+import { headers } from "next/headers";
+import { generateSummary } from "@/lib/ai";
 
 const ProvisionalCard = dynamicImport(() => import("@/components/ProvisionalCard"), { ssr: false });
 const ZipPanel = dynamicImport(() => import("@/components/ZipPanel"), { ssr: false });
 
-export const dynamic = "force-static";
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
-export function generateStaticParams() {
-  const maxProp = 99;
-  return Array.from({ length: maxProp }, (_, i) => ({ num: String(i + 1) }));
-}
-
-export default async function PropositionPage({ params }: { params: { num: string } }) {
+export default async function PropositionPage({
+  params,
+  searchParams,
+}: {
+  params: { num: string };
+  searchParams: { year?: string };
+}) {
   const n = String(params.num || "").replace(/[^0-9]/g, "");
   if (!n) {
     return <Card className="text-sm text-[var(--cp-muted)]">Missing proposition number.</Card>;
   }
+  const year = String(searchParams?.year || "").replace(/[^0-9]/g, "");
 
-  const envBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
-  const base = envBase
-    ? (envBase.startsWith("http") ? envBase : `https://${envBase}`)
-    : "http://localhost:3000";
-  const query = `California Proposition ${n}`;
+  const hdrs = headers();
+  const host = hdrs.get("x-forwarded-host") || hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") || "https";
+  const base = host ? `${proto}://${host}` : "http://localhost:3000";
+  const query = `California Proposition ${n}${year ? ` (${year})` : ""}`;
+  const fetchJson = async (url: string) => {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return res.json();
+  };
+  const propUrl = `${base}/api/prop/${encodeURIComponent(n)}${year ? `?year=${encodeURIComponent(year)}` : ""}`;
   const [searchRes, propRes] = await Promise.all([
-    fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { cache: "force-cache" }).then(r => r.json()).catch(() => ({})),
-    fetch(`${base}/api/prop/${encodeURIComponent(n)}`, { cache: "force-cache" }).then(r => r.json()).catch(() => ({})),
+    fetchJson(`${base}/api/search?q=${encodeURIComponent(query)}`),
+    fetchJson(propUrl),
   ]);
   const fallbacks = Array.isArray(searchRes?.fallbacks) ? searchRes.fallbacks : [];
   const bp = propRes?.sources?.ballotpedia as string | null;
+  let seed = propRes;
+  if (!seed?.levels) {
+    const fallbackSummary = await generateSummary({
+      title: query,
+      content: `${query}.`,
+      subjects: propRes?.tags || propRes?.topics || [],
+      identifier: `Prop ${n}`,
+      type: "proposition",
+    });
+    seed = { ...fallbackSummary, year: fallbackSummary.year };
+  }
   const localContext = {
     source: "seeded" as const,
     jurisdiction: "CA" as const,
-    title: `California Proposition ${n}${propRes?.year ? ` (${propRes.year})` : ""}`,
+    title: `California Proposition ${n}${seed?.year ? ` (${seed.year})` : year ? ` (${year})` : ""}`,
     subjects: propRes?.tags || propRes?.topics || [],
   };
 
@@ -50,7 +70,19 @@ export default async function PropositionPage({ params }: { params: { num: strin
             <a className="inline-link" href="https://leginfo.legislature.ca.gov/" target="_blank" rel="noreferrer noopener">LegInfo</a>
           </div>
         </Card>
-        <ProvisionalCard query={query} fallbacks={fallbacks} seed={{ tldr: propRes?.tldr, whatItDoes: propRes?.whatItDoes, pros: propRes?.pros, cons: propRes?.cons, year: propRes?.year, levels: propRes?.levels }} />
+        <ProvisionalCard
+          query={query}
+          fallbacks={fallbacks}
+          seed={{
+            tldr: seed?.tldr,
+            whatItDoes: seed?.whatItDoes,
+            pros: seed?.pros,
+            cons: seed?.cons,
+            year: seed?.year,
+            levels: seed?.levels,
+            citations: seed?.citations,
+          }}
+        />
       </div>
       <div className="space-y-6">
         <ZipPanel context={localContext} />

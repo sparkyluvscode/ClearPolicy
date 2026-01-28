@@ -8,7 +8,7 @@ const Params = z.object({
   include_meta: z.string().optional(),
 });
 
-type Official = { name: string; party?: string; office?: string; urls?: string[]; context?: string; vote?: string; voteUrl?: string };
+type Official = { name: string; party?: string; office?: string; urls?: string[]; context?: string; vote?: string; voteUrl?: string; image?: string };
 type PlaceInfo = { city?: string; state?: string; county?: string };
 type DistrictInfo = { senate?: string; assembly?: string };
 type ZipResponseBase = {
@@ -39,9 +39,17 @@ export async function GET(req: NextRequest) {
       { name: "Josh Becker", party: "Democratic", office: "Senator", urls: ["https://sd13.senate.ca.gov/"] },
       { name: "Evan Low", party: "Democratic", office: "Assemblymember", urls: ["https://a26.asmdc.org/"] },
     ],
+    "95762": [
+      { name: "Kevin Kiley", party: "Republican", office: "U.S. Representative (CA-3)", urls: ["https://kiley.house.gov/"], image: "/kiley.jpg" },
+    ],
   };
   const curatedPlace: Record<string, PlaceInfo> = {
     "95014": { city: "Cupertino", state: "CA" },
+    "95762": { city: "Granite Bay", state: "CA" },
+  };
+  const curatedDistricts: Record<string, DistrictInfo> = {
+    "95014": { senate: "13", assembly: "26" },
+    "95762": { senate: "01", assembly: "06" },
   };
   const curatedOfficials = curated[parsed.data.zip];
   const respond = (base: ZipResponseBase, meta?: ZipResponseMeta) => {
@@ -51,14 +59,15 @@ export async function GET(req: NextRequest) {
   const fallbackResponse = (error?: string, place?: PlaceInfo, districts?: DistrictInfo) => {
     if (curatedOfficials && curatedOfficials.length) {
       const analysisUrl = `https://news.google.com/search?q=${encodeURIComponent(`${parsed.data.zip} California measure impact`)}`;
-      return respond({ officials: curatedOfficials, normalizedInput, analysisUrl, finderUrl }, { place, districts });
+      const metaDistricts = districts || curatedDistricts[parsed.data.zip];
+      return respond({ officials: curatedOfficials, normalizedInput, analysisUrl, finderUrl }, { place, districts: metaDistricts });
     }
     return respond({ error: error || "ZIP not found. Try a valid CA ZIP like 95014.", officials: [], normalizedInput }, { place, districts });
   };
   try {
     // 1) ZIP -> lat/lon (Zippopotam.us)
     const zipRes = await fetch(`https://api.zippopotam.us/us/${parsed.data.zip}`, { cache: "no-store" });
-    if (!zipRes.ok) return fallbackResponse(undefined, curatedPlace[parsed.data.zip]);
+    if (!zipRes.ok) return fallbackResponse(undefined, curatedPlace[parsed.data.zip], curatedDistricts[parsed.data.zip]);
     const zipJson: any = await zipRes.json();
     const place = Array.isArray(zipJson?.places) && zipJson.places[0];
     const lat = place ? parseFloat(place.latitude) : NaN;
@@ -67,7 +76,7 @@ export async function GET(req: NextRequest) {
     const state = place?.state || place?.["state abbreviation"] || "";
     const county = place?.county || "";
     const placeInfo: PlaceInfo = { city, state, county };
-    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.", placeInfo);
+    if (!isFinite(lat) || !isFinite(lon)) return fallbackResponse("Could not locate that ZIP. Try another.", placeInfo, curatedDistricts[parsed.data.zip]);
 
     // 2) lat/lon -> districts (Census Geocoder, ACS2025 layers)
     const params = new URLSearchParams({
@@ -97,7 +106,7 @@ export async function GET(req: NextRequest) {
     const divisionIds: string[] = [];
     if (upperNum) divisionIds.push(`ocd-division/country:us/state:ca/sldu:${upperNum}`);
     if (lowerNum) divisionIds.push(`ocd-division/country:us/state:ca/sldl:${lowerNum}`);
-    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.", placeInfo);
+    if (divisionIds.length === 0) return fallbackResponse("Could not find CA districts for this ZIP.", placeInfo, curatedDistricts[parsed.data.zip]);
 
     // 3) OpenStates: fetch people for each division_id
     // Fetch by district number and filter by chamber from current_role to ensure correctness
@@ -216,7 +225,7 @@ export async function GET(req: NextRequest) {
         const role = p?.current_role || {};
         const office = role?.title || (role?.org_classification === "upper" ? "Senator" : role?.org_classification === "lower" ? "Assemblymember" : "Official");
         const officialUrl = pickOfficialUrl(p);
-        officials.push({ name: p?.name || "", party: p?.party, office, urls: [officialUrl] });
+        officials.push({ name: p?.name || "", party: p?.party, office, urls: [officialUrl], image: p?.image || p?.image_url || p?.photo_url });
       }
     }
 

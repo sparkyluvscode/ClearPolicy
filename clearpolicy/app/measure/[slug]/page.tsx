@@ -4,6 +4,7 @@ import ZipPanel from "@/components/ZipPanel";
 import { Suspense } from "react";
 import TourOverlay from "@/components/TourOverlay";
 import { Card } from "@/components/ui";
+import { redirect } from "next/navigation";
 
 async function getData(slug: string) {
   try {
@@ -22,6 +23,10 @@ export default async function MeasurePage({ params }: { params: { slug: string }
   try {
     const measure = await getData(params.slug);
     if (!measure) {
+      const propMatch = params.slug.match(/(?:^|-)prop-(\d{1,3})(?:-|$)/i);
+      if (propMatch?.[1]) {
+        redirect(`/measure/prop/${propMatch[1]}`);
+      }
       return (
         <Card>
           <h1 className="text-xl font-semibold text-[var(--cp-text)]">Measure not found</h1>

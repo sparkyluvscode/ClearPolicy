@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Disclosure, Input } from "@/components/ui";
 
-type Official = { name: string; party?: string; office?: string; urls?: string[]; context?: string; vote?: string; voteUrl?: string };
+type Official = { name: string; party?: string; office?: string; urls?: string[]; context?: string; vote?: string; voteUrl?: string; image?: string };
 type PlaceInfo = { city?: string; state?: string; county?: string };
 type DistrictInfo = { senate?: string; assembly?: string };
 type LocalImpactContext = {
@@ -67,7 +67,15 @@ export default function ZipPanel({ contextId, context }: { contextId?: string; c
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "lookup failed");
       const ocials: any[] = Array.isArray(data.officials) ? data.officials : [];
-      const mapped: Official[] = ocials.map((o: any) => ({ name: o?.name || "", party: o?.party, urls: o?.urls, office: o?.office, vote: o?.vote, voteUrl: o?.voteUrl }));
+      const mapped: Official[] = ocials.map((o: any) => ({
+        name: o?.name || "",
+        party: o?.party,
+        urls: o?.urls,
+        office: o?.office,
+        vote: o?.vote,
+        voteUrl: o?.voteUrl,
+        image: o?.image,
+      }));
       setOfficials(mapped);
       setLocalInfo(data?.place || data?.districts ? { place: data?.place || undefined, districts: data?.districts || undefined } : null);
       setAnalysisUrl(typeof data?.analysisUrl === "string" ? data.analysisUrl : null);
@@ -177,9 +185,21 @@ export default function ZipPanel({ contextId, context }: { contextId?: string; c
         <ul className="space-y-2" aria-live="polite" aria-label="ZIP officials" data-testid="zip-officials">
           {officials.map((o, i) => (
             <li key={i} className="rounded-md border border-[var(--cp-border)] bg-[var(--cp-surface)] p-3">
-              {(o as any).office && <div className="text-xs text-[var(--cp-muted)]" title="Official role">{(o as any).office}</div>}
-              <div className="font-medium text-[var(--cp-text)]">{o.name}</div>
-              {o.party && <div className="text-sm text-[var(--cp-muted)]">{o.party}</div>}
+              <div className="flex items-center gap-3">
+                {o.image && (
+                  <img
+                    src={o.image}
+                    alt={`${o.name} portrait`}
+                    className="h-10 w-10 rounded-full object-cover border border-[var(--cp-border)]"
+                    loading="lazy"
+                  />
+                )}
+                <div>
+                  {(o as any).office && <div className="text-xs text-[var(--cp-muted)]" title="Official role">{(o as any).office}</div>}
+                  <div className="font-medium text-[var(--cp-text)]">{o.name}</div>
+                  {o.party && <div className="text-sm text-[var(--cp-muted)]">{o.party}</div>}
+                </div>
+              </div>
               {o.context && <div className="mt-1 text-xs text-[var(--cp-muted)]">{o.context}</div>}
               {o.vote && (
                 <div className="mt-1 text-xs">
@@ -187,6 +207,11 @@ export default function ZipPanel({ contextId, context }: { contextId?: string; c
                   {o.voteUrl && (
                     <a href={o.voteUrl} target="_blank" rel="noreferrer noopener" className="ml-2 inline-link focus-ring rounded">Details</a>
                   )}
+                </div>
+              )}
+              {!o.vote && contextId && (
+                <div className="mt-1 text-xs text-[var(--cp-muted)]">
+                  Vote unknown — no roll-call vote found for this bill yet.
                 </div>
               )}
               <div className="mt-1 flex items-center gap-3">

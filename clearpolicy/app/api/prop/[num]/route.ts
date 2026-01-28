@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { openstates } from "@/lib/clients/openstates";
 import { generateSummary } from "@/lib/ai";
 
-async function fetchText(url: string, userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"): Promise<string> {
+async function fetchText(
+  url: string,
+  userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  timeoutMs = 8000
+): Promise<string> {
   try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
     // Try with comprehensive browser headers to avoid blocking
     const res = await fetch(url, {
       cache: "no-store",
@@ -22,7 +28,9 @@ async function fetchText(url: string, userAgent = "Mozilla/5.0 (Macintosh; Intel
         "Referer": "https://www.google.com/",
       },
       redirect: "follow",
+      signal: controller.signal,
     });
+    clearTimeout(id);
     if (!res.ok) {
       console.error(`Ballotpedia fetch failed for ${url}: ${res.status} ${res.statusText}`);
       return "";
@@ -47,6 +55,29 @@ async function fetchText(url: string, userAgent = "Mozilla/5.0 (Macintosh; Intel
   }
 }
 
+async function fetchTextViaProxy(url: string, timeoutMs = 8000): Promise<string> {
+  try {
+    const proxyUrl = `https://r.jina.ai/http://${url.replace(/^https?:\/\//, "")}`;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(proxyUrl, { cache: "no-store", signal: controller.signal });
+    clearTimeout(id);
+    if (!res.ok) {
+      console.error(`Proxy fetch failed for ${url}: ${res.status} ${res.statusText}`);
+      return "";
+    }
+    const text = await res.text();
+    if (!text || text.length < 500) {
+      console.error(`Proxy returned empty/short content for ${url} (${text.length} chars)`);
+      return "";
+    }
+    return text;
+  } catch (error) {
+    console.error(`Proxy fetch error for ${url}:`, error);
+    return "";
+  }
+}
+
 function strip(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -62,6 +93,16 @@ function extractContent(html: string): { tldr: string; pros: string[]; cons: str
   let cons: string[] = [];
 
   if (!html || html.includes("does not exist") || html.includes("not found") || html.length < 500) {
+    return { tldr, pros, cons };
+  }
+
+  const isPlainText = !/<[^>]+>/.test(html);
+  if (isPlainText) {
+    const clean = html.replace(/\s+/g, " ").trim();
+    const sentences = clean.split(/[.!?]+/).map((s) => s.trim()).filter((s) => s.length > 40);
+    if (sentences.length) {
+      tldr = sentences.slice(0, 2).join(". ").slice(0, 280);
+    }
     return { tldr, pros, cons };
   }
 
@@ -172,6 +213,10 @@ function extractContent(html: string): { tldr: string; pros: string[]; cons: str
 export async function GET(_req: NextRequest, { params }: { params: { num: string } }) {
   const n = String(params.num || "").replace(/[^0-9]/g, "");
   if (!n) return NextResponse.json({ error: "missing" }, { status: 400 });
+  const yearParam = String(_req.nextUrl.searchParams.get("year") || "").replace(/[^0-9]/g, "");
+  const requestedYear = yearParam && yearParam.length === 4 ? yearParam : "";
+  const startAt = Date.now();
+  const shouldContinue = () => Date.now() - startAt < 10000;
 
   // No hardcoded database - we use AI to generate summaries dynamically
 
@@ -249,10 +294,12 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   // Try Ballotpedia with common years if we don't have good content
   // Note: Prop 22 (2020) was about app-based drivers, Prop 22 (2010) was about redistricting
   const commonYears = ["2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010", "2008", "2006"];
+  const yearCandidates = requestedYear ? [requestedYear] : commonYears;
   let bpHtml = "";
 
   if (!tldr || tldr.length < 50) {
-    for (const year of commonYears) {
+    for (const year of yearCandidates) {
+      if (!shouldContinue()) break;
       const bpUrl = `https://ballotpedia.org/California_Proposition_${n}_(${year})`;
       bpHtml = await fetchText(bpUrl);
 
@@ -266,6 +313,19 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
           cons = extracted.cons;
           console.log(`Found Prop ${n} content from Ballotpedia (${year})`);
           break;
+        }
+      } else if (!bpHtml || bpHtml.length < 500) {
+        const proxyText = await fetchTextViaProxy(bpUrl);
+        if (proxyText) {
+          ballotpediaUrl = bpUrl;
+          const extracted = extractContent(proxyText);
+          if (extracted.tldr && extracted.tldr.length > 50) {
+            tldr = extracted.tldr;
+            pros = extracted.pros;
+            cons = extracted.cons;
+            console.log(`Found Prop ${n} content via proxy (${year})`);
+            break;
+          }
         }
       }
     }
@@ -282,11 +342,23 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
           pros = extracted.pros;
           cons = extracted.cons;
         }
+      } else if (!bpHtmlNoYear || bpHtmlNoYear.length < 500) {
+        const proxyText = await fetchTextViaProxy(bpUrlNoYear);
+        if (proxyText) {
+          if (!ballotpediaUrl) ballotpediaUrl = bpUrlNoYear;
+          const extracted = extractContent(proxyText);
+          if (extracted.tldr && extracted.tldr.length > 50) {
+            tldr = extracted.tldr;
+            pros = extracted.pros;
+            cons = extracted.cons;
+          }
+        }
       }
     }
   } else {
     // If we have OpenStates content, still try to get pros/cons from Ballotpedia
-    for (const year of commonYears) {
+    for (const year of yearCandidates) {
+      if (!shouldContinue()) break;
       const bpUrl = `https://ballotpedia.org/California_Proposition_${n}_(${year})`;
       bpHtml = await fetchText(bpUrl);
 
@@ -296,6 +368,15 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
         if (extracted.pros.length > 0) pros = extracted.pros;
         if (extracted.cons.length > 0) cons = extracted.cons;
         if (pros.length > 0 && cons.length > 0) break;
+      } else if (!bpHtml || bpHtml.length < 500) {
+        const proxyText = await fetchTextViaProxy(bpUrl);
+        if (proxyText) {
+          if (!ballotpediaUrl) ballotpediaUrl = bpUrl;
+          const extracted = extractContent(proxyText);
+          if (extracted.pros.length > 0) pros = extracted.pros;
+          if (extracted.cons.length > 0) cons = extracted.cons;
+          if (pros.length > 0 && cons.length > 0) break;
+        }
       }
     }
   }
@@ -322,8 +403,10 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   if (!hasGoodContent) {
     // Try Ballotpedia one more time with different years
     const recentYears = ["2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010"];
+    const retryYears = requestedYear ? [requestedYear] : recentYears;
     if (!foundYear) {
-      for (const year of recentYears) {
+      for (const year of retryYears) {
+        if (!shouldContinue()) break;
         try {
           const bpUrl = `https://ballotpedia.org/California_Proposition_${n}_(${year})`;
           const testHtml = await fetchText(bpUrl);
@@ -336,6 +419,19 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
               pros = extracted.pros;
               cons = extracted.cons;
               break;
+            }
+          } else if (!testHtml || testHtml.length < 500) {
+            const proxyText = await fetchTextViaProxy(bpUrl);
+            if (proxyText) {
+              ballotpediaUrl = bpUrl;
+              foundYear = year;
+              const extracted = extractContent(proxyText);
+              if (extracted.tldr && extracted.tldr.length > 50) {
+                tldr = extracted.tldr;
+                pros = extracted.pros;
+                cons = extracted.cons;
+                break;
+              }
             }
           }
         } catch (e) {
@@ -433,6 +529,15 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
     };
   }
 
+  const citations = [] as Array<{ quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }>;
+  const primarySourceName = ballotpediaUrl ? "Ballotpedia" : "LAO";
+  const primaryUrl = ballotpediaUrl || laoUrl;
+  if (tldr) citations.push({ quote: tldr, sourceName: primarySourceName, url: primaryUrl, location: "tldr" });
+  if (whatItDoes) citations.push({ quote: whatItDoes, sourceName: primarySourceName, url: primaryUrl, location: "what" });
+  if (tldr) citations.push({ quote: tldr, sourceName: primarySourceName, url: primaryUrl, location: "who" });
+  if (pros.length) citations.push({ quote: pros[0], sourceName: primarySourceName, url: primaryUrl, location: "pros" });
+  if (cons.length) citations.push({ quote: cons[0], sourceName: primarySourceName, url: primaryUrl, location: "cons" });
+
   return NextResponse.json({
     number: n,
     year: foundYear, // Include year in response
@@ -444,7 +549,8 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
     whatItDoes: whatItDoes || tldr,
     pros: pros.length > 0 ? pros : [],
     cons: cons.length > 0 ? cons : [],
-    levels // Include the multi-level data
+    levels, // Include the multi-level data
+    citations,
   });
 }
 

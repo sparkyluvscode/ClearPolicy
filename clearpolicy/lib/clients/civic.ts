@@ -6,7 +6,10 @@ export async function repsByZip(zip: string) {
   const url = new URL("https://civicinfo.googleapis.com/civicinfo/v2/representatives");
   url.searchParams.set("key", key);
   url.searchParams.set("address", zip);
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const envBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
+  const base = envBase
+    ? (envBase.startsWith("http") ? envBase : `https://${envBase}`)
+    : "http://localhost:3000";
   const res = await fetch(url.toString(), {
     cache: "no-store",
     headers: {

@@ -7,11 +7,11 @@ export type EvidenceCitation = Citation & {
 };
 
 export type SummaryLike = {
-  tldr?: string | null;
-  whatItDoes?: string | null;
-  whoAffected?: string | null;
-  pros?: string | null;
-  cons?: string | null;
+  tldr?: string | string[] | null;
+  whatItDoes?: string | string[] | null;
+  whoAffected?: string | string[] | null;
+  pros?: string | string[] | null;
+  cons?: string | string[] | null;
   sourceRatio?: number | null;
   citations?: EvidenceCitation[] | null;
   sourceCount?: number | null;
