@@ -472,7 +472,10 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
           if (standard.pros.length > 0) pros = standard.pros;
           if (standard.cons.length > 0) cons = standard.cons;
         }
-        if (summaryPrimary.year) foundYear = summaryPrimary.year;
+        // Only trust a year coming from the model if we have a verified upstream source
+        // (Ballotpedia/OpenStates). Otherwise, the model can "agree" with the requested year
+        // even when that year doesn't exist for this proposition number.
+        if (summaryPrimary.year && (ballotpediaUrl || foundInOpenStates)) foundYear = summaryPrimary.year;
 
         // Store the full levels object to return
         levels = summaryPrimary.levels;
