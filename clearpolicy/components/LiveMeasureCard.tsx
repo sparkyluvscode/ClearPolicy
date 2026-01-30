@@ -189,7 +189,7 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         }
         if (aiCitations.length) {
           aiCitations.forEach((c: any) => {
-            addEvidence(citations, seen, c?.quote || "", c?.sourceName || "AI source", c?.url, c?.location);
+            addEvidence(citations, seen, c?.quote || "", c?.sourceName || "Official source", c?.url, c?.location);
           });
         }
         

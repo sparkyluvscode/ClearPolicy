@@ -183,6 +183,90 @@ const KNOWN: KnownEntry[] = [
     }
   },
   {
+    key: "ca-prop-50-2025",
+    match: /\b(prop|proposition)\s*50\b/i,
+    year: "2025",
+    citations: [
+      {
+        quote: "Allows California to temporarily use congressional district maps drawn by the Legislature instead of the Citizens Redistricting Commission, in response to Texas mid-decade redistricting.",
+        sourceName: "Ballotpedia — Proposition 50 (2025)",
+        url: "https://ballotpedia.org/California_Proposition_50,_Use_of_Legislative_Congressional_Redistricting_Map_Amendment_(2025)",
+        location: "tldr",
+      },
+      {
+        quote: "The new maps apply to congressional elections in 2026, 2028, and 2030; after the 2030 census, authority returns to the independent commission.",
+        sourceName: "LAO — Proposition 50 (2025)",
+        url: "https://lao.ca.gov/BallotAnalysis/Propositions",
+        location: "what",
+      },
+      {
+        quote: "California voters, congressional candidates, and the Legislature; affects U.S. House representation through 2030.",
+        sourceName: "Ballotpedia — Proposition 50 (2025)",
+        url: "https://ballotpedia.org/California_Proposition_50,_Use_of_Legislative_Congressional_Redistricting_Map_Amendment_(2025)",
+        location: "who",
+      },
+      {
+        quote: "Supporters argue it preserves fair representation by responding to Texas redistricting and keeping California competitive in Congress.",
+        sourceName: "Ballotpedia — Proposition 50 (2025)",
+        url: "https://ballotpedia.org/California_Proposition_50,_Use_of_Legislative_Congressional_Redistricting_Map_Amendment_(2025)",
+        location: "pros",
+      },
+      {
+        quote: "Opponents argue it politicizes redistricting and undermines the independent Citizens Redistricting Commission.",
+        sourceName: "Ballotpedia — Proposition 50 (2025)",
+        url: "https://ballotpedia.org/California_Proposition_50,_Use_of_Legislative_Congressional_Redistricting_Map_Amendment_(2025)",
+        location: "cons",
+      },
+    ],
+    levels: {
+      "5": {
+        tldr: "Prop 50 (2025) lets California use new U.S. House maps drawn by state lawmakers for a few elections, instead of the usual commission. It was a response to Texas changing its maps.",
+        whatItDoes: "For the 2026, 2028, and 2030 elections, California can use congressional maps drawn by the Legislature.\n\nAfter 2030, the independent Citizens Redistricting Commission takes over again.",
+        whoAffected: "California voters, people who run for Congress, and the state Legislature.",
+        pros: [
+          "California can respond when other states change their maps.",
+          "Maps can be updated for the next few elections.",
+          "After 2030, the commission is back in charge."
+        ],
+        cons: [
+          "Some say lawmakers should not draw their own maps.",
+          "It breaks from the usual commission process.",
+          "It can look political instead of neutral."
+        ]
+      },
+      "8": {
+        tldr: "Proposition 50 (2025) allows California to temporarily use legislatively drawn congressional district maps for 2026, 2028, and 2030, in response to Texas mid-decade redistricting; authority returns to the Citizens Redistricting Commission after the 2030 census.",
+        whatItDoes: "Creates a temporary exception so the Legislature, not the independent commission, draws U.S. House districts for the next three election cycles.\n\nPurpose is to respond to Texas’s 2025 redistricting. After 2030, redistricting reverts to the commission.",
+        whoAffected: "California voters, congressional candidates, the Legislature, and the Citizens Redistricting Commission.",
+        pros: [
+          "Lets California respond to other states’ mid-decade map changes.",
+          "Maps apply only through 2030; then commission resumes control.",
+          "Intended to keep California’s congressional representation in balance."
+        ],
+        cons: [
+          "Politicizes redistricting by giving map-drawing to the Legislature.",
+          "Undermines the independent commission model voters approved.",
+          "Critics call it a partisan response to Texas redistricting."
+        ]
+      },
+      "12": {
+        tldr: "Proposition 50 (2025) amends the California Constitution to permit temporary use of legislatively drawn congressional redistricting maps for the 2026, 2028, and 2030 elections, in response to Texas’s mid-decade redistricting; after the 2030 census, authority reverts to the Citizens Redistricting Commission.",
+        whatItDoes: "Establishes a time-limited exception to the commission-drawn congressional map process. The Legislature may adopt congressional district boundaries for the next three federal election cycles, with the stated purpose of responding to Texas’s 2025 redistricting. Post-2030 census, congressional redistricting returns to the independent commission.",
+        whoAffected: "California voters, U.S. House candidates, the state Legislature, the Citizens Redistricting Commission, and national party strategies for House control.",
+        pros: [
+          "Provides a statutory response to other states’ mid-decade congressional redistricting.",
+          "Sunset returns control to the commission after 2030.",
+          "Framed as preserving California’s relative representation in Congress."
+        ],
+        cons: [
+          "Concentrates map-drawing power in the Legislature, contrary to the commission model.",
+          "Viewed by critics as a partisan counter to Texas redistricting.",
+          "Raises concerns about tit-for-tat politicization of redistricting."
+        ]
+      }
+    }
+  },
+  {
     key: "ca-prop-50-2016",
     match: /\b(prop|proposition)\s*50\b/i,
     year: "2016",

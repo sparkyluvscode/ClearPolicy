@@ -26,7 +26,17 @@ type Seed = {
   citations?: EvidenceCitation[];
 } | undefined;
 
-export default function ProvisionalCard({ query, fallbacks = [], seed }: { query: string; fallbacks?: Fallback[]; seed?: Seed }) {
+type ProvisionalCardProps = {
+  query: string;
+  fallbacks?: Fallback[];
+  seed?: Seed;
+  /** Year the user asked for (e.g. from URL ?year=2025). When different from resolvedYear, we show a mismatch note. */
+  requestedYear?: string;
+  /** Year of the summary actually shown (e.g. from API or known summary). */
+  resolvedYear?: string;
+};
+
+export default function ProvisionalCard({ query, fallbacks = [], seed, requestedYear, resolvedYear }: ProvisionalCardProps) {
   const [level, setLevel] = useState<"5" | "8" | "12">("8");
   const [evidenceMode, setEvidenceMode] = useState(false);
   const isAiSummary = Boolean(seed?.levels);
@@ -139,17 +149,18 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
 
   const evidenceSummary = useMemo<SummaryLike>(() => {
     const toString = (val: string | string[]) => (Array.isArray(val) ? val.join(" ") : val);
+    const toList = (val: string | string[]) => (Array.isArray(val) ? val : val ? [val] : []);
     return {
       tldr: toString(text.tldr),
       whatItDoes: toString(text.what),
       whoAffected: toString(text.who),
-      pros: text.pros,
-      cons: text.cons,
+      pros: toList(text.pros),
+      cons: toList(text.cons),
       sourceRatio: primary ? 0.8 : 0.4,
       citations: seed?.citations || [],
       sourceCount: seed?.citations?.length ? 3 : 0,
     };
-  }, [primary, seed?.citations, text]);
+  }, [level, primary, seed?.citations, text]);
 
   return (
     <Card variant="document" className="space-y-6">
@@ -158,8 +169,13 @@ export default function ProvisionalCard({ query, fallbacks = [], seed }: { query
           <h2 className="text-lg font-semibold text-[var(--cp-text)]">
             Summary {seed?.year && <span className="text-[var(--cp-muted)] font-normal">({seed.year})</span>}
           </h2>
+          {requestedYear && resolvedYear && requestedYear !== resolvedYear && (
+            <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300" role="status">
+              Showing summary from {resolvedYear} (you asked for {requestedYear}).
+            </p>
+          )}
           <p className="mt-1 text-xs text-[var(--cp-muted)]">
-            {isAiSummary ? "AI-generated summary with available sources." : "Fallback summary with available context."}
+            {isAiSummary ? "Official summary with cited sources." : "Summary with available context."}
           </p>
         </div>
         <SegmentedControl

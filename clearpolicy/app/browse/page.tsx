@@ -201,9 +201,18 @@ const propositions = [
 const categories = ["All", "Civil Rights", "Criminal Justice", "Economy/Business", "Education", "Environment", "Government/Process", "Healthcare", "Housing", "Labor", "Public Safety", "Taxes", "Technology/Privacy", "Transportation", "Voting Rights"];
 const statuses = ["All", "Active", "Passed", "Rejected"];
 
+const federalBills = [
+    { id: "118:hr:4369", type: "Federal", title: "Consolidated Appropriations Act, 2024", category: "Government/Process", status: "Enacted", summary: "Annual federal spending legislation funding government operations.", href: "/measure/live?source=congress&id=118:hr:4369" },
+    { id: "117:hr:5376", type: "Federal", title: "Inflation Reduction Act of 2022", category: "Taxes", status: "Enacted", summary: "Climate, healthcare, and tax provisions including Medicare drug negotiation and clean energy incentives.", href: "/measure/live?source=congress&id=117:hr:5376" },
+    { id: "117:hr:1319", type: "Federal", title: "American Rescue Plan Act of 2021", category: "Healthcare", status: "Enacted", summary: "COVID-19 relief including stimulus payments, extended unemployment, and state and local aid.", href: "/measure/live?source=congress&id=117:hr:1319" },
+    { id: "117:hr:3684", type: "Federal", title: "Infrastructure Investment and Jobs Act", category: "Transportation", status: "Enacted", summary: "Federal investment in roads, bridges, broadband, and utilities.", href: "/measure/live?source=congress&id=117:hr:3684" },
+    { id: "111:s:1789", type: "Federal", title: "Fair Sentencing Act of 2010", category: "Criminal Justice", status: "Enacted", summary: "Reduced sentencing disparity between crack and powder cocaine offenses.", href: "/measure/live?source=congress&id=111:s:1789" },
+];
+
 export default function BrowsePage() {
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState("All");
+    const [levelFilter, setLevelFilter] = useState<"All" | "Federal" | "California">("All");
     const [searchQuery, setSearchQuery] = useState("");
 
     const filteredProps = useMemo(() => {
@@ -218,26 +227,53 @@ export default function BrowsePage() {
         });
     }, [categoryFilter, statusFilter, searchQuery]);
 
+    const filteredFederal = useMemo(() => {
+        if (levelFilter === "California") return [];
+        return federalBills.filter(bill =>
+            !searchQuery ||
+            bill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            bill.summary.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [levelFilter, searchQuery]);
+
+    const showCalifornia = levelFilter === "All" || levelFilter === "California";
+    const showFederal = levelFilter === "All" || levelFilter === "Federal";
+
     return (
         <div className="space-y-6">
             <Card className="space-y-2">
                 <h1 className="page-title">
-                    Browse Propositions
+                    Browse Legislation
                 </h1>
                 <p className="page-subtitle">
-                    Explore California ballot measures with clear, unbiased summaries.
+                    Explore federal bills and California ballot measures with clear, unbiased summaries.
                 </p>
             </Card>
 
             <Card className="space-y-4">
                 <Input
                     type="text"
-                    placeholder="Search propositions..."
+                    placeholder="Search legislation..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
 
                 <div className="space-y-3">
+                    <div>
+                        <span className="section-title block mb-2">By level</span>
+                        <div className="flex flex-wrap gap-2">
+                            {(["All", "Federal", "California"] as const).map(level => (
+                                <Button
+                                    key={level}
+                                    variant={levelFilter === level ? "primary" : "secondary"}
+                                    size="sm"
+                                    onClick={() => setLevelFilter(level)}
+                                >
+                                    {level}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
                     <div>
                         <span className="section-title block mb-2">Status</span>
                         <div className="flex flex-wrap gap-2">
@@ -272,11 +308,50 @@ export default function BrowsePage() {
                 </div>
 
                 <div className="text-sm text-[var(--cp-muted)]">
-                    Showing {filteredProps.length} proposition{filteredProps.length !== 1 ? 's' : ''}
+                    {levelFilter === "All" && (
+                        <>Showing {filteredFederal.length} federal bill{filteredFederal.length !== 1 ? "s" : ""} and {filteredProps.length} California proposition{filteredProps.length !== 1 ? "s" : ""}</>
+                    )}
+                    {levelFilter === "Federal" && <>Showing {filteredFederal.length} federal bill{filteredFederal.length !== 1 ? "s" : ""}</>}
+                    {levelFilter === "California" && <>Showing {filteredProps.length} proposition{filteredProps.length !== 1 ? "s" : ""}</>}
                 </div>
             </Card>
 
-            <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {showFederal && filteredFederal.length > 0 && (
+                <section className="space-y-4">
+                    <h2 className="section-heading">Federal (Congress.gov)</h2>
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                        {filteredFederal.map(bill => (
+                            <Link
+                                key={bill.id}
+                                href={bill.href}
+                                className="block focus-ring rounded-2xl"
+                            >
+                                <Card className="p-5 transition hover:bg-[var(--cp-surface-2)] surface-lift">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <Badge variant="primary">Federal</Badge>
+                                        <Badge variant={bill.status === "Enacted" ? "official" : "neutral"}>{bill.status}</Badge>
+                                    </div>
+                                    <h3 className="mt-2 text-sm font-medium text-[var(--cp-text)] line-clamp-2">
+                                        {bill.title}
+                                    </h3>
+                                    <p className="mt-2 text-xs text-[var(--cp-muted)] line-clamp-3">
+                                        {bill.summary}
+                                    </p>
+                                    <div className="mt-3 flex items-center justify-between">
+                                        <Badge variant="neutral">{bill.category}</Badge>
+                                        <span className="text-xs text-accent">Read more →</span>
+                                    </div>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {showCalifornia && (
+            <section className="space-y-4">
+                <h2 className="section-heading">California ballot measures</h2>
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredProps.map(prop => (
                     <Link
                         key={`${prop.num}-${prop.year}`}
@@ -315,13 +390,15 @@ export default function BrowsePage() {
                         </Card>
                     </Link>
                 ))}
+                </div>
             </section>
+            )}
 
-            {filteredProps.length === 0 && (
+            {filteredProps.length === 0 && filteredFederal.length === 0 && (
                 <Card className="p-8 text-center">
                     <div className="text-3xl mb-3">🔍</div>
                     <h3 className="text-lg font-medium text-[var(--cp-text)]">
-                        No propositions found
+                        No legislation found
                     </h3>
                     <p className="mt-1 text-sm text-[var(--cp-muted)]">
                         Try adjusting your filters or search query.
@@ -331,6 +408,7 @@ export default function BrowsePage() {
                         onClick={() => {
                             setCategoryFilter("All");
                             setStatusFilter("All");
+                            setLevelFilter("All");
                             setSearchQuery("");
                         }}
                     >

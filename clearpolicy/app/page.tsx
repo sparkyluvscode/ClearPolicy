@@ -16,10 +16,13 @@ function HomePageContent() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{ ca?: { results?: any[] }; us?: { bills?: any[]; data?: { bills?: any[] } }; fallbacks?: any[]; aiFallback?: any | null }>({});
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<{ label: string; hint: string; slug?: string }[]>([]);
   const [showSuggest, setShowSuggest] = useState(false);
   const suggestAbort = useRef<AbortController | null>(null);
   const suggestTimeout = useRef<number | null>(null);
+
+  const SEARCH_TIMEOUT_MS = 5000;
 
   const queryParam = searchParams?.get("q") || "";
   useEffect(() => {
@@ -42,13 +45,17 @@ function HomePageContent() {
       return;
     }
     setHasSearched(true);
-
+    setSearchError(null);
     setLoading(true);
+
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
     try {
       const url = new URL("/api/search", window.location.origin);
       url.searchParams.set("q", trimmedQuery);
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!res.ok) {
         throw new Error(`Search failed: ${res.status}`);
       }
@@ -111,11 +118,19 @@ function HomePageContent() {
       // Force a re-render by updating a dummy state if needed
       // Actually, the state updates above should trigger a re-render
 
-    } catch (error) {
-      console.error("Search error:", error);
+    } catch (error: unknown) {
+      const isAbort = error instanceof Error && error.name === "AbortError";
+      if (isAbort) {
+        setSearchError("Bill not found");
+        console.warn("[ClearPolicy] Search timeout – query:", trimmedQuery);
+      } else {
+        setSearchError("Search failed. Please try again.");
+        console.error("[ClearPolicy] Search error – query:", trimmedQuery, error);
+      }
       setChips([]);
       setResults({ ca: { results: [] }, us: { data: { bills: [] } }, fallbacks: [] });
     } finally {
+      if (timeoutId != null) clearTimeout(timeoutId);
       setLoading(false);
     }
   }
@@ -300,7 +315,18 @@ function HomePageContent() {
           <div className="flex items-center justify-between">
             <h2 className="section-heading" role="heading" aria-level={2}>Search Results</h2>
           </div>
-          {!loading && !hasCaResults && !hasUsResults && (
+          {searchError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100" data-testid="search-error">
+              <p>{searchError}</p>
+              <p className="mt-1 text-xs opacity-90">Query “{q}” timed out or failed. Try a different bill or topic.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setSearchError(null); setQ("prop 17"); doSearch("prop 17"); }}>Prop 17</Button>
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setSearchError(null); setQ("retail theft"); doSearch("retail theft"); }}>Retail theft</Button>
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={() => { setSearchError(null); setQ("campaign finance"); doSearch("campaign finance"); }}>Campaign finance</Button>
+              </div>
+            </div>
+          )}
+          {!loading && !hasCaResults && !hasUsResults && !searchError && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
               <p>No results for “{q}”. Try one of these:</p>
               <div className="mt-2 flex flex-wrap gap-2">

@@ -26,10 +26,19 @@ export default async function PropositionPage({
   const proto = hdrs.get("x-forwarded-proto") || "https";
   const base = host ? `${proto}://${host}` : "http://localhost:3000";
   const query = `California Proposition ${n}${year ? ` (${year})` : ""}`;
+  const FETCH_TIMEOUT_MS = 3000;
   const fetchJson = async (url: string) => {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+      clearTimeout(id);
+      if (!res.ok) return null;
+      return res.json();
+    } catch {
+      clearTimeout(id);
+      return null;
+    }
   };
   const propUrl = `${base}/api/prop/${encodeURIComponent(n)}${year ? `?year=${encodeURIComponent(year)}` : ""}`;
   const [searchRes, propRes] = await Promise.all([
@@ -40,8 +49,6 @@ export default async function PropositionPage({
   const bp = propRes?.sources?.ballotpedia as string | null;
   const mismatchNote = propRes?.yearMismatch?.note as string | undefined;
   const requestedYear = (propRes?.requestedYear as string | undefined) || (year ? year : undefined);
-  const resolvedYear = propRes?.year as string | undefined;
-  const showYearMismatchBanner = Boolean(requestedYear && resolvedYear && requestedYear !== resolvedYear);
   let seed = propRes;
   if (!seed?.levels) {
     const fallbackSummary = await generateSummary({
@@ -53,6 +60,9 @@ export default async function PropositionPage({
     });
     seed = { ...fallbackSummary, year: fallbackSummary.year };
   }
+  // Resolved year: from API when present, else from fallback seed (e.g. after timeout)
+  const resolvedYear = (propRes?.year as string | undefined) || (seed?.year as string | undefined);
+  const showYearMismatchBanner = Boolean(requestedYear && resolvedYear && requestedYear !== resolvedYear);
   const localContext = {
     source: "seeded" as const,
     jurisdiction: "CA" as const,
@@ -98,6 +108,8 @@ export default async function PropositionPage({
             levels: seed?.levels,
             citations: seed?.citations,
           }}
+          requestedYear={requestedYear}
+          resolvedYear={resolvedYear}
         />
       </div>
       <div className="space-y-6">

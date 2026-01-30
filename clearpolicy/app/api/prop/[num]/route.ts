@@ -294,8 +294,8 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
 
   // Try Ballotpedia with common years if we don't have good content
   // Note: Prop 22 (2020) was about app-based drivers, Prop 22 (2010) was about redistricting
-  const commonYears = ["2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010", "2008", "2006"];
-  const yearCandidates = requestedYear ? [requestedYear] : commonYears;
+  const commonYears = ["2025", "2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010", "2008", "2006"];
+  const yearCandidates = requestedYear ? [requestedYear, ...commonYears.filter((y) => y !== requestedYear)] : commonYears;
   let bpHtml = "";
 
   if (!tldr || tldr.length < 50) {
@@ -403,7 +403,7 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   // If we don't have good content, try AI to generate a summary from available data
   if (!hasGoodContent) {
     // Try Ballotpedia one more time with different years
-    const recentYears = ["2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010"];
+    const recentYears = ["2025", "2024", "2022", "2020", "2018", "2016", "2014", "2012", "2010"];
     const retryYears = requestedYear ? [requestedYear] : recentYears;
     if (!foundYear) {
       for (const year of retryYears) {
