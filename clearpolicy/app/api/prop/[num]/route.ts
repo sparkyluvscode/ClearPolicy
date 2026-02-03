@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openstates } from "@/lib/clients/openstates";
 import { generateSummary } from "@/lib/ai";
+import { matchKnownSummary } from "@/lib/known-summaries";
 
 async function fetchText(
   url: string,
@@ -219,7 +220,44 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   const startAt = Date.now();
   const shouldContinue = () => Date.now() - startAt < 10000;
 
-  // No hardcoded database - we use AI to generate summaries dynamically
+  // When user requested a specific year, try known summary first so we don't show wrong-year content
+  // (e.g. Prop 6 (2024) is incarcerated labor; Prop 6 (2018) is gas tax — OpenStates can return any year)
+  if (requestedYear) {
+    const known = matchKnownSummary({
+      title: `California Proposition ${n}`,
+      identifier: `Prop ${n}`,
+      year: requestedYear,
+      type: "proposition",
+      content: " ",
+    });
+    if (known?.levels && known.year) {
+      const std = known.levels["8"];
+      if (std) {
+        const ballotpediaCitation = known.citations?.find((c) => /ballotpedia/i.test(c.sourceName || ""));
+        const ballotpediaUrlFromKnown = ballotpediaCitation?.url || null;
+        const laoUrl = "https://lao.ca.gov/BallotAnalysis/Propositions";
+        const citations = (known.citations || []).map((c) => ({
+          quote: c.quote,
+          sourceName: c.sourceName,
+          url: c.url,
+          location: c.location,
+        }));
+        return NextResponse.json({
+          number: n,
+          year: known.year,
+          requestedYear: requestedYear || undefined,
+          yearMismatch: undefined,
+          sources: { ballotpedia: ballotpediaUrlFromKnown, lao: laoUrl },
+          tldr: std.tldr,
+          whatItDoes: std.whatItDoes || std.tldr,
+          pros: std.pros || [],
+          cons: std.cons || [],
+          levels: known.levels,
+          citations,
+        });
+      }
+    }
+  }
 
   // Then, try to get data from OpenStates
   let tldr = "";

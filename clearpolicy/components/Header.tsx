@@ -45,6 +45,7 @@ export default function Header() {
     { href: "/about", label: "About" },
     { href: "/browse", label: "Browse" },
     { href: "/compare", label: "Compare" },
+    { href: "/un", label: "UN Docs", highlight: true },
   ];
   const primaryLinks = navLinks;
 
@@ -144,7 +145,12 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="rounded-full px-3 py-1.5 text-sm text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)] focus-ring"
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-sm focus-ring",
+                    (link as any).highlight
+                      ? "bg-accent/10 text-accent font-medium hover:bg-accent/20"
+                      : "text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
+                  )}
                 >
                   {link.label}
                 </Link>

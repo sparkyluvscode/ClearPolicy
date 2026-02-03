@@ -99,6 +99,87 @@ const KNOWN: KnownEntry[] = [
     }
   },
   {
+    key: "ca-prop-6-2024",
+    match: /\b(prop|proposition)\s*6\b/i,
+    year: "2024",
+    citations: [
+      {
+        quote: "Proposition 6 sought to amend the California Constitution to ban involuntary servitude in state prisons and local jails.",
+        sourceName: "Ballotpedia — Proposition 6 (2024)",
+        url: "https://ballotpedia.org/California_Proposition_6,_End_Involuntary_Servitude_for_Incarcerated_Persons_Amendment_(2024)",
+        location: "tldr",
+      },
+      {
+        quote: "Would have eliminated forced labor assignments and replaced them with a voluntary work program where incarcerated people could earn sentence credits; prohibited the state from disciplining those who refuse work.",
+        sourceName: "LAO — Proposition 6 (2024)",
+        url: "https://lao.ca.gov/BallotAnalysis/Propositions",
+        location: "what",
+      },
+      {
+        quote: "Incarcerated people in state prisons and local jails, CDCR, county sheriffs, and the Reparations Task Force that recommended the measure.",
+        sourceName: "Ballotpedia — Proposition 6 (2024)",
+        url: "https://ballotpedia.org/California_Proposition_6,_End_Involuntary_Servitude_for_Incarcerated_Persons_Amendment_(2024)",
+        location: "who",
+      },
+      {
+        quote: "Supporters argued forced prison labor is a form of modern slavery and that the measure would address a racist legacy; labor unions and advocacy groups supported it.",
+        sourceName: "Ballotpedia — Proposition 6 (2024)",
+        url: "https://ballotpedia.org/California_Proposition_6,_End_Involuntary_Servitude_for_Incarcerated_Persons_Amendment_(2024)",
+        location: "pros",
+      },
+      {
+        quote: "Opponents raised cost concerns (e.g. paying minimum wage could cost $1.5B annually); voters rejected the measure in November 2024.",
+        sourceName: "Ballotpedia — Proposition 6 (2024)",
+        url: "https://ballotpedia.org/California_Proposition_6,_End_Involuntary_Servitude_for_Incarcerated_Persons_Amendment_(2024)",
+        location: "cons",
+      },
+    ],
+    levels: {
+      "5": {
+        tldr: "Prop 6 (2024) was about ending forced work in prison. It would have let people in jail or prison say no to work without being punished.",
+        whatItDoes: "It would have changed the state constitution so the state could not force people in prison or jail to work.\n\nWork would be voluntary, and people could earn credits for early release. Voters said no, so the law did not change.",
+        whoAffected: "People in state prisons and local jails, prison and jail staff, and the state.",
+        pros: [
+          "Supporters said no one should be forced to work for almost no pay.",
+          "It would have removed language that allows forced labor as punishment.",
+          "Some said it was a step toward fixing past wrongs."
+        ],
+        cons: [
+          "Opponents said paying minimum wage could cost the state a lot of money.",
+          "Voters rejected it in 2024, so forced labor in prison continues."
+        ]
+      },
+      "8": {
+        tldr: "Proposition 6 (2024) sought to end involuntary servitude in California prisons and jails by banning forced labor and allowing voluntary work with sentence credits; voters rejected it in November 2024.",
+        whatItDoes: "Would have amended the state constitution to prohibit involuntary servitude as criminal punishment.\n\nWould have replaced forced work with a voluntary program where incarcerated people could earn sentence credits. The state could not discipline those who refused work. Voters rejected the measure, so current practices continue.",
+        whoAffected: "Incarcerated people in state prisons and local jails (e.g. ~40,000 of ~90,000 state inmates work for under 74¢/hr), CDCR, county sheriffs, and the Reparations Task Force that recommended it.",
+        pros: [
+          "Supporters argued forced prison labor is a form of modern slavery and perpetuates racial inequity.",
+          "Labor unions and advocacy groups supported the measure.",
+          "Would have aligned with efforts to eliminate involuntary servitude from the constitution."
+        ],
+        cons: [
+          "Opponents cited cost (e.g. paying minimum wage could cost $1.5B annually).",
+          "Voters rejected Proposition 6; forced labor in California prisons continues."
+        ]
+      },
+      "12": {
+        tldr: "Proposition 6 (2024) would have amended the California Constitution to ban involuntary servitude in state prisons and local jails, replacing forced labor with a voluntary work program and prohibiting discipline for refusal to work; California voters rejected the measure in November 2024.",
+        whatItDoes: "Would have removed constitutional language allowing involuntary servitude as criminal punishment. Would have required voluntary work programs with sentence credits and prohibited the state from disciplining incarcerated people who refuse work assignments. Recommended by the state Reparations Task Force. The measure did not pass; forced labor in California correctional facilities continues.",
+        whoAffected: "Incarcerated people in state and local facilities, California Department of Corrections and Rehabilitation, county sheriffs, labor and reparations advocates, and voters.",
+        pros: [
+          "Framed as addressing a legacy of slavery and racial inequity; supporters argued forced labor is modern slavery.",
+          "Backed by Democratic leaders, labor unions, and civil rights groups.",
+          "Would have brought California in line with similar reforms in other states."
+        ],
+        cons: [
+          "Cost estimates (e.g. $1.5B annually for minimum wage) were cited by opponents.",
+          "Measure failed at the ballot; involuntary servitude remains permitted as punishment in California."
+        ]
+      }
+    }
+  },
+  {
     key: "ca-prop-47-2014",
     match: /\b(prop|proposition)\s*47\b/i,
     year: "2014",
