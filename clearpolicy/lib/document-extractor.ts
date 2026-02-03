@@ -222,40 +222,27 @@ function decodeHTMLEntities(text: string): string {
 export async function extractFromPDF(buffer: Buffer, filename?: string): Promise<ExtractionResult> {
   try {
     // Dynamic import to avoid issues if pdf-parse isn't installed
-    let pdfParse: ((buffer: Buffer, options?: any) => Promise<{ text: string }>) | null = null;
+    let PDFParseClass: any = null;
     
     try {
-      pdfParse = require("pdf-parse");
+      const pdfModule = require("pdf-parse");
+      PDFParseClass = pdfModule.PDFParse;
     } catch {
       // Module not available
     }
     
-    if (!pdfParse) {
+    if (!PDFParseClass) {
       return {
         success: false,
         error: "PDF parsing is not available. Please copy-paste the text content instead.",
       };
     }
 
-    const data = await pdfParse(buffer, {
-      // Preserve paragraph structure
-      pagerender: function(pageData: any) {
-        return pageData.getTextContent().then(function(textContent: any) {
-          let text = "";
-          let lastY = -1;
-          for (const item of textContent.items) {
-            if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) {
-              text += "\n";
-            }
-            text += item.str + " ";
-            lastY = item.transform[5];
-          }
-          return text;
-        });
-      },
-    });
+    // Use the new PDFParse v2 class API - pass data in constructor
+    const parser = new PDFParseClass({ data: buffer });
+    const result = await parser.getText();
 
-    let content = data.text || "";
+    let content = result?.text || "";
     
     // Normalize whitespace
     content = content
@@ -282,7 +269,7 @@ export async function extractFromPDF(buffer: Buffer, filename?: string): Promise
     }
 
     // Try to extract title from first lines
-    const lines = content.split("\n").filter(l => l.trim().length > 0);
+    const lines = content.split("\n").filter((l: string) => l.trim().length > 0);
     const title = lines[0]?.length < 200 ? lines[0].trim() : filename?.replace(/\.pdf$/i, "");
 
     return {

@@ -243,8 +243,8 @@ export default function UNDocsPage() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste the document text here..."
-                rows={12}
-                className="w-full rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] px-4 py-3 text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                rows={6}
+                className="w-full rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] px-4 py-3 text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-y min-h-[120px] max-h-[300px]"
               />
               <p className="mt-2 text-xs text-[var(--cp-muted)]">
                 {text.length.toLocaleString()} characters {text.length < 100 && text.length > 0 && "(need at least 100)"}
