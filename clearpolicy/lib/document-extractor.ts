@@ -13,6 +13,10 @@
 
 import type { DocumentInputMethod } from "./un-types";
 
+// pdf-parse type definition for v1.x
+type PDFParseResult = { text: string; numpages: number; info: any };
+type PDFParseFunction = (dataBuffer: Buffer) => Promise<PDFParseResult>;
+
 /** Maximum document length to process (in characters) */
 const MAX_DOCUMENT_LENGTH = 150000; // ~37k tokens
 
@@ -221,26 +225,23 @@ function decodeHTMLEntities(text: string): string {
  */
 export async function extractFromPDF(buffer: Buffer, filename?: string): Promise<ExtractionResult> {
   try {
-    // Dynamic import to avoid issues if pdf-parse isn't installed
-    let PDFParseClass: any = null;
-    
+    // Import pdf-parse dynamically to avoid the test file loading issue in Next.js
+    // The lib/pdf-parse.js file is the actual implementation without test dependencies
+    let pdfParse: PDFParseFunction;
     try {
-      const pdfModule = require("pdf-parse");
-      PDFParseClass = pdfModule.PDFParse;
-    } catch {
-      // Module not available
-    }
-    
-    if (!PDFParseClass) {
+      // Use dynamic import with specific path to avoid test file loading
+      const pdfModule = await import("pdf-parse/lib/pdf-parse.js");
+      pdfParse = pdfModule.default || pdfModule;
+    } catch (importError) {
+      console.error("Failed to import pdf-parse:", importError);
       return {
         success: false,
-        error: "PDF parsing is not available. Please copy-paste the text content instead.",
+        error: "PDF parsing module failed to load. Please copy-paste the text content instead.",
       };
     }
 
-    // Use the new PDFParse v2 class API - pass data in constructor
-    const parser = new PDFParseClass({ data: buffer });
-    const result = await parser.getText();
+    // pdf-parse v1.x: simple function call with buffer
+    const result = await pdfParse(buffer);
 
     let content = result?.text || "";
     
