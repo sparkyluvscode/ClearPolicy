@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractDocument, extractFromText, extractFromUrl } from "@/lib/document-extractor";
 import { analyzeUNDocument, estimateTokens } from "@/lib/un-ai";
-import type { DocumentInputMethod, UNDocumentRequest, UNAnalysisResponse } from "@/lib/un-types";
+import { computeDocumentHash, isValidDocumentHash } from "@/lib/document-hash";
+import { prisma } from "@/lib/prisma";
+import type { DocumentInputMethod, UNDocumentRequest, UNAnalysisResponse, UNDocumentAnalysis } from "@/lib/un-types";
 
 /**
  * API Route: POST /api/un/analyze
  * 
  * Analyzes a UN/international policy document and returns structured analysis.
+ * 
+ * CACHING BEHAVIOR:
+ * - Computes a deterministic hash of the document content
+ * - Checks database for existing analysis with the same hash
+ * - If found, returns cached result immediately (no AI call)
+ * - If not found, performs AI analysis and caches the result
  * 
  * Accepts FormData with:
  * - inputMethod: "url" | "upload" | "text"
@@ -14,18 +22,28 @@ import type { DocumentInputMethod, UNDocumentRequest, UNAnalysisResponse } from 
  * - file: File (if inputMethod === "upload")
  * - text: string (if inputMethod === "text")
  * 
- * Returns: UNAnalysisResponse
+ * Returns: UNAnalysisResponse with additional `cached` and `documentHash` fields
  * 
  * @module api/un/analyze
  */
+
+// Extended response type with caching metadata
+interface CachedUNAnalysisResponse extends UNAnalysisResponse {
+  cached?: boolean;
+  documentHash?: string;
+}
 
 // Logging utility (basic observability)
 function logAnalysis(
   inputMethod: DocumentInputMethod,
   documentLength: number,
   success: boolean,
-  error?: string,
-  processingTimeMs?: number
+  options?: {
+    error?: string;
+    processingTimeMs?: number;
+    cached?: boolean;
+    documentHash?: string;
+  }
 ) {
   const logData = {
     timestamp: new Date().toISOString(),
@@ -33,8 +51,10 @@ function logAnalysis(
     documentLength,
     estimatedTokens: Math.ceil(documentLength / 4),
     success,
-    error: error ? error.slice(0, 200) : undefined, // Truncate error for safety
-    processingTimeMs,
+    cached: options?.cached || false,
+    documentHash: options?.documentHash?.slice(0, 12),
+    error: options?.error ? options.error.slice(0, 200) : undefined,
+    processingTimeMs: options?.processingTimeMs,
   };
   
   if (success) {
@@ -44,10 +64,11 @@ function logAnalysis(
   }
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisResponse>> {
+export async function POST(req: NextRequest): Promise<NextResponse<CachedUNAnalysisResponse>> {
   const startTime = Date.now();
   let inputMethod: DocumentInputMethod = "text";
   let documentLength = 0;
+  let documentHash: string | undefined;
 
   try {
     const formData = await req.formData();
@@ -66,6 +87,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
     let sourceUrl: string | undefined;
     let sourceFilename: string | undefined;
     let wasTruncated = false;
+    let sourceReference: string | undefined;
 
     // Extract content based on input method
     if (inputMethod === "url") {
@@ -107,6 +129,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
       content = result.content;
       title = result.title;
       sourceUrl = url;
+      sourceReference = url;
       wasTruncated = result.wasTruncated || false;
       documentLength = result.originalLength || content.length;
 
@@ -182,6 +205,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
       }
 
       sourceFilename = file.name;
+      sourceReference = file.name;
 
     } else if (inputMethod === "text") {
       const text = formData.get("text") as string;
@@ -202,6 +226,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
 
       content = result.content;
       title = result.title;
+      sourceReference = title || "Pasted text";
       wasTruncated = result.wasTruncated || false;
       documentLength = result.originalLength || content.length;
     }
@@ -212,6 +237,51 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
         success: false,
         error: "Document content is too short for analysis. Please provide more text.",
       }, { status: 400 });
+    }
+
+    // Compute document hash for caching
+    try {
+      documentHash = computeDocumentHash(content);
+      console.log(`[UN-API] Document hash: ${documentHash.slice(0, 12)}... (${content.length} chars)`);
+    } catch (hashError) {
+      console.error("[UN-API] Hash computation failed:", hashError);
+      // Continue without caching if hash fails
+    }
+
+    // Check for cached analysis
+    if (documentHash) {
+      try {
+        const cached = await prisma.unDocumentAnalysis.findUnique({
+          where: { documentHash },
+        });
+
+        if (cached) {
+          const processingTimeMs = Date.now() - startTime;
+          const analysis = JSON.parse(cached.analysisPayload) as UNDocumentAnalysis;
+
+          logAnalysis(inputMethod, documentLength, true, {
+            processingTimeMs,
+            cached: true,
+            documentHash,
+          });
+
+          return NextResponse.json({
+            success: true,
+            analysis,
+            cached: true,
+            documentHash,
+            meta: {
+              inputMethod,
+              documentLength,
+              processingTimeMs,
+              modelUsed: cached.modelUsed || "cached",
+            },
+          });
+        }
+      } catch (dbError) {
+        // Log but continue - DB lookup failure shouldn't block analysis
+        console.error("[UN-API] Cache lookup failed:", dbError);
+      }
     }
 
     // Build analysis request
@@ -233,12 +303,47 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
 
     const processingTimeMs = Date.now() - startTime;
 
+    // Cache the analysis
+    if (documentHash) {
+      try {
+        await prisma.unDocumentAnalysis.upsert({
+          where: { documentHash },
+          update: {
+            analysisPayload: JSON.stringify(analysis),
+            processingTimeMs,
+            modelUsed: "gpt-4o-mini",
+            updatedAt: new Date(),
+          },
+          create: {
+            documentHash,
+            sourceType: inputMethod === "upload" ? "pdf" : inputMethod,
+            sourceReference: sourceReference?.slice(0, 500),
+            title: analysis.title?.slice(0, 500),
+            documentLength,
+            analysisPayload: JSON.stringify(analysis),
+            processingTimeMs,
+            modelUsed: "gpt-4o-mini",
+          },
+        });
+        console.log(`[UN-API] Cached analysis for hash: ${documentHash.slice(0, 12)}...`);
+      } catch (dbError) {
+        // Log but don't fail - caching is best-effort
+        console.error("[UN-API] Failed to cache analysis:", dbError);
+      }
+    }
+
     // Log success
-    logAnalysis(inputMethod, documentLength, true, undefined, processingTimeMs);
+    logAnalysis(inputMethod, documentLength, true, {
+      processingTimeMs,
+      cached: false,
+      documentHash,
+    });
 
     return NextResponse.json({
       success: true,
       analysis,
+      cached: false,
+      documentHash,
       meta: {
         inputMethod,
         documentLength,
@@ -252,7 +357,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<UNAnalysisRes
     const errorMessage = error?.message || "An unexpected error occurred.";
 
     // Log failure
-    logAnalysis(inputMethod, documentLength, false, errorMessage, processingTimeMs);
+    logAnalysis(inputMethod, documentLength, false, {
+      error: errorMessage,
+      processingTimeMs,
+      documentHash,
+    });
 
     // Handle specific error types
     if (errorMessage.includes("quota") || errorMessage.includes("rate limit") || errorMessage.includes("429")) {

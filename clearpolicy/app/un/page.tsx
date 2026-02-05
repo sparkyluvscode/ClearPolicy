@@ -91,7 +91,15 @@ export default function UNDocsPage() {
 
       // Store analysis in sessionStorage and redirect to results
       sessionStorage.setItem("un_analysis", JSON.stringify(data.analysis));
-      router.push("/un/results");
+      if (data.documentHash) {
+        sessionStorage.setItem("un_document_hash", data.documentHash);
+      }
+      // If we have a hash, use it in the URL for shareability
+      if (data.documentHash) {
+        router.push(`/un/results?hash=${data.documentHash}`);
+      } else {
+        router.push("/un/results");
+      }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
       setProcessing("error");

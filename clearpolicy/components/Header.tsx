@@ -46,6 +46,7 @@ export default function Header() {
     { href: "/browse", label: "Browse" },
     { href: "/compare", label: "Compare" },
     { href: "/un", label: "UN Docs", highlight: true },
+    { href: "/un/history", label: "History" },
   ];
   const primaryLinks = navLinks;
 

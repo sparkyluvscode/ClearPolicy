@@ -55,4 +55,33 @@ model Feedback {
   contact     String?
 }
 
-
+// UN/International Document Analysis Cache
+// Stores analyses to avoid re-processing identical documents
+model UnDocumentAnalysis {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Document fingerprint (SHA-256 hash of normalized text)
+  // Unique index for fast lookup
+  documentHash     String   @unique
+  
+  // Source information
+  sourceType       String   // "url" | "pdf" | "text"
+  sourceReference  String?  // URL, filename, or short label
+  
+  // Document metadata
+  title            String?
+  documentLength   Int      // Original document length in chars
+  
+  // Full AI analysis result as JSON
+  // Contains the complete UNDocumentAnalysis object
+  analysisPayload  String   // JSON blob
+  
+  // Optional: for future per-user history
+  userId           String?  // Prepared for auth, not required yet
+  
+  // Processing metadata
+  processingTimeMs Int?
+  modelUsed        String?
+}
