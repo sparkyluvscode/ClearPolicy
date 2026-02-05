@@ -7,10 +7,7 @@ import { Card, Button, Badge } from "@/components/ui";
 /**
  * UN Document Analysis History Page
  * 
- * Modern UI with smooth animations and improved visual hierarchy.
- * Shows a list of previously analyzed UN/international documents.
- * 
- * @module app/un/history/page
+ * Modern, polished UI showing previously analyzed documents.
  */
 
 interface HistoryItem {
@@ -43,9 +40,8 @@ export default function UNHistoryPage() {
         }
         setItems(data.items);
         setTotal(data.total);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to load history";
-        setError(errorMessage);
+      } catch (err: any) {
+        setError(err.message || "Failed to load history");
       } finally {
         setLoading(false);
       }
@@ -75,29 +71,19 @@ export default function UNHistoryPage() {
 
   const getSourceIcon = (type: string) => {
     switch (type) {
-      case "url": return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-blue-500">
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-      );
-      case "pdf": return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-red-500">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      );
-      case "text": return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-green-500">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      );
-      default: return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[var(--cp-muted)]">
-          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      );
+      case "url": return "🔗";
+      case "pdf": return "📄";
+      case "text": return "📝";
+      default: return "📋";
+    }
+  };
+
+  const getSourceLabel = (type: string) => {
+    switch (type) {
+      case "url": return "URL";
+      case "pdf": return "PDF";
+      case "text": return "Text";
+      default: return type.toUpperCase();
     }
   };
 
@@ -115,30 +101,28 @@ export default function UNHistoryPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       {/* Header */}
-      <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-accent">
-                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-[var(--cp-text)]">Analysis History</h1>
-              <p className="text-sm text-[var(--cp-muted)]">
-                {loading ? "Loading..." : total > 0 ? `${total} document${total === 1 ? "" : "s"} analyzed` : "No documents yet"}
-              </p>
-            </div>
+      <Card className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <Link href="/un">
-            <Button variant="primary" size="sm" className="gap-1.5">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Analyze New
-            </Button>
-          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--cp-text)]">Analysis History</h1>
+            <p className="text-sm text-[var(--cp-muted)]">
+              {loading ? "Loading..." : total > 0 ? `${total} document${total === 1 ? "" : "s"} analyzed` : "No documents yet"}
+            </p>
+          </div>
         </div>
+        <Link href="/un">
+          <Button variant="primary">
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Analyze New
+          </Button>
+        </Link>
       </Card>
 
       {/* Loading State */}
@@ -147,10 +131,10 @@ export default function UNHistoryPage() {
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-[var(--cp-surface-2)]" />
+                <div className="w-10 h-10 rounded-lg bg-[var(--cp-surface-2)]" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-5 w-3/4 rounded bg-[var(--cp-surface-2)]" />
-                  <div className="h-3 w-1/2 rounded bg-[var(--cp-surface-2)]" />
+                  <div className="h-5 w-2/3 rounded bg-[var(--cp-surface-2)]" />
+                  <div className="h-4 w-1/3 rounded bg-[var(--cp-surface-2)]" />
                 </div>
               </div>
             </Card>
@@ -161,14 +145,14 @@ export default function UNHistoryPage() {
       {/* Error State */}
       {error && !loading && (
         <Card className="p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-red-500">
-              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-[var(--cp-text)] mb-2">Failed to load history</h2>
+          <h2 className="text-lg font-semibold text-[var(--cp-text)] mb-2">Failed to Load</h2>
           <p className="text-sm text-[var(--cp-muted)] mb-4">{error}</p>
-          <Button variant="secondary" size="sm" onClick={() => setOffset(0)}>
+          <Button variant="secondary" onClick={() => setOffset(0)}>
             Try Again
           </Button>
         </Card>
@@ -177,21 +161,17 @@ export default function UNHistoryPage() {
       {/* Empty State */}
       {!loading && !error && items.length === 0 && (
         <Card className="p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" className="text-accent">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="currentColor"/>
+          <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-[var(--cp-text)] mb-2">No documents analyzed yet</h2>
-          <p className="text-sm text-[var(--cp-muted)] mb-6 max-w-md mx-auto">
-            Analyze a UN resolution, treaty, or policy document to see it here. 
-            Your analyses are cached so you can revisit them instantly.
+          <h2 className="text-xl font-semibold text-[var(--cp-text)] mb-2">No Documents Yet</h2>
+          <p className="text-sm text-[var(--cp-muted)] mb-6 max-w-sm mx-auto">
+            Analyze your first UN document to see it here. Previously analyzed documents are cached for instant access.
           </p>
           <Link href="/un">
-            <Button variant="primary" className="gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+            <Button variant="primary" size="lg">
               Analyze Your First Document
             </Button>
           </Link>
@@ -206,20 +186,22 @@ export default function UNHistoryPage() {
               key={item.id} 
               href={`/un/results?hash=${item.documentHash}`}
               className="block group"
-              style={{ animationDelay: `${index * 50}ms` }}
             >
-              <Card className="hover:border-accent/50 hover:shadow-md transition-all duration-200 group-hover:scale-[1.01]">
+              <Card 
+                className="hover:border-accent/50 hover:shadow-md transition-all duration-200 cursor-pointer"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[var(--cp-surface-2)] flex items-center justify-center flex-shrink-0 group-hover:bg-accent/10 transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--cp-surface-2)] flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                     {getSourceIcon(item.sourceType)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-[var(--cp-text)] truncate group-hover:text-accent transition-colors">
+                    <h3 className="font-semibold text-[var(--cp-text)] truncate group-hover:text-accent transition-colors">
                       {truncate(item.title || item.sourceReference, 60)}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                      <Badge variant="neutral" className="text-xs uppercase tracking-wide">
-                        {item.sourceType}
+                      <Badge variant="neutral" className="text-xs">
+                        {getSourceLabel(item.sourceType)}
                       </Badge>
                       <span className="text-xs text-[var(--cp-muted)]">
                         {formatSize(item.documentLength)}
@@ -230,20 +212,14 @@ export default function UNHistoryPage() {
                       </span>
                     </div>
                     {item.sourceReference && item.sourceReference !== item.title && (
-                      <p className="text-xs text-[var(--cp-muted)] mt-1.5 truncate opacity-75">
-                        {truncate(item.sourceReference, 80)}
+                      <p className="text-xs text-[var(--cp-muted)] mt-1 truncate opacity-70">
+                        {truncate(item.sourceReference, 70)}
                       </p>
                     )}
                   </div>
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-accent/10 transition-colors">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-[var(--cp-muted)] group-hover:text-accent transition-colors"
-                    >
-                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--cp-surface-2)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
                 </div>
@@ -255,37 +231,40 @@ export default function UNHistoryPage() {
 
       {/* Pagination */}
       {!loading && total > limit && (
-        <Card variant="subtle" className="!py-3">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - limit))}
-              className="gap-1.5"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Previous
-            </Button>
-            <span className="text-sm text-[var(--cp-muted)]">
-              {offset + 1}–{Math.min(offset + limit, total)} of {total}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={offset + limit >= total}
-              onClick={() => setOffset(offset + limit)}
-              className="gap-1.5"
-            >
-              Next
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </Button>
-          </div>
+        <Card variant="subtle" className="flex items-center justify-between">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - limit))}
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous
+          </Button>
+          <span className="text-sm text-[var(--cp-muted)]">
+            {offset + 1}–{Math.min(offset + limit, total)} of {total}
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={offset + limit >= total}
+            onClick={() => setOffset(offset + limit)}
+          >
+            Next
+            <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Button>
         </Card>
+      )}
+
+      {/* Help Text */}
+      {!loading && items.length > 0 && (
+        <p className="text-center text-xs text-[var(--cp-muted)]">
+          Click any document to view its analysis instantly from cache.
+        </p>
       )}
     </div>
   );
