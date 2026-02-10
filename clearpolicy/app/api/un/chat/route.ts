@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import { isValidDocumentHash } from "@/lib/document-hash";
+import { getFriendlyDatabaseErrorMessage, isDatabaseUnavailableError } from "@/lib/db-error";
 import type { UNDocumentAnalysis } from "@/lib/un-types";
 
 /**
@@ -151,9 +152,21 @@ export async function POST(req: NextRequest): Promise<NextResponse<ChatResponse>
     }
 
     // Fetch the document analysis from database
-    const doc = await prisma.unDocumentAnalysis.findUnique({
-      where: { documentHash: document_hash },
-    });
+    let doc: { analysisPayload: string } | null;
+    try {
+      doc = await prisma.unDocumentAnalysis.findUnique({
+        where: { documentHash: document_hash },
+      });
+    } catch (dbError: unknown) {
+      if (isDatabaseUnavailableError(dbError)) {
+        const friendlyMessage = getFriendlyDatabaseErrorMessage(dbError);
+        return NextResponse.json({
+          success: false,
+          error: friendlyMessage,
+        }, { status: 503 });
+      }
+      throw dbError;
+    }
 
     if (!doc) {
       return NextResponse.json({
@@ -205,21 +218,24 @@ export async function POST(req: NextRequest): Promise<NextResponse<ChatResponse>
       assistant_message: assistantMessage,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[UN-Chat] Error:", error);
 
-    // Handle specific error types
-    if (error?.message?.includes("quota") || error?.message?.includes("429")) {
-      return NextResponse.json({
-        success: false,
-        error: "Service is busy. Please try again in a moment.",
-      }, { status: 503 });
+    if (error instanceof Error) {
+      if (error.message.includes("quota") || error.message.includes("429")) {
+        return NextResponse.json({
+          success: false,
+          error: "Service is busy. Please try again in a moment.",
+        }, { status: 503 });
+      }
     }
 
+    const friendlyMessage = getFriendlyDatabaseErrorMessage(error);
+    const status = isDatabaseUnavailableError(error) ? 503 : 500;
     return NextResponse.json({
       success: false,
-      error: error?.message || "An unexpected error occurred.",
-    }, { status: 500 });
+      error: friendlyMessage,
+    }, { status });
   }
 }
 

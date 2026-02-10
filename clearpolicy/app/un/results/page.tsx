@@ -37,8 +37,8 @@ function UNResultsContent() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   
-  // Chat state
-  const [chatOpen, setChatOpen] = useState(false);
+  // Chat state - open by default so users can ask questions immediately
+  const [chatOpen, setChatOpen] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -226,14 +226,20 @@ function UNResultsContent() {
       } else {
         throw new Error(data.error || "Failed to get response");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Chat] Error:", error);
-      setChatError(error.message || "Something went wrong. Please try again.");
+      const rawMsg = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      // Never show raw Prisma/DB errors to users - use a friendly message instead
+      const isTechnicalError = /prisma\.|findUnique|findMany|database file|Error code 14|SQLITE/i.test(rawMsg);
+      const displayMsg = isTechnicalError
+        ? "Database is temporarily unavailable. You can still analyze new documents."
+        : rawMsg;
+      setChatError(displayMsg);
       
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         role: "assistant",
-        content: `I encountered an error: ${error.message || "Unknown error"}. Please try again.`,
+        content: displayMsg,
         timestamp: new Date(),
       };
       setChatMessages((prev) => [...prev, errorMessage]);

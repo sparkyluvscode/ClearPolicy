@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidDocumentHash } from "@/lib/document-hash";
+import { getFriendlyDatabaseErrorMessage, isDatabaseUnavailableError } from "@/lib/db-error";
 
 /**
  * API Route: GET /api/un/history
@@ -102,11 +103,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<HistoryRespons
       })),
       total,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[UN-History] Error:", error);
+    const friendlyMessage = getFriendlyDatabaseErrorMessage(error);
+    const status = isDatabaseUnavailableError(error) ? 503 : 500;
     return NextResponse.json({
       success: false,
-      error: error?.message || "Failed to fetch history.",
-    }, { status: 500 });
+      error: friendlyMessage,
+    }, { status });
   }
 }

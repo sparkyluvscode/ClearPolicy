@@ -26,6 +26,7 @@ export default function UNHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
+  const [retryKey, setRetryKey] = useState(0);
   const limit = 20;
 
   useEffect(() => {
@@ -40,14 +41,14 @@ export default function UNHistoryPage() {
         }
         setItems(data.items);
         setTotal(data.total);
-      } catch (err: any) {
-        setError(err.message || "Failed to load history");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load history");
       } finally {
         setLoading(false);
       }
     }
     fetchHistory();
-  }, [offset]);
+  }, [offset, retryKey]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -151,10 +152,17 @@ export default function UNHistoryPage() {
             </svg>
           </div>
           <h2 className="text-lg font-semibold text-[var(--cp-text)] mb-2">Failed to Load</h2>
-          <p className="text-sm text-[var(--cp-muted)] mb-4">{error}</p>
-          <Button variant="secondary" onClick={() => setOffset(0)}>
-            Try Again
-          </Button>
+          <p className="text-sm text-[var(--cp-muted)] mb-6 max-w-md mx-auto">{error}</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button variant="secondary" onClick={() => setRetryKey((k) => k + 1)}>
+              Try Again
+            </Button>
+            {error.toLowerCase().includes("database") || error.toLowerCase().includes("unavailable") ? (
+              <Link href="/un">
+                <Button variant="primary">Analyze a Document</Button>
+              </Link>
+            ) : null}
+          </div>
         </Card>
       )}
 
