@@ -29,7 +29,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "-apple-system", "sans-serif"],
-        heading: ["'Fraunces'", "'Lora'", "Georgia", "serif"],
+        heading: ["var(--font-heading)", "Georgia", "serif"],
       },
       borderRadius: {
         "2.5xl": "1.375rem",

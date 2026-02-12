@@ -26,7 +26,7 @@ export default function AboutPage() {
       {/* Omni-Search */}
       <div className="glass-card rounded-2xl p-6 md:p-8" style={{ borderLeft: "3px solid var(--cp-accent)" }}>
         <div className="mb-4">
-          <h2 className="font-heading text-2xl font-semibold text-[var(--cp-text)]">Omni-Search Technology</h2>
+          <h2 className="font-heading text-2xl font-bold text-[var(--cp-text)]">Omni-Search Technology</h2>
           <p className="text-sm text-[var(--cp-muted)] mt-1">Our multi-source policy intelligence engine</p>
         </div>
         <p className="text-[15px] text-[var(--cp-text)] leading-relaxed mb-5">

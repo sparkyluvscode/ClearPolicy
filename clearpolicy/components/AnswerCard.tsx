@@ -69,7 +69,7 @@ export default function AnswerCard({
       )}
 
       {/* Heading */}
-      <h2 className="font-heading text-2xl sm:text-[28px] font-semibold text-[var(--cp-text)] leading-tight tracking-tight mb-6">
+      <h2 className="font-heading text-2xl sm:text-[28px] font-bold text-[var(--cp-text)] leading-tight tracking-tight mb-6">
         {heading}
         {cardType === "verified" && (
           <span className="inline-flex items-center gap-1 ml-3 text-[11px] font-medium text-[var(--cp-green)] align-middle">

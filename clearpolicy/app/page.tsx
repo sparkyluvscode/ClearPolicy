@@ -119,7 +119,7 @@ function HomeContent() {
         <div className="w-full max-w-lg mx-auto">
           <div className="glass-card rounded-2xl p-6 md:p-8 animate-fade-up" style={{ borderLeft: "3px solid var(--cp-accent)" }}>
             <div className="mb-6">
-              <h2 className="font-heading text-xl font-semibold text-[var(--cp-text)]">Let me clarify</h2>
+              <h2 className="font-heading text-xl font-bold text-[var(--cp-text)]">Let me clarify</h2>
               <p className="text-sm text-[var(--cp-muted)] mt-1">To give you the best results for &ldquo;{originalQuery}&rdquo;</p>
             </div>
             <div className="space-y-5">

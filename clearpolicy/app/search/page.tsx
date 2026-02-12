@@ -73,10 +73,14 @@ function SearchResultsContent() {
     }
   }, [mounted]);
 
-  // Hide overflow on body while immersive
+  // Activate immersive mode: hide overflow, hide site header/footer
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+    document.body.classList.add("cp-immersive");
+    return () => {
+      document.body.style.overflow = "";
+      document.body.classList.remove("cp-immersive");
+    };
   }, []);
 
   // Initial search
@@ -219,15 +223,15 @@ function SearchResultsContent() {
   const totalSections = cards.flatMap(c => c.sections).length;
 
   // ── The immersive UI ──
+  // Outer container is ALWAYS fully opaque so it blocks the layout behind it.
+  // Only inner content elements animate in.
   const immersiveUI = (
     <div
-      className={`fixed inset-0 flex flex-col transition-all duration-500 ease-out ${
-        entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      }`}
+      className="fixed inset-0 flex flex-col"
       style={{ zIndex: 99999, background: "var(--cp-bg)" }}
     >
       {/* ── Top Bar ── */}
-      <div className="flex-shrink-0 border-b border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 sm:px-6">
+      <div className={`flex-shrink-0 border-b border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 sm:px-6 transition-all duration-500 ease-out ${entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}`}>
         <div className="flex items-center justify-between h-12 max-w-4xl mx-auto">
           <div className="flex items-center gap-3 min-w-0">
             <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors flex-shrink-0">
@@ -276,7 +280,7 @@ function SearchResultsContent() {
 
       {/* ── Scrollable Content Area ── */}
       <div ref={scrollRef} data-scroll-container className="flex-1 overflow-y-auto">
-        <div ref={contentRef} className="max-w-3xl mx-auto px-5 sm:px-8 py-8">
+        <div ref={contentRef} className={`max-w-3xl mx-auto px-5 sm:px-8 py-8 transition-all duration-500 ease-out delay-100 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
 
           {/* Loading state — ALWAYS shown during search */}
           {loading && (
@@ -402,7 +406,7 @@ function SearchResultsContent() {
 
       {/* ── Fixed Bottom Input ── */}
       {!loading && cards.length > 0 && (
-        <div className="flex-shrink-0 border-t border-[var(--cp-border)] bg-[var(--cp-bg)]">
+        <div className={`flex-shrink-0 border-t border-[var(--cp-border)] bg-[var(--cp-bg)] transition-all duration-500 ease-out delay-200 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
           <div className="max-w-3xl mx-auto px-5 sm:px-8 py-3">
             <form onSubmit={handleSubmit} className="relative">
               <input
@@ -438,7 +442,7 @@ function SearchResultsContent() {
           <aside className="fixed right-0 top-0 h-full w-80 bg-[var(--cp-bg)] border-l border-[var(--cp-border)] shadow-elevated animate-slide-in overflow-y-auto" style={{ zIndex: 100001 }}>
             <div className="p-5">
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-heading text-lg font-semibold text-[var(--cp-text)]">Sources ({sources.length})</h3>
+                <h3 className="font-heading text-lg font-bold text-[var(--cp-text)]">Sources ({sources.length})</h3>
                 <button onClick={() => setSourcesOpen(false)} className="p-1.5 rounded-lg hover:bg-[var(--cp-surface-2)] transition-colors">
                   <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>

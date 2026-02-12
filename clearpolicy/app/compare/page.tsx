@@ -544,7 +544,7 @@ export default function ComparePage() {
             </section>
 
             <div className="glass-card rounded-2xl p-8 text-center">
-                <h3 className="font-heading text-lg font-semibold text-[var(--cp-text)] mb-1">
+                <h3 className="font-heading text-lg font-bold text-[var(--cp-text)] mb-1">
                     Want to explore more?
                 </h3>
                 <p className="text-sm text-[var(--cp-muted)] mb-5">
