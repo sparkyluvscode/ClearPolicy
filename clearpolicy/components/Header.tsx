@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Button, SearchInput } from "@/components/ui";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export default function Header() {
@@ -12,271 +11,163 @@ export default function Header() {
   const [dark, setDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const showSearch = true;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("cp_theme");
-      if (stored) {
-        setDark(stored === "dark");
-      } else {
-        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-        setDark(!!prefersDark);
-      }
+      if (stored) setDark(stored === "dark");
+      else setDark(!!window.matchMedia?.("(prefers-color-scheme: dark)").matches);
     }
-
     const onScroll = () => setScrolled(window.scrollY > 8);
-    if (typeof window !== "undefined") {
-      window.addEventListener("scroll", onScroll, { passive: true });
-      onScroll();
-      return () => window.removeEventListener("scroll", onScroll);
-    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 
+  function toggleDark() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("cp_theme", next ? "dark" : "light");
+  }
+
   const navLinks = [
-    { href: "/about", label: "About" },
     { href: "/browse", label: "Browse" },
     { href: "/compare", label: "Compare" },
-    { href: "/un", label: "UN Docs", highlight: true },
-    { href: "/un/history", label: "History" },
+    { href: "/about", label: "About" },
   ];
-  const primaryLinks = navLinks;
 
   return (
     <>
-      <header
-        className={cn(
-          "sticky top-0 z-50",
-          scrolled ? "py-2" : "py-4"
-        )}
-      >
-        <div className="mx-auto flex max-w-6xl items-center px-4">
-          <div
+      <header className={cn("cp-site-header sticky top-0 z-50 transition-all duration-300", scrolled ? "py-2" : "py-3")}>
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12">
+          <nav
             className={cn(
-              "glass-nav glass-nav--scrolled flex w-full items-center gap-4 rounded-full px-4 py-2 transition-all duration-200 ease-out"
+              "glass-nav flex items-center gap-4 rounded-2xl px-5 py-3 transition-all duration-300",
+              scrolled && "glass-nav--scrolled rounded-xl"
             )}
           >
-          <button
-            type="button"
-            className="md:hidden rounded-md border border-[var(--cp-border)] p-2 text-[var(--cp-text)] focus-ring"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-          >
-            <span className="block h-0.5 w-5 bg-current" />
-            <span className="mt-1 block h-0.5 w-5 bg-current" />
-            <span className="mt-1 block h-0.5 w-5 bg-current" />
-          </button>
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg px-1">
+              <img src="/clearpolicy-logo.png" alt="ClearPolicy" className="w-8 h-8 flex-shrink-0 object-contain" />
+              <span className="font-heading text-lg font-bold tracking-tight text-[var(--cp-text)] hidden sm:inline">
+                ClearPolicy
+              </span>
+            </Link>
 
-          <Link href="/" className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)] focus-ring rounded text-glow">
-            {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
-          </Link>
+            {/* Search — desktop */}
+            <form
+              className="hidden md:flex flex-1 max-w-md mx-auto"
+              role="search"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!q.trim()) return;
+                router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+              }}
+            >
+              <div className="relative w-full group">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--cp-tertiary)] group-focus-within:text-[var(--cp-accent)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search any policy or bill..."
+                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-[var(--cp-surface-2)] border-2 border-transparent text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:border-[var(--cp-accent)] focus:bg-[var(--cp-surface)] transition-all"
+                />
+              </div>
+            </form>
 
-          <form
-            className={cn("hidden flex-1 md:block", showSearch ? "" : "md:hidden")}
-            role="search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!q.trim()) return;
-              const url = new URL("/", window.location.origin);
-              url.searchParams.set("q", q);
-              router.push(url.toString());
-            }}
-          >
-            <label className="sr-only" htmlFor="global-search">
-              Search measures
-            </label>
-            <div className="mx-auto max-w-xl">
-              <SearchInput
-                id="global-search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search a bill, proposition, or topic..."
-                aria-label="Search measures"
-                data-testid="global-search-input"
-              />
-            </div>
-          </form>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-pressed={dark}
-            aria-label={dark ? "Light mode" : "Dark mode"}
-            onClick={(e) => {
-              e.preventDefault();
-              try {
-                const next = !dark;
-                setDark(next);
-                if (typeof document !== "undefined" && document.documentElement) {
-                  document.documentElement.classList.toggle("dark", next);
-                }
-                if (typeof window !== "undefined" && window.localStorage) {
-                  localStorage.setItem("cp_theme", next ? "dark" : "light");
-                }
-              } catch (error) {
-                console.error("Error toggling theme:", error);
-              }
-            }}
-            className="ml-auto px-2 md:hidden"
-          >
-            {dark ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 4v2m0 12v2m8-8h-2M6 12H4m12.95 5.95-1.41-1.41M7.46 7.46 6.05 6.05m0 11.9 1.41-1.41m9.49-9.49 1.41-1.41" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              </svg>
-            )}
-          </Button>
-
-          <div className="ml-auto hidden items-center gap-2 md:flex">
-            <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
-              {primaryLinks.map((link) => (
+            {/* Nav links — desktop */}
+            <div className="hidden md:flex items-center gap-1 ml-auto">
+              {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-sm focus-ring",
-                    (link as any).highlight
-                      ? "bg-accent/10 text-accent font-medium hover:bg-accent/20"
-                      : "text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
-                  )}
+                  className="rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all focus-ring"
                 >
                   {link.label}
                 </Link>
               ))}
-            </nav>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-pressed={dark}
-              aria-label={dark ? "Light mode" : "Dark mode"}
-              onClick={(e) => {
-                e.preventDefault();
-                try {
-                  const next = !dark;
-                  setDark(next);
-                  if (typeof document !== "undefined" && document.documentElement) {
-                    document.documentElement.classList.toggle("dark", next);
-                  }
-                  if (typeof window !== "undefined" && window.localStorage) {
-                    localStorage.setItem("cp_theme", next ? "dark" : "light");
-                  }
-                } catch (error) {
-                  console.error("Error toggling theme:", error);
-                }
-              }}
-              className="px-2"
-            >
-              {dark ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 4v2m0 12v2m8-8h-2M6 12H4m12.95 5.95-1.41-1.41M7.46 7.46 6.05 6.05m0 11.9 1.41-1.41m9.49-9.49 1.41-1.41" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6" />
+              <button
+                onClick={toggleDark}
+                className="rounded-lg p-2.5 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all ml-1"
+                aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {dark ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07 7.07-1.41-1.41M7.34 7.34 5.93 5.93m12.14 0-1.41 1.41M7.34 16.66l-1.41 1.41" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            {/* Mobile controls */}
+            <div className="flex items-center gap-1 ml-auto md:hidden">
+              <button onClick={toggleDark} className="rounded-lg p-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors" aria-label={dark ? "Light mode" : "Dark mode"}>
+                {dark ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07 7.07-1.41-1.41M7.34 7.34 5.93 5.93m12.14 0-1.41 1.41M7.34 16.66l-1.41 1.41" /></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                )}
+              </button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="rounded-lg p-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors focus-ring"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  {mobileMenuOpen ? (<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>) : (<><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></>)}
                 </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              )}
-            </Button>
-          </div>
-          </div>
+              </button>
+            </div>
+          </nav>
         </div>
       </header>
 
+      {/* Mobile menu */}
       {mobileMenuOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
-          <aside className="fixed left-0 top-0 z-50 h-full w-72 bg-[var(--cp-surface)] shadow-lg">
-            <div className="flex h-full flex-col border-r border-[var(--cp-border)]">
-              <div className="flex items-center justify-between border-b border-[var(--cp-border)] p-4">
-                <span className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)]">
-                  {process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-md border border-[var(--cp-border)] p-2 text-[var(--cp-text)] focus-ring"
-                  aria-label="Close menu"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                  </svg>
+          <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm animate-fade-in" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
+          <aside className="fixed right-0 top-0 z-50 h-full w-72 bg-[var(--cp-bg)] shadow-elevated animate-slide-in border-l border-[var(--cp-border)]">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between p-5 border-b border-[var(--cp-border)]">
+                <span className="font-heading text-lg font-semibold text-[var(--cp-text)]">Menu</span>
+                <button onClick={() => setMobileMenuOpen(false)} className="rounded-lg p-1.5 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)] transition-colors" aria-label="Close menu">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
               <div className="p-4">
-                <form
-                  role="search"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!q.trim()) return;
-                    const url = new URL("/", window.location.origin);
-                    url.searchParams.set("q", q);
-                    router.push(url.toString());
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <SearchInput
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search measures..."
-                    aria-label="Search measures"
-                  />
+                <form role="search" onSubmit={(e) => { e.preventDefault(); if (!q.trim()) return; router.push(`/search?q=${encodeURIComponent(q.trim())}`); setMobileMenuOpen(false); }}>
+                  <div className="relative">
+                    <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--cp-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search policies..." className="w-full pl-10 pr-4 py-3 text-sm rounded-xl bg-[var(--cp-surface-2)] border-2 border-[var(--cp-border)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:border-[var(--cp-accent)] transition-all" />
+                  </div>
                 </form>
               </div>
-              <nav className="flex-1 px-2">
-                <ul className="space-y-1">
+              <nav className="flex-1 px-3">
+                <ul className="space-y-0.5">
                   {navLinks.map((link) => (
                     <li key={link.href}>
-                      <Link
-                        href={link.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="block rounded-md px-3 py-2 text-sm text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
-                      >
+                      <Link href={link.href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-colors">
                         {link.label}
                       </Link>
                     </li>
                   ))}
                 </ul>
               </nav>
-              <div className="border-t border-[var(--cp-border)] p-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="flex-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      try {
-                        const next = !dark;
-                        setDark(next);
-                        if (typeof document !== "undefined" && document.documentElement) {
-                          document.documentElement.classList.toggle("dark", next);
-                        }
-                        if (typeof window !== "undefined" && window.localStorage) {
-                          localStorage.setItem("cp_theme", next ? "dark" : "light");
-                        }
-                      } catch (error) {
-                        console.error("Error toggling theme:", error);
-                      }
-                    }}
-                    aria-label={dark ? "Light mode" : "Dark mode"}
-                  >
-                    {dark ? "Light mode" : "Dark mode"}
-                  </Button>
-                </div>
-              </div>
             </div>
           </aside>
         </>

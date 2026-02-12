@@ -694,7 +694,11 @@ export async function GET(req: NextRequest) {
     const hasRelevantCa = Array.isArray((ca as any).results)
       && (ca as any).results.some((r: any) => String(r?.title || r?.identifier || "").toLowerCase().includes(parsed.data.q.toLowerCase()));
     let aiFallback = null;
-    if (!hasRelevantCa && !hasRelevantUs && parsed.data.q.trim().length > 2) {
+    // Detect whether the query looks like a bill identifier or a general question
+    const isBillIdentifier = /\b(ab|sb|hr|hb|s\.?b|h\.?r|prop|proposition)\s*\.?\s*\d+/i.test(parsed.data.q);
+    const isGeneralQuery = !isBillIdentifier && !hasRelevantCa && !hasRelevantUs;
+
+    if (isGeneralQuery && parsed.data.q.trim().length > 2) {
       try {
         aiFallback = await generateSummary({
           title: parsed.data.q,
@@ -708,7 +712,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ chips, ca, us, fallbacks, aiFallback });
+    // If this is a general question (not a bill lookup) with no relevant results,
+    // signal the frontend to redirect to the Omni-Search engine
+    const omniRedirect = isGeneralQuery && !aiFallback;
+
+    return NextResponse.json({ chips, ca, us, fallbacks, aiFallback, omniRedirect });
   } catch (e: any) {
     return NextResponse.json({ chips: [], ca: { results: [] }, us: { data: { bills: [] } }, fallbacks: [], error: e?.message || "search failed" }, { status: 200 });
   }

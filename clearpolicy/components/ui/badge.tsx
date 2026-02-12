@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils";
 type BadgeVariant = "supported" | "unverified" | "official" | "primary" | "analysis" | "neutral";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  supported: "border-[rgba(34,197,94,0.45)] bg-[rgba(34,197,94,0.12)] text-[color:var(--cp-text)]",
-  unverified: "border-[rgba(245,158,11,0.45)] bg-[rgba(245,158,11,0.12)] text-[color:var(--cp-text)]",
-  official: "border-[rgba(59,130,246,0.45)] bg-[rgba(59,130,246,0.12)] text-[color:var(--cp-text)]",
-  primary: "border-[rgba(99,102,241,0.45)] bg-[rgba(99,102,241,0.12)] text-[color:var(--cp-text)]",
-  analysis: "border-[rgba(168,85,247,0.45)] bg-[rgba(168,85,247,0.12)] text-[color:var(--cp-text)]",
-  neutral: "border-[rgba(148,163,184,0.3)] bg-[rgba(148,163,184,0.1)] text-[color:var(--cp-text)]",
+  supported: "bg-green-50 text-green-700 dark:bg-green-900/15 dark:text-green-400",
+  unverified: "bg-amber-50 text-amber-700 dark:bg-amber-900/15 dark:text-amber-400",
+  official: "bg-blue-50 text-blue-700 dark:bg-blue-900/15 dark:text-blue-400",
+  primary: "bg-[var(--cp-accent-soft)] text-[var(--cp-accent)]",
+  analysis: "bg-violet-50 text-violet-700 dark:bg-violet-900/15 dark:text-violet-400",
+  neutral: "bg-[var(--cp-surface-2)] text-[var(--cp-muted)]",
 };
 
 export function Badge({
@@ -21,7 +21,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+        "inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-medium tracking-wide",
         variantClasses[variant],
         className
       )}

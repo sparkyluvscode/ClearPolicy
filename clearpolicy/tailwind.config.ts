@@ -6,23 +6,43 @@ const config: Config = {
     "./components/**/*.{ts,tsx}",
     "./pages/**/*.{ts,tsx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         accent: {
-          DEFAULT: "#3b82f6",
+          DEFAULT: "var(--cp-accent)",
+        },
+        cream: {
+          50: "#FDFCF7",
+          100: "#F9F7F0",
+          200: "#F5F3EB",
+          300: "#E8E6DF",
+          400: "#D4D2C8",
+        },
+        civic: {
+          blue: "#4A7BBA",
+          green: "#5EAF8E",
+          coral: "#E07A5F",
+          gold: "#D4A574",
         },
       },
       fontFamily: {
-        sans: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Inter", "sans-serif"],
+        sans: ["var(--font-inter)", "Inter", "system-ui", "-apple-system", "sans-serif"],
+        heading: ["'Fraunces'", "'Lora'", "Georgia", "serif"],
       },
       borderRadius: {
-        '2.5xl': "1.375rem",
-        '3.5xl': "1.875rem",
+        "2.5xl": "1.375rem",
+        "3.5xl": "1.875rem",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06)",
-        card: "0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 20px rgba(15, 23, 42, 0.08)",
+        soft: "var(--cp-shadow-soft)",
+        card: "var(--cp-shadow-card)",
+        elevated: "var(--cp-shadow-elevated)",
+      },
+      spacing: {
+        "18": "4.5rem",
+        "88": "22rem",
       },
     },
   },
@@ -30,5 +50,3 @@ const config: Config = {
 };
 
 export default config;
-
-

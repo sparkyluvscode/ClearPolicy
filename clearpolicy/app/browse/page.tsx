@@ -202,11 +202,24 @@ const categories = ["All", "Civil Rights", "Criminal Justice", "Economy/Business
 const statuses = ["All", "Active", "Passed", "Rejected"];
 
 const federalBills = [
-    { id: "118:hr:4369", type: "Federal", title: "Consolidated Appropriations Act, 2024", category: "Government/Process", status: "Enacted", summary: "Annual federal spending legislation funding government operations.", href: "/measure/live?source=congress&id=118:hr:4369" },
-    { id: "117:hr:5376", type: "Federal", title: "Inflation Reduction Act of 2022", category: "Taxes", status: "Enacted", summary: "Climate, healthcare, and tax provisions including Medicare drug negotiation and clean energy incentives.", href: "/measure/live?source=congress&id=117:hr:5376" },
-    { id: "117:hr:1319", type: "Federal", title: "American Rescue Plan Act of 2021", category: "Healthcare", status: "Enacted", summary: "COVID-19 relief including stimulus payments, extended unemployment, and state and local aid.", href: "/measure/live?source=congress&id=117:hr:1319" },
-    { id: "117:hr:3684", type: "Federal", title: "Infrastructure Investment and Jobs Act", category: "Transportation", status: "Enacted", summary: "Federal investment in roads, bridges, broadband, and utilities.", href: "/measure/live?source=congress&id=117:hr:3684" },
-    { id: "111:s:1789", type: "Federal", title: "Fair Sentencing Act of 2010", category: "Criminal Justice", status: "Enacted", summary: "Reduced sentencing disparity between crack and powder cocaine offenses.", href: "/measure/live?source=congress&id=111:s:1789" },
+    // 117th–118th Congress: Major enacted legislation
+    { id: "118:hr:4369", type: "Federal", title: "Consolidated Appropriations Act, 2024", category: "Government/Process", status: "Enacted", summary: "Annual federal spending legislation funding government operations and agencies.", href: "/measure/live?source=congress&id=118:hr:4369" },
+    { id: "117:hr:5376", type: "Federal", title: "Inflation Reduction Act of 2022", category: "Taxes", status: "Enacted", summary: "Climate, healthcare, and tax provisions including Medicare drug negotiation and $369B in clean energy incentives.", href: "/measure/live?source=congress&id=117:hr:5376" },
+    { id: "117:hr:1319", type: "Federal", title: "American Rescue Plan Act of 2021", category: "Healthcare", status: "Enacted", summary: "COVID-19 relief: $1,400 stimulus checks, extended unemployment, child tax credit expansion, and state/local aid.", href: "/measure/live?source=congress&id=117:hr:1319" },
+    { id: "117:hr:3684", type: "Federal", title: "Infrastructure Investment and Jobs Act", category: "Transportation", status: "Enacted", summary: "$1.2 trillion for roads, bridges, rail, broadband, water systems, and electric vehicle charging.", href: "/measure/live?source=congress&id=117:hr:3684" },
+    { id: "117:hr:4346", type: "Federal", title: "CHIPS and Science Act of 2022", category: "Technology/Privacy", status: "Enacted", summary: "$280B to boost domestic semiconductor manufacturing, scientific research, and tech competitiveness.", href: "/measure/live?source=congress&id=117:hr:4346" },
+    { id: "117:hr:2471", type: "Federal", title: "Consolidated Appropriations Act, 2022", category: "Government/Process", status: "Enacted", summary: "FY2022 omnibus spending bill including $13.6B in Ukraine aid and Violence Against Women Act reauthorization.", href: "/measure/live?source=congress&id=117:hr:2471" },
+    { id: "117:s:2938", type: "Federal", title: "Bipartisan Safer Communities Act", category: "Public Safety", status: "Enacted", summary: "First major federal gun safety law in decades: enhanced background checks for under-21 buyers, red flag law incentives.", href: "/measure/live?source=congress&id=117:s:2938" },
+    { id: "117:hr:8404", type: "Federal", title: "Respect for Marriage Act", category: "Civil Rights", status: "Enacted", summary: "Codifies federal recognition of same-sex and interracial marriages; requires interstate recognition.", href: "/measure/live?source=congress&id=117:hr:8404" },
+    { id: "117:s:3373", type: "Federal", title: "PACT Act of 2022", category: "Healthcare", status: "Enacted", summary: "Expands VA healthcare for veterans exposed to burn pits and toxic substances during military service.", href: "/measure/live?source=congress&id=117:s:3373" },
+    { id: "117:hr:5746", type: "Federal", title: "Electoral Count Reform Act", category: "Voting Rights", status: "Enacted", summary: "Reforms the Electoral Count Act to clarify the VP's ceremonial role and raise objection thresholds.", href: "/measure/live?source=congress&id=117:hr:5746" },
+    // Landmark older legislation
+    { id: "111:hr:3590", type: "Federal", title: "Affordable Care Act (ACA)", category: "Healthcare", status: "Enacted", summary: "Comprehensive healthcare reform: insurance exchanges, Medicaid expansion, pre-existing condition protections.", href: "/measure/live?source=congress&id=111:hr:3590" },
+    { id: "111:s:1789", type: "Federal", title: "Fair Sentencing Act of 2010", category: "Criminal Justice", status: "Enacted", summary: "Reduced the 100:1 sentencing disparity between crack and powder cocaine to 18:1.", href: "/measure/live?source=congress&id=111:s:1789" },
+    { id: "116:hr:748", type: "Federal", title: "CARES Act", category: "Economy/Business", status: "Enacted", summary: "$2.2 trillion COVID-19 stimulus: PPP loans, $1,200 direct payments, enhanced unemployment insurance.", href: "/measure/live?source=congress&id=116:hr:748" },
+    { id: "115:hr:1", type: "Federal", title: "Tax Cuts and Jobs Act of 2017", category: "Taxes", status: "Enacted", summary: "Major tax overhaul: reduced corporate rate to 21%, individual rate changes, SALT deduction cap at $10K.", href: "/measure/live?source=congress&id=115:hr:1" },
+    { id: "111:hr:4173", type: "Federal", title: "Dodd-Frank Wall Street Reform Act", category: "Economy/Business", status: "Enacted", summary: "Post-2008 financial regulation: created CFPB, Volcker Rule, derivatives oversight, stress testing.", href: "/measure/live?source=congress&id=111:hr:4173" },
+    { id: "107:hr:3162", type: "Federal", title: "USA PATRIOT Act", category: "Public Safety", status: "Enacted", summary: "Post-9/11 surveillance and anti-terrorism law: expanded wiretapping, financial tracking, and agency cooperation.", href: "/measure/live?source=congress&id=107:hr:3162" },
 ];
 
 export default function BrowsePage() {
@@ -240,181 +253,216 @@ export default function BrowsePage() {
     const showFederal = levelFilter === "All" || levelFilter === "Federal";
 
     return (
-        <div className="space-y-6">
-            <Card className="space-y-2">
-                <h1 className="page-title">
+        <div className="space-y-10 animate-fade-in" style={{ paddingTop: "var(--space-xl)", paddingBottom: "var(--space-3xl)" }}>
+            {/* Header */}
+            <div className="space-y-3">
+                <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight text-[var(--cp-text)]">
                     Browse Legislation
                 </h1>
-                <p className="page-subtitle">
+                <p className="text-lg text-[var(--cp-muted)] leading-relaxed">
                     Explore federal bills and California ballot measures with clear, unbiased summaries.
                 </p>
-            </Card>
+            </div>
 
-            <Card className="space-y-4">
-                <Input
-                    type="text"
-                    placeholder="Search legislation..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            {/* Filters */}
+            <div className="glass-card rounded-2xl p-5 md:p-6 space-y-5">
+                {/* Search */}
+                <div className="relative group">
+                    <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--cp-tertiary)] group-focus-within:text-[var(--cp-accent)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Search legislation..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-[var(--cp-surface-2)] border border-transparent text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:outline-none focus:border-[var(--cp-accent)]/25 transition-all"
+                    />
+                </div>
 
-                <div className="space-y-3">
-                    <div>
-                        <span className="section-title block mb-2">By level</span>
-                        <div className="flex flex-wrap gap-2">
+                {/* Filter rows */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <div className="flex items-center gap-2">
+                        <span className="section-label">Level</span>
+                        <div className="flex gap-1">
                             {(["All", "Federal", "California"] as const).map(level => (
-                                <Button
+                                <button
                                     key={level}
-                                    variant={levelFilter === level ? "primary" : "secondary"}
-                                    size="sm"
                                     onClick={() => setLevelFilter(level)}
+                                    className={`text-xs px-3 py-1.5 rounded-lg transition-all ${
+                                        levelFilter === level
+                                            ? "bg-[var(--cp-accent-soft)] text-[var(--cp-accent)] font-medium"
+                                            : "text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
+                                    }`}
                                 >
                                     {level}
-                                </Button>
+                                </button>
                             ))}
                         </div>
                     </div>
-                    <div>
-                        <span className="section-title block mb-2">Status</span>
-                        <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="section-label">Status</span>
+                        <div className="flex gap-1">
                             {statuses.map(status => (
-                                <Button
+                                <button
                                     key={status}
-                                    variant={statusFilter === status ? "primary" : "secondary"}
-                                    size="sm"
                                     onClick={() => setStatusFilter(status)}
+                                    className={`text-xs px-3 py-1.5 rounded-lg transition-all ${
+                                        statusFilter === status
+                                            ? "bg-[var(--cp-accent-soft)] text-[var(--cp-accent)] font-medium"
+                                            : "text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface-2)]"
+                                    }`}
                                 >
                                     {status}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <span className="section-title block mb-2">Category</span>
-                        <div className="flex flex-wrap gap-2">
-                            {categories.map(cat => (
-                                <Button
-                                    key={cat}
-                                    variant={categoryFilter === cat ? "primary" : "secondary"}
-                                    size="sm"
-                                    onClick={() => setCategoryFilter(cat)}
-                                >
-                                    {cat}
-                                </Button>
+                                </button>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                <div className="text-sm text-[var(--cp-muted)]">
+                {/* Category chips */}
+                <div className="flex flex-wrap gap-1.5">
+                    {categories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setCategoryFilter(cat)}
+                            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                                categoryFilter === cat
+                                    ? "border-[var(--cp-accent)]/25 bg-[var(--cp-accent-soft)] text-[var(--cp-accent)] font-medium"
+                                    : "border-[var(--cp-border)] text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:border-[var(--cp-accent)]/15"
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Count */}
+                <p className="text-xs text-[var(--cp-muted)]">
                     {levelFilter === "All" && (
-                        <>Showing {filteredFederal.length} federal bill{filteredFederal.length !== 1 ? "s" : ""} and {filteredProps.length} California proposition{filteredProps.length !== 1 ? "s" : ""}</>
+                        <>{filteredFederal.length} federal bill{filteredFederal.length !== 1 ? "s" : ""} &middot; {filteredProps.length} California proposition{filteredProps.length !== 1 ? "s" : ""}</>
                     )}
-                    {levelFilter === "Federal" && <>Showing {filteredFederal.length} federal bill{filteredFederal.length !== 1 ? "s" : ""}</>}
-                    {levelFilter === "California" && <>Showing {filteredProps.length} proposition{filteredProps.length !== 1 ? "s" : ""}</>}
-                </div>
-            </Card>
+                    {levelFilter === "Federal" && <>{filteredFederal.length} federal bill{filteredFederal.length !== 1 ? "s" : ""}</>}
+                    {levelFilter === "California" && <>{filteredProps.length} proposition{filteredProps.length !== 1 ? "s" : ""}</>}
+                </p>
+            </div>
 
+            {/* Federal bills */}
             {showFederal && filteredFederal.length > 0 && (
                 <section className="space-y-4">
-                    <h2 className="section-heading">Federal (Congress.gov)</h2>
-                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    <p className="section-label">Federal &mdash; Congress.gov</p>
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 stagger">
                         {filteredFederal.map(bill => (
-                            <Link
-                                key={bill.id}
-                                href={bill.href}
-                                className="block focus-ring rounded-2xl"
-                            >
-                                <Card className="p-5 transition hover:bg-[var(--cp-surface-2)] surface-lift">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <Badge variant="primary">Federal</Badge>
-                                        <Badge variant={bill.status === "Enacted" ? "official" : "neutral"}>{bill.status}</Badge>
+                            <Link key={bill.id} href={bill.href} className="block group focus-ring rounded-xl">
+                                <div className="glass-card rounded-xl p-5 h-full transition-all surface-lift animate-fade-up">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[var(--cp-accent-soft)] text-[var(--cp-accent)]">Federal</span>
+                                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-green-50 text-green-600 dark:bg-green-900/15 dark:text-green-400">{bill.status}</span>
                                     </div>
-                                    <h3 className="mt-2 text-sm font-medium text-[var(--cp-text)] line-clamp-2">
+                                    <h3 className="text-sm font-medium text-[var(--cp-text)] line-clamp-2 leading-snug mb-2">
                                         {bill.title}
                                     </h3>
-                                    <p className="mt-2 text-xs text-[var(--cp-muted)] line-clamp-3">
+                                    <p className="text-xs text-[var(--cp-muted)] line-clamp-3 leading-relaxed">
                                         {bill.summary}
                                     </p>
                                     <div className="mt-3 flex items-center justify-between">
-                                        <Badge variant="neutral">{bill.category}</Badge>
-                                        <span className="text-xs text-accent">Read more →</span>
+                                        <span className="text-[10px] font-medium text-[var(--cp-muted)] px-2 py-0.5 rounded-md bg-[var(--cp-surface-2)]">{bill.category}</span>
+                                        <span className="text-xs text-[var(--cp-accent)] opacity-0 group-hover:opacity-100 transition-opacity">
+                                            View &rarr;
+                                        </span>
                                     </div>
-                                </Card>
+                                </div>
                             </Link>
                         ))}
                     </div>
+                    {/* Bridge to Omni-Search */}
+                    <Link href="/search?q=major federal legislation" className="block group">
+                        <div className="rounded-xl border border-dashed border-[var(--cp-border)] p-5 text-center transition-all hover:border-[var(--cp-accent)]/25 hover:bg-[var(--cp-accent-soft)]">
+                            <p className="text-sm font-medium text-[var(--cp-accent)]">
+                                Search for any federal bill or policy topic
+                            </p>
+                            <p className="text-xs text-[var(--cp-muted)] mt-1">
+                                Our AI engine can analyze any bill, law, or policy question.
+                            </p>
+                        </div>
+                    </Link>
                 </section>
             )}
 
+            {/* California propositions */}
             {showCalifornia && (
             <section className="space-y-4">
-                <h2 className="section-heading">California ballot measures</h2>
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <p className="section-label">California Ballot Measures</p>
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 stagger">
                 {filteredProps.map(prop => (
                     <Link
                         key={`${prop.num}-${prop.year}`}
                         href={`/measure/prop/${prop.num}`}
-                        className="block focus-ring rounded-2xl"
+                        className="block group focus-ring rounded-xl"
                     >
-                        <Card className="p-5 transition hover:bg-[var(--cp-surface-2)] surface-lift">
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl font-bold text-accent">
-                                        Prop {prop.num}
+                        <div className="glass-card rounded-xl p-5 h-full transition-all surface-lift animate-fade-up">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-lg font-semibold text-[var(--cp-accent)]">
+                                        {prop.num}
                                     </span>
-                                    <span className="text-xs text-[var(--cp-muted)]">
-                                        ({prop.year})
+                                    <span className="text-[11px] text-[var(--cp-muted)]">
+                                        {prop.year}
                                     </span>
                                 </div>
-                                <Badge variant={prop.status === "Active" ? "supported" : prop.status === "Passed" ? "official" : "analysis"}>
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
+                                    prop.status === "Passed" ? "bg-green-50 text-green-600 dark:bg-green-900/15 dark:text-green-400"
+                                    : prop.status === "Active" ? "bg-blue-50 text-blue-600 dark:bg-blue-900/15 dark:text-blue-400"
+                                    : "bg-red-50 text-red-500 dark:bg-red-900/15 dark:text-red-400"
+                                }`}>
                                     {prop.status}
-                                </Badge>
-                            </div>
-
-                            <h3 className="mt-2 text-sm font-medium text-[var(--cp-text)] line-clamp-2">
-                                {prop.title}
-                            </h3>
-
-                            <p className="mt-2 text-xs text-[var(--cp-muted)] line-clamp-3">
-                                {prop.summary}
-                            </p>
-
-                            <div className="mt-3 flex items-center justify-between">
-                                <Badge variant="neutral">{prop.category}</Badge>
-                                <span className="text-xs text-accent">
-                                    Read more →
                                 </span>
                             </div>
-                        </Card>
+                            <h3 className="text-sm font-medium text-[var(--cp-text)] line-clamp-2 leading-snug mb-2">
+                                {prop.title}
+                            </h3>
+                            <p className="text-xs text-[var(--cp-muted)] line-clamp-3 leading-relaxed">
+                                {prop.summary}
+                            </p>
+                            <div className="mt-3 flex items-center justify-between">
+                                <span className="text-[10px] font-medium text-[var(--cp-muted)] px-2 py-0.5 rounded-md bg-[var(--cp-surface-2)]">{prop.category}</span>
+                                <span className="text-xs text-[var(--cp-accent)] opacity-0 group-hover:opacity-100 transition-opacity">
+                                    View &rarr;
+                                </span>
+                            </div>
+                        </div>
                     </Link>
                 ))}
                 </div>
             </section>
             )}
 
+            {/* Empty state */}
             {filteredProps.length === 0 && filteredFederal.length === 0 && (
-                <Card className="p-8 text-center">
-                    <div className="text-3xl mb-3">🔍</div>
-                    <h3 className="text-lg font-medium text-[var(--cp-text)]">
+                <div className="glass-card rounded-2xl p-10 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--cp-surface-2)] flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <h3 className="text-base font-medium text-[var(--cp-text)] mb-1">
                         No legislation found
                     </h3>
-                    <p className="mt-1 text-sm text-[var(--cp-muted)]">
+                    <p className="text-sm text-[var(--cp-muted)] mb-5">
                         Try adjusting your filters or search query.
                     </p>
-                    <Button
-                        className="mt-4"
+                    <button
                         onClick={() => {
                             setCategoryFilter("All");
                             setStatusFilter("All");
                             setLevelFilter("All");
                             setSearchQuery("");
                         }}
+                        className="text-sm font-medium text-[var(--cp-accent)] hover:underline"
                     >
-                        Clear filters
-                    </Button>
-                </Card>
+                        Clear all filters
+                    </button>
+                </div>
             )}
         </div>
     );

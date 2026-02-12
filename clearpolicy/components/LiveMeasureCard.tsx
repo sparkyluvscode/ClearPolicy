@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import BillCard from "@/components/BillCard";
 import { sourceRatioFrom } from "@/lib/citations";
 import ReadingLevelToggle from "@/components/ReadingLevelToggle";
@@ -492,6 +493,23 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         </div>
       </Card>
       <BillCard data={summary as any} level={level} evidenceMode={evidenceMode} />
+      {/* Bridge to Omni-Search for full AI analysis */}
+      <Link
+        href={`/search?q=${encodeURIComponent(payload?.raw?.title || payload?.raw?.identifier || "federal legislation")}`}
+        className="block"
+      >
+        <Card className="px-4 py-3 flex items-center justify-between gap-3 transition hover:bg-[var(--cp-surface-2)] surface-lift group">
+          <div>
+            <p className="text-sm font-medium text-accent">Analyze with AI</p>
+            <p className="text-xs text-[var(--cp-muted)]">
+              Get cited analysis, persona filters, and rhetoric checks via our Policy Intelligence Engine
+            </p>
+          </div>
+          <svg className="w-5 h-5 text-accent flex-shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </Card>
+      </Link>
     </div>
   );
 }

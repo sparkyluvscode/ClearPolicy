@@ -58,8 +58,12 @@ export async function generateSummary(req: SummaryRequest): Promise<GeneratedSum
     return generateFallbackSummary(req);
   }
 
-  // Check if we should even try AI (if content is too minimal, just use fallback)
-  if (!req.content || req.content.length < 20) {
+  // Even with minimal content, try AI if we at least have a title — GPT can
+  // produce a real summary from just the bill name (e.g. "Inflation Reduction Act").
+  const hasUsableInput = (req.title && req.title.length > 3) ||
+    (req.content && req.content.length > 5) ||
+    (req.subjects && req.subjects.length > 0);
+  if (!hasUsableInput) {
     return generateFallbackSummary(req);
   }
 
@@ -106,13 +110,24 @@ export async function generateSummary(req: SummaryRequest): Promise<GeneratedSum
 function buildPrompt(req: SummaryRequest): string {
   const { title, content, subjects, identifier, type, year } = req;
 
+  // Build a rich context block even when content is sparse
+  const contextParts: string[] = [];
+  contextParts.push(`${type === "proposition" ? "Proposition" : "Bill"}: ${identifier || title}`);
+  contextParts.push(`Title: ${title}`);
+  if (year) {
+    contextParts.push(`Election Year/Context: ${year}`);
+    contextParts.push(`CRITICAL INSTRUCTION: You MUST properly identify the proposition from THIS specific year (${year}). Do not confuse it with same-numbered propositions from other years.`);
+  }
+  if (subjects && subjects.length > 0) {
+    contextParts.push(`Subjects/Topics: ${subjects.join(", ")}`);
+  }
+  if (content && content.trim().length > 5) {
+    contextParts.push(`Content/Description: ${content}`);
+  }
+
   return `Analyze this ${type === "proposition" ? "ballot measure" : "bill"} and provide 3 distinct summaries adapted for different reading levels: 5th grade, 8th grade (standard), and 12th grade (detailed).
 
-${type === "proposition" ? "Proposition" : "Bill"}: ${identifier || title}
-Title: ${title}
-${year ? `Election Year/Context: ${year}\nCRITICAL INSTRUCTION: You MUST properly identify the proposition from THIS specific year (${year}). Do not confuse it with same-numbered propositions from other years.` : ""}
-${subjects && subjects.length > 0 ? `Subjects/Topics: ${subjects.join(", ")}\n` : ""}
-Content/Description: ${content}
+${contextParts.join("\n")}
 
 Based on the information above, provide a JSON response with this exact structure:
 {
@@ -139,6 +154,11 @@ Based on the information above, provide a JSON response with this exact structur
       "cons": ["Nuanced policy argument 1", "Nuanced policy argument 2", "Nuanced policy argument 3"]
     }
   },
+  "citations": [
+    { "quote": "Exact or near-exact text from the bill supporting the TL;DR claim", "sourceName": "Section name or bill title", "location": "tldr" },
+    { "quote": "Text from the bill supporting what-it-does", "sourceName": "Section name", "location": "what" },
+    { "quote": "Text from the bill about who is affected", "sourceName": "Section name", "location": "who" }
+  ],
   "year": "The election year this proposition appeared on the ballot (e.g. '2016', '2024')."
 }
 
@@ -146,9 +166,24 @@ CRITICAL REQUIREMENTS:
 - 5th Grade: NO big words. Short sentences. Use analogies (e.g. 'like a piggy bank').
 - 8th Grade: Balance detail and clarity. Avoid jargon.
 - 12th Grade: High precision. Use terms like 'appropriation', 'bond measure', 'statutory definition'.
-- Be SPECIFIC and CONCRETE at all levels.
+- Be SPECIFIC and CONCRETE at all levels. Do NOT use generic placeholder text like "It may affect people." or "Clarifies rules."
+- If the Content/Description is minimal, use the Title and Subjects to generate the best summary you can from your knowledge. A well-known bill like the "Inflation Reduction Act" should get a full, accurate summary.
 - Provide 3-5 pros and 3-5 cons if possible (avoid generic placeholders).
-- If election year is missing, infer it.`;
+- If election year is missing, infer it.
+- You MUST provide 2-5 citations. Each citation needs a "quote" (the specific clause or text backing the claim), a "sourceName" (section or bill title), and a "location" (one of: "tldr", "what", "who", "pros", "cons"). If you cannot quote exact text because the bill content was not provided, use the most relevant factual basis and set sourceName to the bill title.`;
+}
+
+/** Extract citations from parsed AI response */
+function extractCitations(parsed: any): EvidenceCitation[] {
+  if (!parsed.citations || !Array.isArray(parsed.citations)) return [];
+  return parsed.citations
+    .filter((c: any) => c && (c.quote || c.sourceName))
+    .map((c: any) => ({
+      quote: c.quote || "",
+      sourceName: c.sourceName || c.source_name || "Bill text",
+      url: c.url,
+      location: (["tldr", "what", "who", "pros", "cons"].includes(c.location) ? c.location : undefined) as any,
+    }));
 }
 
 function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary {
@@ -158,6 +193,7 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
     if (!parsed.levels || !parsed.levels["5"] || !parsed.levels["8"] || !parsed.levels["12"]) {
       throw new Error("Missing levels");
     }
+    const citations = extractCitations(parsed);
     return attachReadability({
       levels: {
         "5": {
@@ -182,7 +218,8 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
           cons: Array.isArray(parsed.levels["12"].cons) ? parsed.levels["12"].cons : []
         }
       },
-      year: parsed.year || req.year
+      year: parsed.year || req.year,
+      citations: citations.length > 0 ? citations : undefined,
     });
   } catch (error) {
     console.error("Failed to parse AI response:", error);
@@ -193,13 +230,15 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
         try {
           const parsed = JSON.parse(match[1]);
           if (!parsed.levels) throw new Error("Missing levels");
+          const citations = extractCitations(parsed);
           return attachReadability({
             levels: {
               "5": parsed.levels["5"],
               "8": parsed.levels["8"],
               "12": parsed.levels["12"]
             },
-            year: parsed.year || req.year
+            year: parsed.year || req.year,
+            citations: citations.length > 0 ? citations : undefined,
           });
         } catch (e) { }
       }
@@ -212,79 +251,81 @@ function parseAIResponse(content: string, req: SummaryRequest): GeneratedSummary
 
 function generateFallbackSummary(req: SummaryRequest): GeneratedSummary {
   const { title, content, subjects, identifier } = req;
-
-  // Initialize pros/cons arrays
-  const pros: string[] = [];
-  const cons: string[] = [];
+  const name = identifier || title || "This measure";
 
   // Extract meaningful content for TL;DR
-  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  const sentences = (content || "").split(/[.!?]+/).filter(s => s.trim().length > 20);
   let tldr = "";
 
-  // Try to build a meaningful TL;DR from available content
   if (sentences.length > 0) {
     tldr = sentences.slice(0, 2).join(". ").trim();
   }
 
   if (!tldr || tldr.length < 30) {
-    // Try to build a better summary from available content
     if (content && content.length > 30) {
-      // Extract meaningful sentences
-      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
-      if (sentences.length > 0) {
-        tldr = sentences.slice(0, 2).join(". ").trim();
+      const extraSentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      if (extraSentences.length > 0) {
+        tldr = extraSentences.slice(0, 2).join(". ").trim();
       }
     }
 
-    // If still no good tldr, use title or create informative message
     if (!tldr || tldr.length < 30) {
-      if (title && title.length > 20 && !title.includes("Proposition") && !title.includes("ballot measure")) {
-        tldr = title;
+      if (title && title.length > 15) {
+        // Use the title as the basis — much better than "addresses policy changes"
+        tldr = `${name}: ${title}${subjects && subjects.length > 0 ? ". Covers " + subjects.slice(0, 2).join(" and ") : ""}.`;
       } else if (subjects && subjects.length > 0) {
-        tldr = `${identifier || "This measure"} addresses ${subjects.slice(0, 2).join(" and ")}.`;
+        tldr = `${name} addresses ${subjects.slice(0, 3).join(", ")}.`;
       } else {
-        tldr = `${identifier || "This measure"} addresses policy changes. See official sources for detailed information.`;
+        tldr = `${name}. Details not yet available — use the "Analyze with AI" button or search on Congress.gov for the full text.`;
       }
     }
   }
 
   // Build "what it does" from content
-  const whatItDoes = content.length > 50
-    ? content.split(/[.!?]+/).slice(0, 2).join(". ").trim() || tldr
+  const whatItDoes = (content || "").length > 50
+    ? (content || "").split(/[.!?]+/).slice(0, 2).join(". ").trim() || tldr
     : tldr || title;
 
   // Infer who is affected from subjects and content
-  let whoAffected = "See official sources for details.";
+  const lowerAll = ((content || "") + " " + (title || "")).toLowerCase();
+  const affected: string[] = [];
+  if (/worker|employee|contractor|labor/.test(lowerAll)) affected.push("workers and employers");
+  if (/voter|election|ballot/.test(lowerAll)) affected.push("voters and election officials");
+  if (/tax|revenue|budget|appropriat/.test(lowerAll)) affected.push("taxpayers and government agencies");
+  if (/health|medical|medicare|medicaid/.test(lowerAll)) affected.push("patients and healthcare providers");
+  if (/education|school|student/.test(lowerAll)) affected.push("students, teachers, and schools");
+  if (/environment|climate|energy|emission/.test(lowerAll)) affected.push("businesses and environmental agencies");
+  if (/immigration|visa|border/.test(lowerAll)) affected.push("immigrants and immigration agencies");
+  if (/housing|rent|mortgage/.test(lowerAll)) affected.push("renters, homeowners, and housing agencies");
+
+  let whoAffected: string;
   if (subjects && subjects.length > 0) {
-    whoAffected = `It affects ${subjects.slice(0, 3).join(", ")}.`;
+    whoAffected = `Primarily affects stakeholders in ${subjects.slice(0, 3).join(", ")}.`;
+  } else if (affected.length > 0) {
+    whoAffected = `Primarily affects ${affected.join("; ")}.`;
   } else {
-    const lowerContent = (content + " " + title).toLowerCase();
-    const affected: string[] = [];
-    if (/worker|employee|contractor|labor/.test(lowerContent)) affected.push("workers and employers");
-    if (/voter|election|ballot/.test(lowerContent)) affected.push("voters and election officials");
-    if (/tax|revenue|budget/.test(lowerContent)) affected.push("taxpayers and government agencies");
-    if (/health|medical/.test(lowerContent)) affected.push("patients and healthcare providers");
-    if (/education|school/.test(lowerContent)) affected.push("students, teachers, and schools");
-    if (/environment|climate/.test(lowerContent)) affected.push("businesses and environmental agencies");
-    if (affected.length > 0) {
-      whoAffected = `It affects ${affected.join(", ")}.`;
-    }
+    whoAffected = `Specific affected groups depend on the bill's provisions. Check official sources for details.`;
   }
+
+  // Generate contextual pros/cons instead of generic templates
+  const topicHint = subjects && subjects.length > 0 ? subjects[0] : (affected[0] || "this area");
+  const pros = [
+    `Supporters say it addresses key issues in ${topicHint}.`,
+    `Supporters say it provides clearer rules and standards.`,
+    `Supporters say it could improve outcomes for affected communities.`,
+  ];
+  const cons = [
+    `Critics say it may increase costs or administrative burden.`,
+    `Critics say the approach may not address root causes in ${topicHint}.`,
+    `Critics worry about implementation challenges and unintended effects.`,
+  ];
 
   const base: LevelContent = {
     tldr: tldr.slice(0, 280),
     whatItDoes: whatItDoes.slice(0, 360),
     whoAffected,
-    pros: (pros.length ? pros : [
-      "Supporters say it clarifies rules for this topic.",
-      "Supporters say it could improve outcomes for affected groups.",
-      "Supporters say it sets a clearer standard for enforcement."
-    ]).slice(0, 5),
-    cons: (cons.length ? cons : [
-      "Opponents say it may create new costs or requirements.",
-      "Opponents say the rules could reduce flexibility.",
-      "Opponents say implementation could be uneven."
-    ]).slice(0, 5),
+    pros,
+    cons,
   };
 
   const toLevel = (level: "5" | "8" | "12"): LevelContent => {

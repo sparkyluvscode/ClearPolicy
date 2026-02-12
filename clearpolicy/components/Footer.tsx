@@ -1,25 +1,51 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
-    <footer className="mt-16">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="grid gap-8 rounded-2xl glass-card px-6 py-8 md:grid-cols-[1.4fr,0.6fr,0.6fr]">
-        <div className="space-y-2">
-          <div className="text-sm font-semibold uppercase tracking-wide text-[var(--cp-text)]">ClearPolicy</div>
-          <p className="max-w-sm text-sm text-[var(--cp-muted)]">
-            Non-partisan civic education with plain-English summaries and traceable sources.
-          </p>
-          <div className="text-xs text-[var(--cp-muted)]">© {new Date().getFullYear()} ClearPolicy</div>
+    <footer className="cp-site-footer mt-20 pb-10">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12">
+        {/* Divider */}
+        <div className="h-px w-full bg-[var(--cp-border)] mb-12" />
+
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
+          {/* Brand */}
+          <div className="space-y-4 max-w-xs">
+            <div className="flex items-center gap-2">
+              <img src="/clearpolicy-logo.png" alt="ClearPolicy" className="w-7 h-7 object-contain" />
+              <span className="font-heading text-lg font-bold tracking-tight text-[var(--cp-text)]">
+                ClearPolicy
+              </span>
+            </div>
+            <p className="text-sm text-[var(--cp-muted)] leading-relaxed">
+              Non-partisan civic education with plain-English summaries and traceable sources. Built by students who wanted to understand policy.
+            </p>
+          </div>
+
+          {/* Links */}
+          <div className="flex gap-16 text-sm">
+            <div className="space-y-3">
+              <p className="section-label">Product</p>
+              <Link href="/browse" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Browse</Link>
+              <Link href="/compare" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Compare</Link>
+              <Link href="/search?q=latest federal bills" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Search</Link>
+            </div>
+            <div className="space-y-3">
+              <p className="section-label">Resources</p>
+              <Link href="/about" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">About</Link>
+              <Link href="/about" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">How it works</Link>
+            </div>
+            <div className="space-y-3">
+              <p className="section-label">Company</p>
+              <Link href="/privacy" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Privacy</Link>
+              <Link href="/contact" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Contact</Link>
+            </div>
+          </div>
         </div>
-        <div className="space-y-2 text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[var(--cp-muted)]">Product</div>
-          <a href="/browse" className="block muted-link focus-ring rounded">Browse</a>
-          <a href="/compare" className="block muted-link focus-ring rounded">Compare</a>
-        </div>
-        <div className="space-y-2 text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[var(--cp-muted)]">Company</div>
-          <a href="/about" className="block muted-link focus-ring rounded">About</a>
-          <a href="/privacy" className="block muted-link focus-ring rounded">Privacy</a>
-        </div>
+
+        {/* Bottom */}
+        <div className="mt-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-[var(--cp-tertiary)]">
+          <span>&copy; {new Date().getFullYear()} ClearPolicy &middot; Powered by <span className="font-semibold text-[var(--cp-accent)]">Omni-Search</span></span>
+          <span>Made with 💙 for informed citizens</span>
         </div>
       </div>
     </footer>

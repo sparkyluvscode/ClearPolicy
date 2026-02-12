@@ -335,15 +335,15 @@ export default function ComparePage() {
     };
 
     return (
-        <div className="space-y-6">
-            <Card className="space-y-2">
-                <h1 className="page-title">
+        <div className="space-y-10 animate-fade-in" style={{ paddingTop: "var(--space-xl)", paddingBottom: "var(--space-3xl)" }}>
+            <div className="space-y-3">
+                <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight text-[var(--cp-text)]">
                     Compare Propositions
                 </h1>
-                <p className="page-subtitle">
+                <p className="text-lg text-[var(--cp-muted)] leading-relaxed">
                     View side-by-side comparisons of ballot measures.
                 </p>
-            </Card>
+            </div>
 
             {/* Slot selectors */}
             <Card className="space-y-3 relative z-30">
@@ -543,22 +543,23 @@ export default function ComparePage() {
                 ))}
             </section>
 
-            <Card className="text-center">
-                <h3 className="text-lg font-medium text-[var(--cp-text)]">
-                    Want to explore more measures?
+            <div className="glass-card rounded-2xl p-8 text-center">
+                <h3 className="font-heading text-lg font-semibold text-[var(--cp-text)] mb-1">
+                    Want to explore more?
                 </h3>
-                <p className="mt-1 text-sm text-[var(--cp-muted)]">
-                    Browse all available propositions or search for specific topics
+                <p className="text-sm text-[var(--cp-muted)] mb-5">
+                    Browse all propositions or search any policy topic.
                 </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-3">
-                    <Link href="/browse">
-                        <Button>Browse All</Button>
+                <div className="flex flex-wrap justify-center gap-3">
+                    <Link href="/browse" className="text-sm font-medium text-[var(--cp-accent)] hover:underline">
+                        Browse All
                     </Link>
-                    <Link href="/">
-                        <Button variant="secondary">Search</Button>
+                    <span className="text-[var(--cp-muted)]">&middot;</span>
+                    <Link href="/" className="text-sm font-medium text-[var(--cp-accent)] hover:underline">
+                        Search
                     </Link>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 }

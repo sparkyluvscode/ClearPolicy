@@ -13,16 +13,16 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: "btn-primary shine",
+  primary: "btn-primary",
   secondary: "btn-secondary",
   ghost: "btn-ghost",
-  destructive: "bg-rose-600 text-white hover:bg-rose-500 border border-transparent",
+  destructive: "bg-red-500 text-white hover:bg-red-600 border border-transparent",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-5 text-base",
+  md: "h-9 px-4 text-sm",
+  lg: "h-10 px-5 text-sm",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -31,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={props.type || "button"}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors focus-ring disabled:pointer-events-none disabled:opacity-85",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150 focus-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97]",
         variantClasses[variant],
         sizeClasses[size],
         className
@@ -41,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       {...props}
     >
       {loading && (
-        <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" aria-hidden="true" />
+        <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" aria-hidden="true" />
       )}
       {children}
     </button>
