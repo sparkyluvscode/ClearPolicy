@@ -130,6 +130,7 @@ function SearchResultsContent() {
           throw new Error(res.ok ? "Invalid response from server" : "Server returned an error. Please try again.");
         }
         if (!data.success) throw new Error(data.error || "Search failed");
+        if (!data.data) throw new Error("No data returned");
 
         const result: OmniResponse = data.data;
         setSources(result.sources);
@@ -190,20 +191,25 @@ function SearchResultsContent() {
         throw new Error(res.ok ? "Invalid response" : "Follow-up request failed. Please try again.");
       }
       if (!data.success) throw new Error(data.error || "Follow-up failed");
+      const fd = data.data;
+      if (!fd) throw new Error("No data returned");
 
       const isExplainThis = q.trim().startsWith('Explain this in more detail in plain English: "');
       const displayQuery = isExplainThis ? undefined : q.trim();
 
+      const cardType = (fd.cardType === "verified" || fd.cardType === "debate" || fd.cardType === "document"
+        ? fd.cardType
+        : "general") as ConversationCard["cardType"];
       setCards(prev => [...prev, {
         id: `card-${prev.length}`, userQuery: displayQuery,
-        heading: data.data.heading, cardType: data.data.cardType || "general",
-        sections: data.data.sections,
-        followUpSuggestions: data.data.followUpSuggestions || [],
+        heading: fd.heading, cardType,
+        sections: fd.sections,
+        followUpSuggestions: fd.followUpSuggestions || [],
       }]);
       setConversationHistory(prev => [
         ...prev,
         { role: "user", content: q.trim() },
-        { role: "assistant", content: data.data.heading },
+        { role: "assistant", content: fd.heading },
       ]);
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }), 150);
     } catch (err) {
