@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { isValidDocumentHash } from "@/lib/document-hash";
 import { getFriendlyDatabaseErrorMessage, isDatabaseUnavailableError } from "@/lib/db-error";
 
+export const dynamic = "force-dynamic";
+
 /**
  * API Route: GET /api/un/history
  * 
