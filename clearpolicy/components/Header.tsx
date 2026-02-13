@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 export default function Header() {
@@ -40,6 +47,7 @@ export default function Header() {
     { href: "/browse", label: "Browse" },
     { href: "/compare", label: "Compare" },
     { href: "/about", label: "About" },
+    { href: "/settings", label: "Settings" },
   ];
 
   return (
@@ -95,6 +103,29 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button
+                    type="button"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--cp-text)] bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring ml-1"
+                  >
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button
+                    type="button"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--cp-text)] border border-[var(--cp-border)] hover:bg-[var(--cp-surface)] transition-all focus-ring ml-1"
+                  >
+                    Sign up
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                <div className="ml-1">
+                  <UserButton afterSignOutUrl="/" />
+                </div>
+              </SignedIn>
               <button
                 onClick={toggleDark}
                 className="rounded-lg p-2.5 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all ml-1"
@@ -166,6 +197,34 @@ export default function Header() {
                       </Link>
                     </li>
                   ))}
+                  <li className="pt-2 border-t border-[var(--cp-border)]">
+                    <SignedOut>
+                      <SignInButton mode="modal">
+                        <button
+                          type="button"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block w-full text-left rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-accent)] hover:bg-[var(--cp-hover)] transition-colors"
+                        >
+                          Sign in
+                        </button>
+                      </SignInButton>
+                      <SignUpButton mode="modal">
+                        <button
+                          type="button"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block w-full text-left rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-colors"
+                        >
+                          Sign up
+                        </button>
+                      </SignUpButton>
+                    </SignedOut>
+                    <SignedIn>
+                      <div className="flex items-center gap-2 px-4 py-3">
+                        <UserButton afterSignOutUrl="/" />
+                        <span className="text-sm text-[var(--cp-muted)]">Account</span>
+                      </div>
+                    </SignedIn>
+                  </li>
                 </ul>
               </nav>
             </div>

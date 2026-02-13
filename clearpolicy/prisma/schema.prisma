@@ -55,6 +55,97 @@ model Feedback {
   contact     String?
 }
 
+// ─── Auth & conversations (Clerk + Postgres-style; works with SQLite) ───
+model User {
+  id                 String   @id @default(cuid())
+  clerkUserId        String   @unique
+  email              String   @unique
+  fullName           String?
+  avatarUrl           String?
+  zipCode            String?
+  preferredViewAs    String?
+  theme              String?
+  createdAt          DateTime @default(now())
+  lastLoginAt        DateTime?
+
+  totalConversations Int      @default(0)
+  totalQuestionsAsked Int     @default(0)
+
+  conversations Conversation[]
+  events        Event[]
+}
+
+model Conversation {
+  id             String    @id @default(cuid())
+  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?
+  policyId       String?
+  policyName     String
+  policyLevel    String?
+  policyCategory String?
+  title          String?
+  zipCode        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastMessageAt  DateTime?
+  messageCount   Int       @default(0)
+  viewCount      Int       @default(0)
+  isStarred      Boolean   @default(false)
+  isArchived     Boolean   @default(false)
+
+  messages Message[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  role           String   // 'user' | 'assistant'
+  content        String
+  answerCardData String?  // JSON
+  createdAt      DateTime @default(now())
+  wasHelpful     Boolean?
+  followUpCount  Int      @default(0)
+
+  messageSources MessageSource[]
+}
+
+model ConvSource {
+  id           String   @id @default(cuid())
+  url          String   @unique
+  title        String?
+  domain       String?
+  sourceType   String?  // 'Federal' | 'State' | 'Local' | 'Web'
+  verified     Boolean  @default(false)
+  fetchedAt    DateTime?
+  lastVerified DateTime?
+
+  messageSources MessageSource[]
+}
+
+model MessageSource {
+  message       Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId     String
+  source        ConvSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId      String
+  citationNumber Int?
+
+  @@id([messageId, sourceId])
+}
+
+model Event {
+  id              String   @id @default(cuid())
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId          String?
+  sessionId       String?
+  eventType       String
+  eventCategory   String?
+  policyId        String?
+  conversationId  String?
+  properties      String?  // JSON
+  createdAt       DateTime @default(now())
+}
+
 // UN/International Document Analysis Cache
 // Stores analyses to avoid re-processing identical documents
 model UnDocumentAnalysis {

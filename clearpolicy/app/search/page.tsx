@@ -49,7 +49,7 @@ function SearchResultsContent() {
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<Source | null>(null);
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false);
   const [followUpQuery, setFollowUpQuery] = useState("");
   const [persona, setPersona] = useState<Persona>("general");
   const [personaLoading, setPersonaLoading] = useState(false);
@@ -122,7 +122,13 @@ function SearchResultsContent() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body), signal: controller.signal,
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data: { success?: boolean; error?: string; data?: OmniResponse };
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(res.ok ? "Invalid response from server" : "Server returned an error. Please try again.");
+        }
         if (!data.success) throw new Error(data.error || "Search failed");
 
         const result: OmniResponse = data.data;
@@ -176,7 +182,13 @@ function SearchResultsContent() {
           zip: zip || undefined, persona, readingLevel: "8",
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: { success?: boolean; error?: string; data?: { heading: string; cardType?: string; sections: AnswerSection[]; followUpSuggestions?: string[] } };
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(res.ok ? "Invalid response" : "Follow-up request failed. Please try again.");
+      }
       if (!data.success) throw new Error(data.error || "Follow-up failed");
 
       const isExplainThis = q.trim().startsWith('Explain this in more detail in plain English: "');
@@ -222,14 +234,14 @@ function SearchResultsContent() {
   const allVerified = cards.flatMap(c => c.sections).filter(s => s.confidence === "verified").length;
   const totalSections = cards.flatMap(c => c.sections).length;
 
-  // ── The immersive UI ──
-  // Outer container is ALWAYS fully opaque so it blocks the layout behind it.
-  // Only inner content elements animate in.
+  // ── The immersive UI: left = content, right = sources always visible ──
   const immersiveUI = (
     <div
-      className="fixed inset-0 flex flex-col"
+      className="fixed inset-0 flex"
       style={{ zIndex: 99999, background: "var(--cp-bg)" }}
     >
+      {/* ── Left: main content (top bar + scroll + input) ── */}
+      <div className="flex-1 min-w-0 flex flex-col">
       {/* ── Top Bar ── */}
       <div className={`flex-shrink-0 border-b border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 sm:px-6 transition-all duration-500 ease-out ${entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"}`}>
         <div className="flex items-center justify-between h-12 max-w-4xl mx-auto">
@@ -247,17 +259,6 @@ function SearchResultsContent() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {sources.length > 0 && !loading && (
-              <button
-                onClick={() => setSourcesOpen(!sourcesOpen)}
-                className={`text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                  sourcesOpen ? "bg-[var(--cp-accent-soft)] text-[var(--cp-accent)]" : "text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)]"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                {sources.length} sources
-              </button>
-            )}
             {!loading && cards.length > 0 && (
               <div className="hidden sm:flex items-center gap-1">
                 {ALL_PERSONAS.slice(0, 4).map((p) => (
@@ -435,84 +436,126 @@ function SearchResultsContent() {
         </div>
       )}
 
-      {/* ── Sources Slide-out Panel ── */}
-      {sourcesOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/10 backdrop-blur-sm animate-fade-in" style={{ zIndex: 100000 }} onClick={() => setSourcesOpen(false)} />
-          <aside className="fixed right-0 top-0 h-full w-80 bg-[var(--cp-bg)] border-l border-[var(--cp-border)] shadow-elevated animate-slide-in overflow-y-auto" style={{ zIndex: 100001 }}>
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-heading text-lg font-bold text-[var(--cp-text)]">Sources ({sources.length})</h3>
-                <button onClick={() => setSourcesOpen(false)} className="p-1.5 rounded-lg hover:bg-[var(--cp-surface-2)] transition-colors">
-                  <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+      </div>
+      {/* ── Right: Sources panel (always visible) ── */}
+      <aside className="hidden md:flex w-80 flex-shrink-0 flex-col border-l border-[var(--cp-border)] bg-[var(--cp-bg)]">
+        <div className="flex-shrink-0 border-b border-[var(--cp-border)] px-4 py-3">
+          <h3 className="font-heading text-sm font-bold text-[var(--cp-text)]">Sources{sources.length > 0 ? ` (${sources.length})` : ""}</h3>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {activeSource && (
+            <div className="border-b border-[var(--cp-border)] p-4 animate-fade-in">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cp-muted)]">
+                  {activeSource.type === "federal_bill" ? "Federal" :
+                   activeSource.type === "state_bill" ? "State" :
+                   activeSource.type === "government_site" ? "Gov" : "Web"}
+                </span>
+                <button onClick={() => setActiveSource(null)} className="p-1 rounded-lg hover:bg-[var(--cp-surface-2)] transition-colors text-[var(--cp-muted)]">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
-              <div className="space-y-1">
-                {sources.map((source, i) => {
-                  let hostname = "";
-                  try { if (source.url) hostname = new URL(source.url).hostname.replace("www.", ""); } catch {}
-                  return (
-                    <button
-                      key={source.id}
-                      onClick={() => { setActiveSource(source); setSourcesOpen(false); }}
-                      className="w-full text-left px-3 py-3 rounded-lg hover:bg-[var(--cp-surface)] transition-all"
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-[11px] font-semibold text-[var(--cp-accent)] mt-0.5 w-4 text-right flex-shrink-0">{i + 1}</span>
-                        <div className="min-w-0">
-                          <p className="text-sm text-[var(--cp-text)] leading-snug">{source.title}</p>
-                          <p className="text-[11px] text-[var(--cp-tertiary)] mt-0.5">
-                            {source.publisher || hostname}
-                            {" — "}
-                            {source.type === "federal_bill" ? "Federal" :
-                             source.type === "state_bill" ? "State" :
-                             source.type === "government_site" ? "Gov" :
-                             source.type === "news_article" ? "News" : "Web"}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <h4 className="text-sm font-semibold text-[var(--cp-text)] leading-snug mb-1.5">{activeSource.title}</h4>
+              {activeSource.snippet && (
+                <p className="text-[12px] text-[var(--cp-muted)] leading-relaxed mb-2">{activeSource.snippet}</p>
+              )}
+              {activeSource.url && (
+                <a href={activeSource.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[var(--cp-accent)] hover:underline">
+                  View source
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </a>
+              )}
             </div>
-          </aside>
+          )}
+          {sources.length > 0 ? (
+            <div className="p-3 space-y-0.5">
+              {sources.map((source, i) => {
+                let hostname = "";
+                try { if (source.url) hostname = new URL(source.url).hostname.replace("www.", ""); } catch {}
+                return (
+                  <button
+                    key={source.id}
+                    onClick={() => setActiveSource(source)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
+                      activeSource?.id === source.id ? "bg-[var(--cp-accent-soft)]" : "hover:bg-[var(--cp-surface)]"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-[11px] font-semibold text-[var(--cp-accent)] mt-0.5 w-4 text-right flex-shrink-0">{i + 1}</span>
+                      <div className="min-w-0">
+                        <p className="text-[13px] text-[var(--cp-text)] leading-snug">{source.title}</p>
+                        <p className="text-[10px] text-[var(--cp-tertiary)] mt-0.5">
+                          {source.publisher || hostname}
+                          {" · "}
+                          {source.type === "federal_bill" ? "Federal" :
+                           source.type === "state_bill" ? "State" :
+                           source.type === "government_site" ? "Gov" :
+                           source.type === "news_article" ? "News" : "Web"}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-5 text-center">
+              <p className="text-[13px] text-[var(--cp-tertiary)]">Sources will appear here after your search.</p>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Mobile: sources drawer (slide from right when opened) ── */}
+      {sources.length > 0 && (
+        <>
+          <button
+            onClick={() => setMobileSourcesOpen(true)}
+            className="md:hidden fixed bottom-20 right-4 z-[99998] rounded-full p-3 glass-card shadow-elevated text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+            aria-label="Open sources"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </button>
+          {mobileSourcesOpen && (
+            <>
+              <div className="md:hidden fixed inset-0 bg-black/20 z-[100000]" onClick={() => setMobileSourcesOpen(false)} aria-hidden />
+              <aside className="md:hidden fixed right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-[var(--cp-bg)] border-l border-[var(--cp-border)] shadow-elevated z-[100001] flex flex-col animate-slide-in">
+                <div className="flex-shrink-0 flex items-center justify-between border-b border-[var(--cp-border)] px-4 py-3">
+                  <h3 className="font-heading text-sm font-bold text-[var(--cp-text)]">Sources ({sources.length})</h3>
+                  <button onClick={() => setMobileSourcesOpen(false)} className="p-2 rounded-lg hover:bg-[var(--cp-surface-2)] text-[var(--cp-muted)]">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
+                  {sources.map((source, i) => {
+                    let hostname = "";
+                    try { if (source.url) hostname = new URL(source.url).hostname.replace("www.", ""); } catch {}
+                    return (
+                      <button
+                        key={source.id}
+                        onClick={() => { setActiveSource(source); setMobileSourcesOpen(false); }}
+                        className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-[var(--cp-surface)] transition-all"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span className="text-[11px] font-semibold text-[var(--cp-accent)] mt-0.5 w-4 text-right flex-shrink-0">{i + 1}</span>
+                          <div className="min-w-0">
+                            <p className="text-[13px] text-[var(--cp-text)] leading-snug">{source.title}</p>
+                            <p className="text-[10px] text-[var(--cp-tertiary)] mt-0.5">{source.publisher || hostname}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+            </>
+          )}
         </>
       )}
 
       {/* ── Explain This popover ── */}
       {!loading && cards.length > 0 && (
         <ExplainThis containerRef={contentRef} onExplain={handleExplainThis} />
-      )}
-
-      {/* ── Source Detail Overlay ── */}
-      {activeSource && !sourcesOpen && (
-        <div className="fixed inset-x-0 bottom-16 p-4 flex justify-center animate-fade-up" style={{ zIndex: 100000 }}>
-          <div className="glass-doc rounded-2xl shadow-elevated w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--cp-border)]">
-              <span className="text-xs text-[var(--cp-muted)]">
-                {activeSource.type === "federal_bill" ? "Federal" :
-                 activeSource.type === "state_bill" ? "State" :
-                 activeSource.type === "government_site" ? "Gov" : "Web"}
-              </span>
-              <button onClick={() => setActiveSource(null)} className="p-1 rounded-lg hover:bg-[var(--cp-surface-2)] transition-colors">
-                <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <h4 className="text-sm font-semibold text-[var(--cp-text)] leading-snug">{activeSource.title}</h4>
-              {activeSource.snippet && (
-                <p className="text-[13px] text-[var(--cp-muted)] leading-relaxed">{activeSource.snippet}</p>
-              )}
-              {activeSource.url && (
-                <a href={activeSource.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-[var(--cp-accent)] hover:underline">
-                  View source
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

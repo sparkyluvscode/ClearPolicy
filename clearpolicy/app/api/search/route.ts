@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { openstates } from "@/lib/clients/openstates";
 import { congress } from "@/lib/clients/congress";
 import { disambiguate } from "@/lib/normalize";
 import { generateSummary } from "@/lib/ai";
 import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { generatePolicyAnswer } from "@/lib/policyEngine";
+import { trackEvent } from "@/lib/analytics";
 
 const QuerySchema = z.object({ q: z.string().default("") });
 
@@ -719,6 +723,130 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ chips, ca, us, fallbacks, aiFallback, omniRedirect });
   } catch (e: any) {
     return NextResponse.json({ chips: [], ca: { results: [] }, us: { data: { bills: [] } }, fallbacks: [], error: e?.message || "search failed" }, { status: 200 });
+  }
+}
+
+const PostSearchSchema = z.object({
+  query: z.string().min(1),
+  zipCode: z.string().nullable().optional(),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const parsed = PostSearchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid body", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { query, zipCode } = parsed.data;
+
+    const { userId: clerkUserId } = await auth();
+    let dbUserId: string | undefined;
+
+    if (clerkUserId) {
+      const clerkUser = await auth();
+      const email = (clerkUser as { sessionClaims?: { email?: string } })?.sessionClaims?.email as string | undefined;
+      let user = await prisma.user.findUnique({
+        where: { clerkUserId },
+      });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            clerkUserId,
+            email: email || `${clerkUserId}@clerk.user`,
+            fullName: null,
+          },
+        });
+      }
+      dbUserId = user.id;
+    }
+
+    const answer = await generatePolicyAnswer(query, zipCode ?? undefined);
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        userId: dbUserId ?? undefined,
+        policyId: answer.policyId,
+        policyName: answer.policyName,
+        policyLevel: answer.level,
+        policyCategory: answer.category,
+        title: query.slice(0, 100),
+        zipCode: zipCode ?? undefined,
+        messageCount: 2,
+        lastMessageAt: new Date(),
+      },
+    });
+
+    const userMessage = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: "user",
+        content: query,
+      },
+    });
+
+    const assistantMessage = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: "assistant",
+        content: answer.fullTextSummary,
+        answerCardData: JSON.stringify({
+          heading: answer.policyName,
+          sections: answer.sections,
+          fullTextSummary: answer.fullTextSummary,
+        }),
+      },
+    });
+
+    for (let i = 0; i < answer.sources.length; i++) {
+      const s = answer.sources[i];
+      const convSource = await prisma.convSource.upsert({
+        where: { url: s.url },
+        create: {
+          url: s.url,
+          title: s.title,
+          domain: s.domain,
+          sourceType: s.type,
+          verified: s.verified,
+        },
+        update: {},
+      });
+      await prisma.messageSource.create({
+        data: {
+          messageId: assistantMessage.id,
+          sourceId: convSource.id,
+          citationNumber: i + 1,
+        },
+      });
+    }
+
+    await trackEvent("search_performed", {
+      conversationId: conversation.id,
+      policyId: answer.policyId,
+    });
+
+    return NextResponse.json({
+      conversationId: conversation.id,
+      slug: conversation.id,
+      answer: {
+        policyId: answer.policyId,
+        policyName: answer.policyName,
+        level: answer.level,
+        category: answer.category,
+        fullTextSummary: answer.fullTextSummary,
+        sections: answer.sections,
+        sources: answer.sources,
+      },
+    });
+  } catch (e) {
+    console.error("[api/search POST]", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Search failed" },
+      { status: 500 }
+    );
   }
 }
 

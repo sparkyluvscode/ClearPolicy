@@ -1,5 +1,6 @@
 import "./globals.css";
 import { ReactNode } from "react";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Inter, Libre_Baskerville } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -31,27 +32,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   ].some(Boolean);
 
   return (
-    <html lang="en" className={`h-full ${inter.variable} ${libreBaskerville.variable}`} suppressHydrationWarning>
-      <body className="min-h-dvh font-sans">
-        <Script id="cp-theme-init" strategy="beforeInteractive">
-          {`(function(){try{var s=localStorage.getItem('cp_theme');var el=document.documentElement;if(s){var dark=s==='dark';if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(prefersDark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
-        </Script>
-
-        <div className="relative z-10">
-          <Header />
-          {missingKeys && (
-            <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
-              <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
-                Live data temporarily unavailable — showing verified sample content.
+    <ClerkProvider>
+      <html lang="en" className={`h-full ${inter.variable} ${libreBaskerville.variable}`} suppressHydrationWarning>
+        <body className="min-h-dvh font-sans">
+          <Script id="cp-theme-init" strategy="beforeInteractive">
+            {`(function(){try{var s=localStorage.getItem('cp_theme');var el=document.documentElement;if(s){var dark=s==='dark';if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(prefersDark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
+          </Script>
+          <div className="relative z-10">
+            <Header />
+            {missingKeys && (
+              <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
+                <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
+                  Live data temporarily unavailable — showing verified sample content.
+                </div>
               </div>
-            </div>
-          )}
-          <main className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-12 pb-20 pt-6">
-            {children}
-          </main>
-          <Footer />
-        </div>
-      </body>
-    </html>
+            )}
+            <main className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-12 pb-20 pt-6">
+              {children}
+            </main>
+            <Footer />
+          </div>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

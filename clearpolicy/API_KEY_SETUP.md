@@ -81,6 +81,24 @@ GOOGLE_CIVIC_API_KEY=AIzaSyAbC123dEf456GhI789JkL
 
 ---
 
+### 4. Clerk (Sign-in & Auth)
+
+**What it does:** Powers sign-in, sign-up, and user sessions. Without real keys, the app runs in "keyless" mode (you may see a "Claim application" modal).
+
+**How to get it:**
+1. Go to https://dashboard.clerk.com/ and sign in (or create an account).
+2. Create an application (or select an existing one).
+3. In the dashboard, open **API Keys**.
+4. Copy **Publishable key** and **Secret key**.
+5. In `clearpolicy/.env.local`, set:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...` (your publishable key)
+   - `CLERK_SECRET_KEY=sk_test_...` (your secret key)
+6. Restart the dev server. The "Clerk is in keyless mode" / "Claim application" message should go away, and sign-in/sign-up will be tied to your Clerk project and Dashboard.
+
+**Optional:** If you already created a user in keyless mode, you can click **Claim application** in the modal to link this app to your Clerk account and manage users in the Dashboard.
+
+---
+
 ## After Adding Keys
 
 1. Save the `.env` file
