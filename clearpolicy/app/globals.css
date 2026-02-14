@@ -8,8 +8,8 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-  /* Backgrounds — warm cream */
-  --cp-bg: #FDFCF7;
+  /* Backgrounds — off-white (Figma-style warm neutral), reduces glare vs pure white */
+  --cp-bg: #F2F0EF;
   --cp-surface: rgba(255, 255, 255, 0.72);
   --cp-surface-2: rgba(245, 243, 235, 0.8);
   --cp-hover: rgba(249, 247, 240, 0.9);
@@ -37,7 +37,7 @@
   --cp-ring: rgba(74, 123, 186, 0.2);
   --cp-glass-highlight: rgba(255, 255, 255, 0.5);
   --cp-glass-tint: rgba(255, 255, 255, 0.1);
-  --cp-nav: rgba(253, 252, 247, 0.7);
+  --cp-nav: rgba(242, 240, 239, 0.7);
 
   /* Shadows — soft, warm */
   --cp-shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.05);

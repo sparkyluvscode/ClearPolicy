@@ -37,9 +37,10 @@ export default function SignInPage() {
             afterSignInUrl="/"
           />
         ) : (
-          <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-card)] p-6 text-center text-sm text-[var(--text-secondary)]">
-            Sign-in is not configured for this environment.
-            <Link href="/" className="mt-4 block font-medium text-[var(--accent-blue)] hover:underline">
+          <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-card)] p-6 text-center text-sm text-[var(--text-secondary)] space-y-3">
+            <p>Sign-in is not configured for this environment.</p>
+            <p className="text-xs">If you added Clerk keys in Vercel, trigger a new deployment so the app can use them.</p>
+            <Link href="/" className="mt-4 inline-block font-medium text-[var(--accent-blue)] hover:underline">
               Return home
             </Link>
           </div>

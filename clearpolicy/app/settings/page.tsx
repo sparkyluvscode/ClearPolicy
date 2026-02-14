@@ -6,15 +6,24 @@ import { SettingsForm } from "@/components/settings/SettingsForm";
 
 export const dynamic = "force-dynamic";
 
+function clerkConfigured(): boolean {
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const sk = process.env.CLERK_SECRET_KEY;
+  return (
+    typeof pk === "string" && pk.length > 0 && !pk.startsWith("YOUR_") &&
+    typeof sk === "string" && sk.length > 0 && !sk.startsWith("YOUR_")
+  );
+}
+
 export default async function SettingsPage() {
   let clerkUser;
   try {
     clerkUser = await currentUser();
   } catch (e) {
     console.error("[settings] Clerk currentUser failed:", e);
-    redirect("/sign-in");
+    redirect(clerkConfigured() ? "/sign-in" : "/");
   }
-  if (!clerkUser) redirect("/sign-in");
+  if (!clerkUser) redirect(clerkConfigured() ? "/sign-in" : "/");
 
   let user = null;
   try {
