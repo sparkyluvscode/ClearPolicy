@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
@@ -6,12 +7,23 @@ import { SettingsForm } from "@/components/settings/SettingsForm";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const clerkUser = await currentUser();
+  let clerkUser;
+  try {
+    clerkUser = await currentUser();
+  } catch (e) {
+    console.error("[settings] Clerk currentUser failed:", e);
+    redirect("/sign-in");
+  }
   if (!clerkUser) redirect("/sign-in");
 
-  const user = await prisma.user.findUnique({
-    where: { clerkUserId: clerkUser.id },
-  });
+  let user = null;
+  try {
+    user = await prisma.user.findUnique({
+      where: { clerkUserId: clerkUser.id },
+    });
+  } catch (e) {
+    console.error("[settings] Prisma/DB failed:", e);
+  }
 
   return (
     <main className="container page-section">
@@ -21,6 +33,14 @@ export default async function SettingsPage() {
       >
         Settings
       </h1>
+      {user === null && (
+        <div className="mb-6 rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface-2)] p-4 text-sm text-[var(--cp-muted)]">
+          Settings are temporarily unavailable (database connection issue). You can still sign out.{" "}
+          <Link href="/" className="underline focus-ring rounded">
+            Return home
+          </Link>
+        </div>
+      )}
       <SettingsForm
         clerkUser={{
           id: clerkUser.id,
