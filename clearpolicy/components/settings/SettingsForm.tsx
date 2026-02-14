@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
+const hasClerkKey =
+  typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 0 &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("YOUR_");
+
 type ClerkUser = {
   id: string;
   email: string;
@@ -88,7 +93,11 @@ export function SettingsForm({
           Profile
         </h2>
         <div className="flex items-center gap-4">
-          <UserButton afterSignOutUrl="/" />
+          {hasClerkKey ? (
+            <UserButton afterSignOutUrl="/" />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-[var(--cp-muted)]/30" aria-hidden />
+          )}
           <div>
             <p className="font-medium text-[var(--text-primary)]">
               {clerkUser.fullName || "User"}

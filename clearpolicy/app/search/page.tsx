@@ -365,18 +365,20 @@ function SearchResultsContent() {
             )}
 
             {/* Answer cards (conversation thread) */}
-            {cards.map((card) => (
-              <AnswerCard
-                key={card.id}
-                id={card.id}
-                userQuery={card.userQuery}
-                heading={card.heading}
-                cardType={card.cardType}
-                sections={card.sections}
-                onSourceClick={setActiveSource}
-                sources={sources}
-              />
-            ))}
+            <div className="space-y-10">
+              {cards.map((card) => (
+                <AnswerCard
+                  key={card.id}
+                  id={card.id}
+                  userQuery={card.userQuery}
+                  heading={card.heading}
+                  cardType={card.cardType}
+                  sections={card.sections}
+                  onSourceClick={setActiveSource}
+                  sources={sources}
+                />
+              ))}
+            </div>
 
             {/* Follow-up loading */}
             {followUpLoading && (
