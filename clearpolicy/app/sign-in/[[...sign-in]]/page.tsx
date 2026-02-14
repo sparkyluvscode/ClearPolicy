@@ -1,4 +1,10 @@
+import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
+
+const hasClerkKey =
+  typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 0 &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("YOUR_");
 
 export default function SignInPage() {
   return (
@@ -12,23 +18,32 @@ export default function SignInPage() {
             Sign in to save conversations and access your history
           </p>
         </div>
-        <SignIn
-          appearance={{
-            elements: {
-              rootBox: "mx-auto",
-              card: "shadow-lg rounded-2xl border border-[var(--border-light)]",
-            },
-            variables: {
-              colorPrimary: "var(--accent-blue)",
-              colorBackground: "var(--bg-card)",
-              colorText: "var(--text-primary)",
-              colorInputBackground: "var(--bg-secondary)",
-              borderRadius: "12px",
-            },
-          }}
-          signUpUrl="/sign-up"
-          afterSignInUrl="/"
-        />
+        {hasClerkKey ? (
+          <SignIn
+            appearance={{
+              elements: {
+                rootBox: "mx-auto",
+                card: "shadow-lg rounded-2xl border border-[var(--border-light)]",
+              },
+              variables: {
+                colorPrimary: "var(--accent-blue)",
+                colorBackground: "var(--bg-card)",
+                colorText: "var(--text-primary)",
+                colorInputBackground: "var(--bg-secondary)",
+                borderRadius: "12px",
+              },
+            }}
+            signUpUrl="/sign-up"
+            afterSignInUrl="/"
+          />
+        ) : (
+          <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-card)] p-6 text-center text-sm text-[var(--text-secondary)]">
+            Sign-in is not configured for this environment.
+            <Link href="/" className="mt-4 block font-medium text-[var(--accent-blue)] hover:underline">
+              Return home
+            </Link>
+          </div>
+        )}
       </div>
     </main>
   );
