@@ -6,6 +6,24 @@ import { useAuthGate } from "@/components/AuthGateProvider";
 
 export const dynamic = "force-dynamic";
 
+/* ── Free search limiter ── */
+const FREE_SEARCH_LIMIT = 2;
+const STORAGE_KEY = "cp-free-searches";
+
+function getFreeSearchCount(): number {
+  try {
+    return parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementFreeSearchCount(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, String(getFreeSearchCount() + 1));
+  } catch {}
+}
+
 const EXAMPLE_QUERIES = [
   "How does the SECURE Act affect retirement savings?",
   "What's on my ballot in 95746?",
@@ -65,8 +83,13 @@ function HomeContent() {
   const [clarifyQuestions, setClarifyQuestions] = useState<ClarifyQuestion[]>([]);
   const [clarifyAnswers, setClarifyAnswers] = useState<Record<number, string>>({});
   const [originalQuery, setOriginalQuery] = useState("");
+  const [showFreeGate, setShowFreeGate] = useState(false);
+  const [freeRemaining, setFreeRemaining] = useState(FREE_SEARCH_LIMIT);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+    if (!isSignedIn) setFreeRemaining(Math.max(0, FREE_SEARCH_LIMIT - getFreeSearchCount()));
+  }, [isSignedIn]);
   useEffect(() => {
     const q = searchParams?.get("q");
     if (q) { setQuery(q); handleSubmit(q); }
@@ -95,8 +118,15 @@ function HomeContent() {
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }, [handleFile]);
 
   async function handleSubmit(q?: string) {
-    // Gate: require authentication before searching
-    if (!isSignedIn) { openSignUp(); return; }
+    // Gate: allow FREE_SEARCH_LIMIT free searches, then require sign-up
+    if (!isSignedIn) {
+      if (getFreeSearchCount() >= FREE_SEARCH_LIMIT) {
+        setShowFreeGate(true);
+        return;
+      }
+      incrementFreeSearchCount();
+      setFreeRemaining(Math.max(0, FREE_SEARCH_LIMIT - getFreeSearchCount()));
+    }
 
     const raw = (q || query).trim();
     // If a file is uploaded, build an internal query the user never sees
@@ -177,6 +207,41 @@ function HomeContent() {
               </button>
               <button onClick={() => { setClarifying(false); navigateToSearch(originalQuery); }} className="btn-secondary px-5 py-3 text-sm rounded-xl">Skip</button>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Free search gate — shown when free searches are exhausted ── */
+  if (showFreeGate) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 animate-fade-in">
+        <div className="w-full max-w-md mx-auto text-center">
+          <div className="glass-card rounded-2xl p-8 md:p-10 animate-fade-up">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--cp-accent)]/10">
+              <svg className="h-7 w-7 text-[var(--cp-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="font-heading text-2xl font-bold text-[var(--cp-text)] mb-2">
+              Create a free account to continue
+            </h2>
+            <p className="text-sm text-[var(--cp-muted)] leading-relaxed mb-8 max-w-sm mx-auto">
+              You&apos;ve used your {FREE_SEARCH_LIMIT} free searches. Sign up to get unlimited access to policy research, saved history, and more.
+            </p>
+            <button
+              onClick={() => openSignUp()}
+              className="w-full bg-[var(--cp-accent)] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] transition-all mb-3"
+            >
+              Get Started — it&apos;s free
+            </button>
+            <button
+              onClick={() => setShowFreeGate(false)}
+              className="text-xs text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors"
+            >
+              Go back
+            </button>
           </div>
         </div>
       </div>
@@ -300,7 +365,16 @@ function HomeContent() {
           </div>
         </div>
         <p className="text-center text-[10px] text-[var(--cp-tertiary)]/60 mt-2">
-          Drop any PDF or document to analyze &middot; Powered by Omni-Search
+          {!isSignedIn && freeRemaining > 0 && freeRemaining < FREE_SEARCH_LIMIT ? (
+            <span>
+              {freeRemaining} free {freeRemaining === 1 ? "search" : "searches"} remaining &middot;{" "}
+              <button onClick={() => openSignUp()} className="underline hover:text-[var(--cp-text)] transition-colors">
+                Sign up for unlimited
+              </button>
+            </span>
+          ) : (
+            <>Drop any PDF or document to analyze &middot; Powered by Omni-Search</>
+          )}
         </p>
       </div>
 
