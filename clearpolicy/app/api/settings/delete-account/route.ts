@@ -19,10 +19,12 @@ export async function POST() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Delete in order: events, conversations (cascades to messages + messageSources), then user
-    await prisma.event.deleteMany({ where: { userId: user.id } });
-    await prisma.conversation.deleteMany({ where: { userId: user.id } });
-    await prisma.user.delete({ where: { id: user.id } });
+    // Delete everything in a transaction so partial deletion can't happen
+    await prisma.$transaction([
+      prisma.event.deleteMany({ where: { userId: user.id } }),
+      prisma.conversation.deleteMany({ where: { userId: user.id } }),
+      prisma.user.delete({ where: { id: user.id } }),
+    ]);
 
     // Note: Clerk user is NOT deleted here (would require Clerk Backend API + CLERK_SECRET_KEY).
     // The user can still sign in with Clerk, but their app data is gone.

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  SignInButton,
   SignUpButton,
   SignedIn,
   SignedOut,
@@ -53,6 +52,11 @@ export default function Header() {
     { href: "/browse", label: "Browse" },
     { href: "/compare", label: "Compare" },
     { href: "/about", label: "About" },
+  ];
+
+  // Links only shown to signed-in users
+  const authNavLinks = [
+    { href: "/history", label: "My Research" },
     { href: "/settings", label: "Settings" },
   ];
 
@@ -112,24 +116,25 @@ export default function Header() {
               {hasClerkKey && (
                 <>
                   <SignedOut>
-                    <SignInButton mode="modal">
-                      <button
-                        type="button"
-                        className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--cp-text)] bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring ml-1"
-                      >
-                        Sign in
-                      </button>
-                    </SignInButton>
                     <SignUpButton mode="modal">
                       <button
                         type="button"
-                        className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--cp-text)] border border-[var(--cp-border)] hover:bg-[var(--cp-surface)] transition-all focus-ring ml-1"
+                        className="rounded-lg px-4 py-2 text-sm font-medium bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring ml-1"
                       >
-                        Sign up
+                        Get Started
                       </button>
                     </SignUpButton>
                   </SignedOut>
                   <SignedIn>
+                    {authNavLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all focus-ring"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
                     <div className="ml-1">
                       <UserButton afterSignOutUrl="/" />
                     </div>
@@ -210,26 +215,27 @@ export default function Header() {
                   {hasClerkKey && (
                     <li className="pt-2 border-t border-[var(--cp-border)]">
                       <SignedOut>
-                        <SignInButton mode="modal">
+                        <SignUpButton mode="modal">
                           <button
                             type="button"
                             onClick={() => setMobileMenuOpen(false)}
                             className="block w-full text-left rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-accent)] hover:bg-[var(--cp-hover)] transition-colors"
                           >
-                            Sign in
-                          </button>
-                        </SignInButton>
-                        <SignUpButton mode="modal">
-                          <button
-                            type="button"
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="block w-full text-left rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-colors"
-                          >
-                            Sign up
+                            Get Started
                           </button>
                         </SignUpButton>
                       </SignedOut>
                       <SignedIn>
+                        {authNavLinks.map((link) => (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-colors"
+                          >
+                            {link.label}
+                          </Link>
+                        ))}
                         <div className="flex items-center gap-2 px-4 py-3">
                           <UserButton afterSignOutUrl="/" />
                           <span className="text-sm text-[var(--cp-muted)]">Account</span>

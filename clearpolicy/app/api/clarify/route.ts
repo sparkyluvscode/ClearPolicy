@@ -33,8 +33,11 @@ export interface ClarifyResponse {
 }
 
 export async function POST(req: NextRequest) {
+  let rawQuery = "";
   try {
-    const { query } = await req.json();
+    const body = await req.json();
+    const query = body?.query;
+    rawQuery = typeof query === "string" ? query.trim() : "";
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return NextResponse.json({ needsClarification: false, refinedQuery: query });
     }
@@ -137,6 +140,7 @@ Maximum 2 questions. Be helpful, not annoying.`
   } catch (error) {
     console.error("[Clarify] Error:", error);
     // On error, just proceed without clarification
-    return NextResponse.json({ needsClarification: false, refinedQuery: "" });
+    // On error, pass through the original query so the search still proceeds
+    return NextResponse.json({ needsClarification: false, refinedQuery: rawQuery });
   }
 }

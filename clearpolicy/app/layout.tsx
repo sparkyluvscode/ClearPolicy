@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Inter, Libre_Baskerville } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { AuthGateProvider } from "@/components/AuthGateProvider";
 import Script from "next/script";
 
 const inter = Inter({
@@ -35,6 +36,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 0 &&
     !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("YOUR_");
 
+  const inner = (
+    <>
+      <Header />
+      {missingKeys && (
+        <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
+          <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
+            Live data temporarily unavailable — showing verified sample content.
+          </div>
+        </div>
+      )}
+      <main className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-12 pb-20 pt-6">
+        {children}
+      </main>
+      <Footer />
+    </>
+  );
+
   const content = (
     <html lang="en" className={`h-full ${inter.variable} ${libreBaskerville.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh font-sans">
@@ -42,18 +60,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {`(function(){try{var s=localStorage.getItem('cp_theme');var el=document.documentElement;if(s){var dark=s==='dark';if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(prefersDark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
         </Script>
         <div className="relative z-10">
-          <Header />
-          {missingKeys && (
-            <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
-              <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
-                Live data temporarily unavailable — showing verified sample content.
-              </div>
-            </div>
-          )}
-          <main className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-12 pb-20 pt-6">
-            {children}
-          </main>
-          <Footer />
+          {hasClerkKey ? <AuthGateProvider>{inner}</AuthGateProvider> : inner}
         </div>
       </body>
     </html>

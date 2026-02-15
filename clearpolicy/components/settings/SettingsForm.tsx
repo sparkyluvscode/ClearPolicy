@@ -40,7 +40,8 @@ export function SettingsForm({
   const [theme, setTheme] = useState(dbUser?.theme ?? "light");
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -58,9 +59,9 @@ export function SettingsForm({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save");
-      setMessage("Saved.");
+      setMessage({ text: "Preferences saved.", type: "success" });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to save");
+      setMessage({ text: err instanceof Error ? err.message : "Failed to save", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -84,9 +85,9 @@ export function SettingsForm({
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      setMessage("Data exported.");
+      setMessage({ text: "Data exported.", type: "success" });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Export failed");
+      setMessage({ text: err instanceof Error ? err.message : "Export failed", type: "error" });
     } finally {
       setExporting(false);
     }
@@ -187,8 +188,8 @@ export function SettingsForm({
               {saving ? "Saving..." : "Save preferences"}
             </button>
             {message && (
-              <span className="text-sm text-[var(--text-secondary)]">
-                {message}
+              <span className={`text-sm ${message.type === "error" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
+                {message.text}
               </span>
             )}
           </div>
@@ -210,18 +211,29 @@ export function SettingsForm({
           </button>
           <button
             type="button"
+            disabled={deleting}
             onClick={async () => {
               if (!confirm("Are you sure you want to delete your account? This will permanently remove all your conversations, preferences, and data. This cannot be undone.")) return;
-              const res = await fetch("/api/settings/delete-account", { method: "POST" });
-              const data = await res.json();
-              setMessage(data.message ?? (res.ok ? "Account deleted." : data.error));
-              if (res.ok) {
-                setTimeout(() => { window.location.href = "/"; }, 2000);
+              setDeleting(true);
+              setMessage(null);
+              try {
+                const res = await fetch("/api/settings/delete-account", { method: "POST" });
+                const data = await res.json();
+                if (res.ok) {
+                  setMessage({ text: data.message || "Account deleted. Redirecting...", type: "success" });
+                  setTimeout(() => { window.location.href = "/"; }, 2000);
+                } else {
+                  setMessage({ text: data.error || "Failed to delete account", type: "error" });
+                }
+              } catch {
+                setMessage({ text: "Network error. Please try again.", type: "error" });
+              } finally {
+                setDeleting(false);
               }
             }}
-            className="rounded-lg border border-[var(--accent-coral)]/40 bg-transparent px-4 py-2.5 text-sm font-medium text-[var(--accent-coral)] transition-colors hover:bg-[var(--accent-coral)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-coral)]/30"
+            className="rounded-lg border border-[var(--accent-coral)]/40 bg-transparent px-4 py-2.5 text-sm font-medium text-[var(--accent-coral)] transition-colors hover:bg-[var(--accent-coral)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-coral)]/30 disabled:opacity-50"
           >
-            Delete my account
+            {deleting ? "Deleting..." : "Delete my account"}
           </button>
         </div>
         <p className="mt-3 text-xs text-[var(--text-secondary)]">

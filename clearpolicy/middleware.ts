@@ -21,12 +21,26 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     const { clerkMiddleware, createRouteMatcher } = await import(
       "@clerk/nextjs/server"
     );
+    // Only protect routes that require user-specific data
+    // Browse, Compare, Search, and Measure are public so new users can explore
     const isProtectedRoute = createRouteMatcher([
+      "/history(.*)",
+      "/explore(.*)",
       "/settings(.*)",
       "/admin(.*)",
     ]);
     return await clerkMiddleware(async (auth, request) => {
-      if (isProtectedRoute(request)) await auth.protect();
+      if (isProtectedRoute(request)) {
+        const { userId } = await auth();
+        if (!userId) {
+          const signUpUrl = new URL("/sign-up", request.url);
+          signUpUrl.searchParams.set(
+            "redirect_url",
+            request.nextUrl.pathname + request.nextUrl.search
+          );
+          return NextResponse.redirect(signUpUrl);
+        }
+      }
     })(req, event);
   } catch {
     return NextResponse.next();

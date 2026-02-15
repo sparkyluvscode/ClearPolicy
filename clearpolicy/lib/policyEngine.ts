@@ -11,35 +11,103 @@ function getOpenAI(): OpenAI | null {
   return openai;
 }
 
-/** Build stub answer when AI is unavailable or fails */
+/** Build a graceful fallback answer when AI is unavailable or fails */
 function stubAnswer(query: string, zipCode?: string | null): Answer {
-  const location = zipCode ? `ZIP ${zipCode}` : "your area";
+  const title = query.slice(0, 100) || "Policy overview";
   const sections: AnswerSection = {
-    summary: `This is a stub summary for: "${query}". In production, this would be generated from real policy sources.`,
-    keyProvisions: ["Key point one (stub)", "Key point two (stub)", "Key point three (stub)"],
-    localImpact: zipCode
-      ? { zipCode, location, content: `Stub local impact for ${location}.` }
-      : undefined,
-    argumentsFor: ["Stub argument for (stub)", "Another pro (stub)"],
-    argumentsAgainst: ["Stub argument against (stub)"],
+    summary: `We're currently unable to generate a detailed analysis for "${title}". Our AI service may be temporarily unavailable. Please try again in a moment, or refine your search.`,
   };
-  const sources: AnswerSource[] = [
-    { id: 1, title: "Sample Federal Source (stub)", url: "https://example.com/federal", domain: "example.com", type: "Federal", verified: true },
-    { id: 2, title: "Sample State Source (stub)", url: "https://example.com/state", domain: "example.com", type: "State", verified: true },
-  ];
   return {
-    policyId: `stub-${Date.now()}`,
-    policyName: query.slice(0, 100) || "Policy overview",
+    policyId: `fallback-${Date.now()}`,
+    policyName: title,
     level: "State",
     category: "General",
     fullTextSummary: sections.summary || "",
     sections,
+    sources: [],
+  };
+}
+
+/* ── Query classification: policy vs general knowledge ── */
+const POLICY_SIGNALS =
+  /\b(bill|act|law|legislation|statute|regulation|ordinance|amendment|proposition|prop|measure|ballot|vote|policy|policies|zoning|tax|tariff|healthcare|medicaid|medicare|social\s+security|immigration|housing|education|criminal\s+justice|gun\s+control|climate|environment|epa|fda|sec\s+|fcc|irs|congress|senate|representative|governor|mayor|scotus|supreme\s+court|executive\s+order|ab\s*\d|sb\s*\d|hr\s*\d|hb\s*\d|h\.?r\.?\s*\d)\b/i;
+
+function isPolicyQuery(query: string): boolean {
+  return POLICY_SIGNALS.test(query);
+}
+
+/**
+ * Generate a general-knowledge answer (non-policy) using OpenAI.
+ */
+async function generateGeneralAnswer(
+  client: OpenAI,
+  query: string,
+): Promise<Answer> {
+  const prompt = `The user asked: "${query}"
+
+This is a general knowledge question (not specifically about policy or legislation).
+Provide a helpful, factual, and concise answer. Return ONLY valid JSON (no markdown):
+{
+  "title": "Short descriptive title",
+  "category": "One short category (e.g. 'People', 'Science', 'History')",
+  "answer": "A clear, thorough 2-5 sentence answer to the question.",
+  "keyFacts": ["Fact 1", "Fact 2", "Fact 3"],
+  "sources": [
+    { "title": "Source name", "url": "https://...", "domain": "domain.com" }
+  ]
+}
+
+Rules: Be factual and helpful. If unsure about something, say so. Include 1-3 real sources where applicable.`;
+
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a knowledgeable assistant. Answer general questions clearly and factually. Return only valid JSON.",
+      },
+      { role: "user", content: prompt },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.3,
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new Error("Empty AI response");
+
+  const parsed = JSON.parse(content);
+  const keyFacts: string[] = Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [];
+  const rawSources = Array.isArray(parsed.sources) ? parsed.sources : [];
+  const sources: AnswerSource[] = rawSources
+    .filter((s: any) => s.url && s.url !== "https://example.com")
+    .slice(0, 4)
+    .map((s: any, i: number) => ({
+      id: i + 1,
+      title: s.title || "Source",
+      url: s.url,
+      domain: s.domain || (() => { try { return new URL(s.url).hostname; } catch { return "source"; } })(),
+      type: "Web" as const,
+      verified: true,
+    }));
+
+  return {
+    policyId: `general-${Date.now()}`,
+    policyName: parsed.title || query.slice(0, 100),
+    level: "Federal",
+    category: parsed.category || "General",
+    fullTextSummary: parsed.answer || "",
+    sections: {
+      summary: parsed.answer || "",
+      keyProvisions: keyFacts.length > 0 ? keyFacts : undefined,
+    },
     sources,
   };
 }
 
 /**
  * Generate a policy answer from a user query using OpenAI when available.
+ * Detects whether the query is policy-related or general knowledge and
+ * uses the appropriate prompt.
  * Falls back to stub content if no API key or on error.
  */
 export async function generatePolicyAnswer(
@@ -48,6 +116,16 @@ export async function generatePolicyAnswer(
 ): Promise<Answer> {
   const client = getOpenAI();
   if (!client) return stubAnswer(query, zipCode);
+
+  // Route general-knowledge queries to a flexible prompt
+  if (!isPolicyQuery(query)) {
+    try {
+      return await generateGeneralAnswer(client, query);
+    } catch (error) {
+      console.error("General answer AI failed, falling back to policy prompt:", error);
+      // Fall through to policy prompt as a safety net
+    }
+  }
 
   const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include brief local relevance if applicable.` : "";
 
@@ -109,20 +187,17 @@ Rules: Be neutral and factual. Use your knowledge of real laws and policies when
     };
 
     const rawSources = Array.isArray(parsed.sources) ? parsed.sources : [];
-    const sources: AnswerSource[] = rawSources.slice(0, 6).map((s: any, i: number) => ({
-      id: i + 1,
-      title: s.title || "Source",
-      url: s.url || "https://example.com",
-      domain: s.domain || "example.com",
-      type: ["Federal", "State", "Local", "Web"].includes(s.type) ? s.type : "Web",
-      verified: !!s.url,
-    }));
-
-    if (sources.length === 0) {
-      sources.push(
-        { id: 1, title: "Policy overview (AI)", url: "https://example.com", domain: "example.com", type: "Web", verified: false },
-      );
-    }
+    const sources: AnswerSource[] = rawSources
+      .filter((s: any) => s.url && s.url !== "https://example.com")
+      .slice(0, 6)
+      .map((s: any, i: number) => ({
+        id: i + 1,
+        title: s.title || "Source",
+        url: s.url,
+        domain: s.domain || (() => { try { return new URL(s.url).hostname; } catch { return "source"; } })(),
+        type: ["Federal", "State", "Local", "Web"].includes(s.type) ? s.type : "Web",
+        verified: true,
+      }));
 
     return {
       policyId: `policy-${Date.now()}`,
@@ -153,25 +228,19 @@ export async function generateFollowUpAnswer(
 
   if (!client) {
     const sections: AnswerSection = {
-      summary: `Stub follow-up for: "${message}". Context: ${context.slice(0, 80)}...`,
-      keyProvisions: ["Follow-up point one (stub)", "Follow-up point two (stub)"],
-      argumentsFor: ["Stub pro"],
-      argumentsAgainst: ["Stub con"],
+      summary: `We're currently unable to generate a follow-up answer. Our AI service may be temporarily unavailable. Please try again in a moment.`,
     };
-    const sources: AnswerSource[] = [
-      { id: 1, title: "Follow-up source (stub)", url: "https://example.com/followup", domain: "example.com", type: "Web", verified: false },
-    ];
     return {
       answer: {
-        policyId: "stub-followup",
-        policyName: "Follow-up",
+        policyId: "fallback-followup",
+        policyName: "Follow-up unavailable",
         level: "State",
         category: "General",
         fullTextSummary: sections.summary || "",
         sections,
-        sources,
+        sources: [],
       },
-      suggestions: ["How does this affect renters?", "What are the main criticisms?", "Compare to similar policies"],
+      suggestions: ["Try again", "Ask a different question"],
     };
   }
 
@@ -228,9 +297,7 @@ Return ONLY valid JSON (no markdown):
       "What are the main criticisms?",
       "Compare to similar policies",
     ];
-    const sources: AnswerSource[] = [
-      { id: 1, title: "Follow-up (AI)", url: "https://example.com", domain: "example.com", type: "Web", verified: false },
-    ];
+    const sources: AnswerSource[] = [];
 
     return {
       answer: {
@@ -246,26 +313,19 @@ Return ONLY valid JSON (no markdown):
     };
   } catch (error) {
     console.error("Follow-up AI failed:", error);
-    const sections: AnswerSection = {
-      summary: `Stub follow-up for: "${message}". Context: ${context.slice(0, 80)}...`,
-      keyProvisions: ["Follow-up point one (stub)", "Follow-up point two (stub)"],
-      argumentsFor: ["Stub pro"],
-      argumentsAgainst: ["Stub con"],
-    };
-    const sources: AnswerSource[] = [
-      { id: 1, title: "Follow-up source (stub)", url: "https://example.com", domain: "example.com", type: "Web", verified: false },
-    ];
     return {
       answer: {
-        policyId: "stub-followup",
+        policyId: "fallback-followup",
         policyName: "Follow-up",
         level: "State",
         category: "General",
-        fullTextSummary: sections.summary || "",
-        sections,
-        sources,
+        fullTextSummary: "We encountered an issue generating your follow-up answer. Please try again.",
+        sections: {
+          summary: "We encountered an issue generating your follow-up answer. Please try again.",
+        },
+        sources: [],
       },
-      suggestions: ["How does this affect renters?", "What are the main criticisms?", "Compare to similar policies"],
+      suggestions: ["Try again", "Ask a different question"],
     };
   }
 }

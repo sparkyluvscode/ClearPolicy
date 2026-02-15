@@ -4,11 +4,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui";
 
 export default function AboutPage() {
-  const quickLinks = [
-    { label: "Proposition 17 (2020)", slug: "ca-prop-17-2020" },
-    { label: "Proposition 47 (2014)", slug: "ca-prop-47-2014" },
-  ];
-
   return (
     <div className="max-w-3xl mx-auto space-y-12 animate-fade-in" style={{ paddingTop: "var(--space-xl)", paddingBottom: "var(--space-3xl)" }}>
       {/* Header */}
@@ -66,19 +61,22 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Sample measures */}
+      {/* Try it out */}
       <div>
-        <p className="section-label mb-2">Sample measures</p>
-        <p className="text-[var(--cp-muted)] text-sm mb-4">Explore demo cards with reading levels, citations, and sources.</p>
+        <p className="section-label mb-2">Try it yourself</p>
+        <p className="text-[var(--cp-muted)] text-sm mb-4">Explore real policy summaries with cited sources.</p>
         <div className="flex gap-3 flex-wrap">
-          {quickLinks.map((l) => (
-            <Link key={l.slug} href={`/measure/${l.slug}`} className="block group focus-ring rounded-xl">
+          {[
+            { label: "California Prop 36 (2024)", q: "California Proposition 36 2024" },
+            { label: "Affordable Care Act", q: "Affordable Care Act" },
+          ].map((example) => (
+            <Link key={example.q} href={`/?q=${encodeURIComponent(example.q)}`} className="block group focus-ring rounded-xl">
               <div className="glass-card rounded-xl p-4 surface-lift min-w-[15rem]">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-[var(--cp-text)]">{l.label}</span>
-                  <Badge variant="neutral">Demo</Badge>
+                  <span className="text-sm font-medium text-[var(--cp-text)]">{example.label}</span>
+                  <Badge variant="neutral">Try</Badge>
                 </div>
-                <p className="mt-2 text-xs text-[var(--cp-muted)]">Open a sample measure card.</p>
+                <p className="mt-2 text-xs text-[var(--cp-muted)]">Search with Omni-Search.</p>
               </div>
             </Link>
           ))}

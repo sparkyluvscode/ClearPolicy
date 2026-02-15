@@ -425,11 +425,13 @@ function SearchResultsContent() {
                 onChange={(e) => setFollowUpQuery(e.target.value)}
                 disabled={followUpLoading}
                 placeholder={`Ask a follow-up about ${policyName || "this policy"}...`}
+                aria-label="Ask a follow-up question"
                 className="w-full pl-4 pr-12 py-3 rounded-xl glass-input text-[var(--cp-text)] text-[15px] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={!followUpQuery.trim() || followUpLoading}
+                aria-label="Send follow-up question"
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[var(--cp-accent)] text-white hover:brightness-110 disabled:opacity-20 disabled:cursor-not-allowed active:scale-95 transition-all"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

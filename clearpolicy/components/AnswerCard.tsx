@@ -95,7 +95,17 @@ export default function AnswerCard({
               />
             </p>
             <div className="text-[15px] sm:text-[16px] text-[var(--cp-text)] leading-[1.8]">
-              {renderCited(section.content)}
+              {section.content.includes("\n")
+                ? section.content.split("\n").map((line, j) => {
+                    const t = line.trim();
+                    if (!t) return null;
+                    return (
+                      <div key={j} className={j > 0 ? "mt-2" : ""}>
+                        {renderCited(t)}
+                      </div>
+                    );
+                  })
+                : renderCited(section.content)}
             </div>
           </div>
         ))}

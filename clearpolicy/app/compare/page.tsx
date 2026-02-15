@@ -308,7 +308,7 @@ const propositions = [
 ];
 
 export default function ComparePage() {
-    const [selectedProps, setSelectedProps] = useState<string[]>(["47", "36"]);
+    const [selectedProps, setSelectedProps] = useState<string[]>(["1", "36"]);
     const [showSelector, setShowSelector] = useState<number | null>(null);
 
     const selectedData = useMemo(() => {
@@ -355,7 +355,7 @@ export default function ComparePage() {
                                 onClick={() => setShowSelector(showSelector === index ? null : index)}
                                 className="w-44 justify-between"
                             >
-                                <span className="text-accent font-semibold">
+                                <span className="text-[var(--cp-accent)] font-semibold">
                                     {num ? `Prop ${num}` : "Select..."}
                                 </span>
                                 <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -420,8 +420,8 @@ export default function ComparePage() {
                             <th className="text-left py-3 px-4 text-[var(--cp-muted)] font-medium w-32">Aspect</th>
                             {selectedData.map((prop: any) => (
                                 <th key={prop.num} className="text-left py-3 px-4">
-                                    <Link href={`/measure/prop/${prop.num}`} className="hover:text-accent transition-colors">
-                                        <span className="text-xl font-bold text-accent">Prop {prop.num}</span>
+                                    <Link href={`/measure/prop/${prop.num}?year=${prop.year}`} className="hover:text-[var(--cp-accent)] transition-colors">
+                                        <span className="text-xl font-bold text-[var(--cp-accent)]">Prop {prop.num}</span>
                                         <span className="ml-2 text-xs text-[var(--cp-muted)]">({prop.year})</span>
                                     </Link>
                                 </th>
@@ -503,9 +503,9 @@ export default function ComparePage() {
             <section className="md:hidden space-y-4">
                 {selectedData.map((prop: any) => (
                     <Card key={prop.num} className="space-y-3">
-                        <Link href={`/measure/prop/${prop.num}`} className="block hover:text-accent transition-colors">
+                        <Link href={`/measure/prop/${prop.num}?year=${prop.year}`} className="block hover:text-[var(--cp-accent)] transition-colors">
                             <div className="flex items-center justify-between">
-                                <span className="text-xl font-bold text-accent">Prop {prop.num}</span>
+                                <span className="text-xl font-bold text-[var(--cp-accent)]">Prop {prop.num}</span>
                                 <Badge variant={prop.status === "Active" ? "supported" : "official"}>
                                     {prop.status}
                                 </Badge>

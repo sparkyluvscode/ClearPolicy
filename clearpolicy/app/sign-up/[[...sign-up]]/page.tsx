@@ -12,10 +12,10 @@ export default function SignUpPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold text-[var(--text-primary)]" style={{ fontFamily: "var(--font-heading-display)" }}>
-            ClearPolicy
+            Get Started with ClearPolicy
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Create an account to save your policy research
+            Create a free account to search and explore policies
           </p>
         </div>
         {hasClerkKey ? (

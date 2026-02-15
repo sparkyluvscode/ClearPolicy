@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuthGate } from "@/components/AuthGateProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ interface ClarifyQuestion { question: string; options: string[]; }
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isSignedIn, openSignUp } = useAuthGate();
   const [query, setQuery] = useState("");
   const [zip, setZip] = useState("");
   const [debateMode, setDebateMode] = useState(false);
@@ -70,6 +72,9 @@ function HomeContent() {
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }, [handleFile]);
 
   async function handleSubmit(q?: string) {
+    // Gate: require authentication before searching
+    if (!isSignedIn) { openSignUp(); return; }
+
     const raw = (q || query).trim();
     // If a file is uploaded, build an internal query the user never sees
     if (uploadedFile) {

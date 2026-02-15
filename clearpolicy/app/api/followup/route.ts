@@ -22,13 +22,18 @@ function mapFollowUpToSections(answer: Awaited<ReturnType<typeof generateFollowU
       confidence: "verified",
     });
   }
-  if (answer.sections.argumentsFor?.length || answer.sections.argumentsAgainst?.length) {
-    const parts: string[] = [];
-    if (answer.sections.argumentsFor?.length) parts.push("For: " + answer.sections.argumentsFor.join(" "));
-    if (answer.sections.argumentsAgainst?.length) parts.push("Against: " + answer.sections.argumentsAgainst.join(" "));
+  if (answer.sections.argumentsFor?.length) {
     sections.push({
-      heading: "Arguments",
-      content: parts.join("\n\n"),
+      heading: "Arguments for",
+      content: answer.sections.argumentsFor.map((p) => p.trim()).filter(Boolean).join("\n"),
+      citations: [],
+      confidence: "inferred",
+    });
+  }
+  if (answer.sections.argumentsAgainst?.length) {
+    sections.push({
+      heading: "Arguments against",
+      content: answer.sections.argumentsAgainst.map((p) => p.trim()).filter(Boolean).join("\n"),
       citations: [],
       confidence: "inferred",
     });

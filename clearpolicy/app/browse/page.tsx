@@ -229,6 +229,7 @@ export default function BrowsePage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const filteredProps = useMemo(() => {
+        if (levelFilter === "Federal") return [];
         return propositions.filter(prop => {
             const matchesCategory = categoryFilter === "All" || prop.category === categoryFilter;
             const matchesStatus = statusFilter === "All" || prop.status === statusFilter;
@@ -238,16 +239,18 @@ export default function BrowsePage() {
                 prop.num.includes(searchQuery);
             return matchesCategory && matchesStatus && matchesSearch;
         });
-    }, [categoryFilter, statusFilter, searchQuery]);
+    }, [categoryFilter, statusFilter, searchQuery, levelFilter]);
 
     const filteredFederal = useMemo(() => {
         if (levelFilter === "California") return [];
-        return federalBills.filter(bill =>
-            !searchQuery ||
-            bill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            bill.summary.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [levelFilter, searchQuery]);
+        return federalBills.filter(bill => {
+            const matchesCategory = categoryFilter === "All" || bill.category === categoryFilter;
+            const matchesSearch = !searchQuery ||
+                bill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                bill.summary.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesCategory && matchesSearch;
+        });
+    }, [levelFilter, searchQuery, categoryFilter]);
 
     const showCalifornia = levelFilter === "All" || levelFilter === "California";
     const showFederal = levelFilter === "All" || levelFilter === "Federal";
@@ -397,7 +400,7 @@ export default function BrowsePage() {
                 {filteredProps.map(prop => (
                     <Link
                         key={`${prop.num}-${prop.year}`}
-                        href={`/measure/prop/${prop.num}`}
+                        href={`/measure/prop/${prop.num}?year=${prop.year}`}
                         className="block group focus-ring rounded-xl"
                     >
                         <div className="glass-card rounded-xl p-5 h-full transition-all surface-lift animate-fade-up">

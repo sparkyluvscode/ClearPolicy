@@ -28,15 +28,10 @@ export default function Footer() {
               <p className="section-label">Product</p>
               <Link href="/browse" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Browse</Link>
               <Link href="/compare" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Compare</Link>
-              <Link href="/search?q=latest federal bills" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Search</Link>
             </div>
             <div className="space-y-3">
               <p className="section-label">Resources</p>
               <Link href="/about" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">About</Link>
-              <Link href="/about" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">How it works</Link>
-            </div>
-            <div className="space-y-3">
-              <p className="section-label">Company</p>
               <Link href="/privacy" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Privacy</Link>
               <Link href="/contact" className="block text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors">Contact</Link>
             </div>
@@ -46,7 +41,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="mt-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-[var(--cp-tertiary)]">
           <span>&copy; {new Date().getFullYear()} ClearPolicy &middot; Powered by <span className="font-semibold text-[var(--cp-accent)]">Omni-Search</span></span>
-          <span>Made with 💙 for informed citizens</span>
+          <span>Made for informed citizens</span>
         </div>
       </div>
     </footer>
