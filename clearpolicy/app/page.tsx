@@ -62,7 +62,7 @@ function HomeContent() {
       setUploadedFile({ name: data.filename, text: data.text });
     } catch (err) { setUploadError(err instanceof Error ? err.message : "Upload failed"); }
     finally { setUploading(false); }
-  }, [query]);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }, []);

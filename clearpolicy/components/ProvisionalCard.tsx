@@ -161,7 +161,7 @@ export default function ProvisionalCard({ query, fallbacks = [], seed, requested
       citations: seed?.citations || [],
       sourceCount: seed?.citations?.length ? 3 : 0,
     };
-  }, [level, primary, seed?.citations, text]);
+  }, [primary, seed?.citations, text]);
 
   return (
     <Card variant="document" className="space-y-6">

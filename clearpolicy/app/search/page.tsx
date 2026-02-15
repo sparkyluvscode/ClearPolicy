@@ -607,7 +607,7 @@ function LoadingSteps() {
   useEffect(() => {
     const interval = setInterval(() => setStep(s => (s + 1) % steps.length), 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [steps.length]);
   return (
     <span className="text-sm text-[var(--cp-muted)] transition-all">
       {steps[step]}...

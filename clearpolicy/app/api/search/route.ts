@@ -176,7 +176,7 @@ const knownUsResultsFor = (query: string) => {
       }
     );
   }
-  if (/climate\s+change|climate|emissions|carbon/.test(q)) {
+  if (/climate\s+change|climate|emissions|carbon|environment/.test(q)) {
     results.push(
       {
         congress: 117,
@@ -195,6 +195,177 @@ const knownUsResultsFor = (query: string) => {
         latestAction: { text: "Passed House; received in Senate." },
         _year: "2019",
         _status: "Passed House",
+      }
+    );
+  }
+  if (/education|school|student loan|college/.test(q)) {
+    results.push(
+      {
+        congress: 89,
+        type: "hr",
+        number: "2362",
+        title: "Elementary and Secondary Education Act (ESEA)",
+        latestAction: { text: "Enacted as Public Law 89-10." },
+        _year: "1965",
+        _status: "Enacted",
+      },
+      {
+        congress: 107,
+        type: "hr",
+        number: "1",
+        title: "No Child Left Behind Act of 2001",
+        latestAction: { text: "Enacted as Public Law 107-110." },
+        _year: "2002",
+        _status: "Enacted",
+      },
+      {
+        congress: 114,
+        type: "s",
+        number: "1177",
+        title: "Every Student Succeeds Act (ESSA)",
+        latestAction: { text: "Enacted as Public Law 114-95." },
+        _year: "2015",
+        _status: "Enacted",
+      }
+    );
+  }
+  if (/immigration|immigrant|border|daca|dreamer|visa/.test(q)) {
+    results.push(
+      {
+        congress: 117,
+        type: "hr",
+        number: "6",
+        title: "American Dream and Promise Act of 2021",
+        latestAction: { text: "Passed the House." },
+        _year: "2021",
+        _status: "Passed House",
+      },
+      {
+        congress: 113,
+        type: "s",
+        number: "744",
+        title: "Border Security, Economic Opportunity, and Immigration Modernization Act",
+        latestAction: { text: "Passed Senate 68-32." },
+        _year: "2013",
+        _status: "Passed Senate",
+      }
+    );
+  }
+  if (/housing|rent|affordable\s+housing|homelessness/.test(q)) {
+    results.push(
+      {
+        congress: 116,
+        type: "hr",
+        number: "1856",
+        title: "Housing is Infrastructure Act of 2019",
+        latestAction: { text: "Referred to committee." },
+        _year: "2019",
+        _status: "Introduced",
+      },
+      {
+        congress: 117,
+        type: "s",
+        number: "2234",
+        title: "Housing Supply and Affordability Act",
+        latestAction: { text: "Referred to committee." },
+        _year: "2021",
+        _status: "Introduced",
+      }
+    );
+  }
+  if (/gun|firearm|second\s+amendment|gun\s+control|gun\s+violence/.test(q)) {
+    results.push(
+      {
+        congress: 117,
+        type: "s",
+        number: "2938",
+        title: "Bipartisan Safer Communities Act",
+        latestAction: { text: "Enacted as Public Law 117-159." },
+        _year: "2022",
+        _status: "Enacted",
+      }
+    );
+  }
+  if (/tax|taxation|irs/.test(q)) {
+    results.push(
+      {
+        congress: 115,
+        type: "hr",
+        number: "1",
+        title: "Tax Cuts and Jobs Act of 2017",
+        latestAction: { text: "Enacted as Public Law 115-97." },
+        _year: "2017",
+        _status: "Enacted",
+      }
+    );
+  }
+  if (/infrastructure|road|bridge|broadband/.test(q)) {
+    results.push(
+      {
+        congress: 117,
+        type: "hr",
+        number: "3684",
+        title: "Infrastructure Investment and Jobs Act",
+        latestAction: { text: "Enacted as Public Law 117-58." },
+        _year: "2021",
+        _status: "Enacted",
+      }
+    );
+  }
+  if (/voting|election|voter|ballot/.test(q)) {
+    results.push(
+      {
+        congress: 89,
+        type: "s",
+        number: "0000",
+        title: "Voting Rights Act of 1965",
+        latestAction: { text: "Enacted as Public Law 89-110." },
+        _year: "1965",
+        _status: "Enacted",
+      },
+      {
+        congress: 117,
+        type: "hr",
+        number: "1",
+        title: "For the People Act of 2021",
+        latestAction: { text: "Passed House; Senate did not advance." },
+        _year: "2021",
+        _status: "Passed House",
+      }
+    );
+  }
+  if (/labor|worker|wage|minimum\s+wage|union/.test(q)) {
+    results.push(
+      {
+        congress: 75,
+        type: "s",
+        number: "2475",
+        title: "Fair Labor Standards Act of 1938",
+        latestAction: { text: "Enacted as Public Law 75-718." },
+        _year: "1938",
+        _status: "Enacted",
+      },
+      {
+        congress: 117,
+        type: "hr",
+        number: "603",
+        title: "Raise the Wage Act of 2021",
+        latestAction: { text: "Passed House." },
+        _year: "2021",
+        _status: "Passed House",
+      }
+    );
+  }
+  if (/privacy|data\s+privacy|tech|ai|artificial\s+intelligence|cyber/.test(q)) {
+    results.push(
+      {
+        congress: 118,
+        type: "hr",
+        number: "8818",
+        title: "American Privacy Rights Act of 2024",
+        latestAction: { text: "Reported by House committee." },
+        _year: "2024",
+        _status: "In Committee",
       }
     );
   }
@@ -280,7 +451,7 @@ export async function GET(req: NextRequest) {
     // For topic-based searches, try to find bills by subject
     const ql = normalizedQuery.toLowerCase().trim();
     const isTopicSearch = !/(prop|proposition|ab|sb|assembly|senate)\s*\d+/i.test(normalizedQuery) && 
-                          /^(healthcare|health|education|environment|climate|energy|tax|budget|crime|criminal)/i.test(normalizedQuery);
+                          /\b(healthcare|health|education|environment|climate|energy|tax|budget|crime|criminal|immigration|housing|gun|firearm|abortion|reproductive|labor|worker|wage|police|prison|drug|water|transport|infrastructure|voting|election|tech|ai|artificial|cyber|privacy|civil\s*rights|social\s*security|medicaid|medicare)\b/i.test(normalizedQuery);
     
     // Check for bill identifier patterns first (AB 5, SB 1383, etc.)
     const identMatch = normalizedQuery.toLowerCase().match(/\b(ab|sb)\s*(\d{1,5})\b/);
@@ -315,14 +486,39 @@ export async function GET(req: NextRequest) {
         const topicMap: Record<string, string> = {
           "healthcare": "Health",
           "health": "Health",
+          "medicare": "Health",
+          "medicaid": "Health",
           "education": "Education",
-          "environment": "Environment",
-          "climate": "Environment",
+          "environment": "Environmental Quality",
+          "climate": "Environmental Quality",
           "energy": "Energy",
-          "tax": "Taxation",
+          "tax": "Revenue and Taxation",
           "budget": "Appropriations",
           "crime": "Criminal Justice",
           "criminal": "Criminal Justice",
+          "police": "Criminal Justice",
+          "prison": "Criminal Justice",
+          "drug": "Criminal Justice",
+          "immigration": "Immigration",
+          "housing": "Housing",
+          "labor": "Labor and Employment",
+          "worker": "Labor and Employment",
+          "wage": "Labor and Employment",
+          "gun": "Public Safety",
+          "firearm": "Public Safety",
+          "water": "Water",
+          "transport": "Transportation",
+          "infrastructure": "Transportation",
+          "voting": "Elections",
+          "election": "Elections",
+          "privacy": "Privacy and Consumer Protection",
+          "tech": "Technology",
+          "ai": "Technology",
+          "cyber": "Technology",
+          "abortion": "Health",
+          "reproductive": "Health",
+          "civil rights": "Civil Rights",
+          "social security": "Human Services",
         };
         
         const subjectTerm = topicMap[ql];
@@ -700,7 +896,7 @@ export async function GET(req: NextRequest) {
     let aiFallback = null;
     // Detect whether the query looks like a bill identifier or a general question
     const isBillIdentifier = /\b(ab|sb|hr|hb|s\.?b|h\.?r|prop|proposition)\s*\.?\s*\d+/i.test(parsed.data.q);
-    const isGeneralQuery = !isBillIdentifier && !hasRelevantCa && !hasRelevantUs;
+    const isGeneralQuery = !isBillIdentifier && (!hasRelevantCa || isTopicSearch) && !hasRelevantUs;
 
     if (isGeneralQuery && parsed.data.q.trim().length > 2) {
       try {

@@ -187,6 +187,7 @@ export default function ZipPanel({ contextId, context }: { contextId?: string; c
             <li key={i} className="rounded-md border border-[var(--cp-border)] bg-[var(--cp-surface)] p-3">
               <div className="flex items-center gap-3">
                 {o.image && (
+                  // eslint-disable-next-line @next/next/no-img-element -- external Civic API URL, domain not known at build time
                   <img
                     src={o.image}
                     alt={`${o.name} portrait`}

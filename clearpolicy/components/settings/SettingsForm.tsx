@@ -70,9 +70,21 @@ export function SettingsForm({
     setExporting(true);
     try {
       const res = await fetch("/api/settings/export");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Export failed");
-      setMessage("Export ready (stub).");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Export failed");
+      }
+      // Trigger a download of the JSON file
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clearpolicy-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setMessage("Data exported.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Export failed");
     } finally {
@@ -199,9 +211,13 @@ export function SettingsForm({
           <button
             type="button"
             onClick={async () => {
+              if (!confirm("Are you sure you want to delete your account? This will permanently remove all your conversations, preferences, and data. This cannot be undone.")) return;
               const res = await fetch("/api/settings/delete-account", { method: "POST" });
               const data = await res.json();
-              setMessage(data.message ?? (res.ok ? "Request received." : data.error));
+              setMessage(data.message ?? (res.ok ? "Account deleted." : data.error));
+              if (res.ok) {
+                setTimeout(() => { window.location.href = "/"; }, 2000);
+              }
             }}
             className="rounded-lg border border-[var(--accent-coral)]/40 bg-transparent px-4 py-2.5 text-sm font-medium text-[var(--accent-coral)] transition-colors hover:bg-[var(--accent-coral)]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-coral)]/30"
           >
@@ -209,8 +225,7 @@ export function SettingsForm({
           </button>
         </div>
         <p className="mt-3 text-xs text-[var(--text-secondary)]">
-          Export returns your data as JSON (stub). Delete account is a placeholder
-          for future implementation.
+          Export downloads all your data as JSON. Delete permanently removes your conversations, preferences, and account data.
         </p>
       </section>
     </div>

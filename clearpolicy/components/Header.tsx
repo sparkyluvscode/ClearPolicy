@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -67,7 +68,7 @@ export default function Header() {
           >
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg px-1">
-              <img src="/clearpolicy-logo.png" alt="ClearPolicy" className="w-8 h-8 flex-shrink-0 object-contain" />
+              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={32} height={32} className="flex-shrink-0 object-contain" />
               <span className="font-heading text-lg font-bold tracking-tight text-[var(--cp-text)] hidden sm:inline">
                 ClearPolicy
               </span>

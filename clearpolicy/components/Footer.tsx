@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Footer() {
@@ -11,7 +12,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4 max-w-xs">
             <div className="flex items-center gap-2">
-              <img src="/clearpolicy-logo.png" alt="ClearPolicy" className="w-7 h-7 object-contain" />
+              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={28} height={28} className="object-contain" />
               <span className="font-heading text-lg font-bold tracking-tight text-[var(--cp-text)]">
                 ClearPolicy
               </span>

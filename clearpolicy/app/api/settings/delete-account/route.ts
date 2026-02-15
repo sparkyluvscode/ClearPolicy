@@ -1,16 +1,41 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkUserId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Delete in order: events, conversations (cascades to messages + messageSources), then user
+    await prisma.event.deleteMany({ where: { userId: user.id } });
+    await prisma.conversation.deleteMany({ where: { userId: user.id } });
+    await prisma.user.delete({ where: { id: user.id } });
+
+    // Note: Clerk user is NOT deleted here (would require Clerk Backend API + CLERK_SECRET_KEY).
+    // The user can still sign in with Clerk, but their app data is gone.
+    // A fresh User record will be created on next sign-in.
+
+    return NextResponse.json({
+      message: "Your account data has been deleted. You can close this page.",
+    });
+  } catch (e) {
+    console.error("[api/settings/delete-account]", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to delete account" },
+      { status: 500 }
+    );
   }
-  // TODO: Delete user data from our DB and optionally trigger Clerk user deletion.
-  // For now return a stub message.
-  return NextResponse.json({
-    message: "Account deletion is not implemented yet. Contact support.",
-  });
 }

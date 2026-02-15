@@ -16,10 +16,20 @@ export async function GET() {
       include: {
         conversations: {
           orderBy: { lastMessageAt: "desc" },
-          take: 100,
           include: {
-            messages: { orderBy: { createdAt: "asc" } },
+            messages: {
+              orderBy: { createdAt: "asc" },
+              include: {
+                messageSources: {
+                  include: { source: true },
+                },
+              },
+            },
           },
+        },
+        events: {
+          orderBy: { createdAt: "desc" },
+          take: 500,
         },
       },
     });
@@ -30,6 +40,7 @@ export async function GET() {
 
     const exportData = {
       exportedAt: new Date().toISOString(),
+      format: "ClearPolicy User Data Export v1",
       user: {
         id: user.id,
         email: user.email,
@@ -37,6 +48,8 @@ export async function GET() {
         zipCode: user.zipCode,
         preferredViewAs: user.preferredViewAs,
         theme: user.theme,
+        createdAt: user.createdAt,
+        lastLoginAt: user.lastLoginAt,
         totalConversations: user.totalConversations,
         totalQuestionsAsked: user.totalQuestionsAsked,
       },
@@ -44,18 +57,48 @@ export async function GET() {
         id: c.id,
         policyName: c.policyName,
         policyLevel: c.policyLevel,
+        policyCategory: c.policyCategory,
+        title: c.title,
         zipCode: c.zipCode,
         createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
         messageCount: c.messageCount,
+        isStarred: c.isStarred,
+        isArchived: c.isArchived,
         messages: c.messages.map((m) => ({
           role: m.role,
-          content: m.content.slice(0, 500),
+          content: m.content,
+          answerCardData: m.answerCardData,
           createdAt: m.createdAt,
+          wasHelpful: m.wasHelpful,
+          sources: m.messageSources.map((ms) => ({
+            citationNumber: ms.citationNumber,
+            url: ms.source.url,
+            title: ms.source.title,
+            domain: ms.source.domain,
+            sourceType: ms.source.sourceType,
+            verified: ms.source.verified,
+          })),
         })),
+      })),
+      events: user.events.map((e) => ({
+        eventType: e.eventType,
+        eventCategory: e.eventCategory,
+        policyId: e.policyId,
+        properties: e.properties,
+        createdAt: e.createdAt,
       })),
     };
 
-    return NextResponse.json(exportData);
+    // Return as a downloadable JSON file
+    const json = JSON.stringify(exportData, null, 2);
+    return new NextResponse(json, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Disposition": `attachment; filename="clearpolicy-export-${new Date().toISOString().slice(0, 10)}.json"`,
+      },
+    });
   } catch (e) {
     console.error("[api/settings/export]", e);
     return NextResponse.json(
