@@ -62,88 +62,55 @@ export default function Header() {
 
   return (
     <>
-      <header className={cn("cp-site-header sticky top-0 z-50 transition-all duration-300", scrolled ? "py-2" : "py-3")}>
-        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12">
-          <nav
-            className={cn(
-              "glass-nav flex items-center gap-4 rounded-2xl px-5 py-3 transition-all duration-300",
-              scrolled && "glass-nav--scrolled rounded-xl"
-            )}
-          >
+      <header
+        className={cn(
+          "cp-site-header fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out",
+          scrolled ? "cp-header--scrolled" : "cp-header--top"
+        )}
+      >
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
+          <nav className="flex items-center gap-4 h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg px-1">
-              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={32} height={32} className="flex-shrink-0 object-contain" />
-              <span className="font-heading text-lg font-bold tracking-tight text-[var(--cp-text)] hidden sm:inline">
+            <Link href="/" className="flex items-center gap-2.5 focus-ring rounded-lg">
+              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={30} height={30} className="flex-shrink-0 object-contain" />
+              <span className="font-heading text-[17px] font-bold tracking-tight text-[var(--cp-text)] hidden sm:inline">
                 ClearPolicy
               </span>
             </Link>
 
-            {/* Search — desktop */}
-            <form
-              className="hidden md:flex flex-1 max-w-md mx-auto"
-              role="search"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!q.trim()) return;
-                router.push(`/search?q=${encodeURIComponent(q.trim())}`);
-              }}
-            >
-              <div className="relative w-full group">
-                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--cp-tertiary)] group-focus-within:text-[var(--cp-accent)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search any policy or bill..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-[var(--cp-surface-2)] border-2 border-transparent text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:border-[var(--cp-accent)] focus:bg-[var(--cp-surface)] transition-all"
-                />
-              </div>
-            </form>
-
-            {/* Nav links — desktop */}
-            <div className="hidden md:flex items-center gap-1 ml-auto">
+            {/* Nav links — desktop (centered) */}
+            <div className="hidden md:flex items-center gap-0.5 ml-auto">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all focus-ring"
+                  className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-white/40 dark:hover:bg-white/5 transition-all focus-ring"
                 >
                   {link.label}
                 </Link>
               ))}
               {hasClerkKey && (
                 <>
-                  <SignedOut>
-                    <SignUpButton mode="modal">
-                      <button
-                        type="button"
-                        className="rounded-lg px-4 py-2 text-sm font-medium bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring ml-1"
-                      >
-                        Get Started
-                      </button>
-                    </SignUpButton>
-                  </SignedOut>
                   <SignedIn>
                     {authNavLinks.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="rounded-lg px-3.5 py-2 text-sm font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all focus-ring"
+                        className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-white/40 dark:hover:bg-white/5 transition-all focus-ring"
                       >
                         {link.label}
                       </Link>
                     ))}
-                    <div className="ml-1">
-                      <UserButton afterSignOutUrl="/" />
-                    </div>
                   </SignedIn>
                 </>
               )}
+            </div>
+
+            {/* Right side — actions */}
+            <div className="hidden md:flex items-center gap-2 ml-4">
               <button
                 onClick={toggleDark}
-                className="rounded-lg p-2.5 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all ml-1"
+                className="rounded-lg p-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-white/40 dark:hover:bg-white/5 transition-all"
                 aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {dark ? (
@@ -157,6 +124,25 @@ export default function Header() {
                   </svg>
                 )}
               </button>
+              {hasClerkKey && (
+                <>
+                  <SignedOut>
+                    <SignUpButton mode="modal">
+                      <button
+                        type="button"
+                        className="rounded-full px-5 py-2 text-[13px] font-semibold bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring shadow-sm"
+                      >
+                        Get Started
+                      </button>
+                    </SignUpButton>
+                  </SignedOut>
+                  <SignedIn>
+                    <div className="ml-0.5">
+                      <UserButton afterSignOutUrl="/" />
+                    </div>
+                  </SignedIn>
+                </>
+              )}
             </div>
 
             {/* Mobile controls */}
@@ -182,6 +168,9 @@ export default function Header() {
           </nav>
         </div>
       </header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-16 cp-site-header-spacer" />
 
       {/* Mobile menu */}
       {mobileMenuOpen && (

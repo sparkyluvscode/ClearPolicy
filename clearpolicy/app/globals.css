@@ -8,12 +8,12 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-  /* Backgrounds — warm beige with a hint of dark olive, dimmed for less eye strain */
-  --cp-bg: #D9DBD2;
-  --cp-surface: rgba(255, 255, 255, 0.6);
-  --cp-surface-2: rgba(236, 238, 230, 0.88);
-  --cp-hover: rgba(242, 244, 236, 0.92);
-  --cp-doc: rgba(248, 250, 243, 0.9);
+  /* Backgrounds — clean white with a slight warmth */
+  --cp-bg: #FAFAFA;
+  --cp-surface: rgba(255, 255, 255, 0.85);
+  --cp-surface-2: rgba(252, 252, 251, 0.95);
+  --cp-hover: rgba(248, 248, 248, 0.95);
+  --cp-doc: rgba(255, 255, 255, 0.95);
 
   /* Text */
   --cp-text: #1A1A1A;
@@ -37,7 +37,7 @@
   --cp-ring: rgba(74, 123, 186, 0.2);
   --cp-glass-highlight: rgba(255, 255, 255, 0.5);
   --cp-glass-tint: rgba(255, 255, 255, 0.1);
-  --cp-nav: rgba(217, 219, 210, 0.78);
+  --cp-nav: rgba(250, 250, 250, 0.9);
 
   /* Shadows — soft, warm */
   --cp-shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.05);
@@ -162,6 +162,28 @@ a { color: var(--cp-accent); }
     -webkit-backdrop-filter: blur(16px) saturate(130%);
   }
 
+  /* ── Full-width header: transparent at top, glass on scroll ── */
+  .cp-header--top {
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    box-shadow: none;
+  }
+
+  .cp-header--scrolled {
+    background: rgba(250, 250, 250, 0.72);
+    border-bottom: 1px solid var(--cp-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.03);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  html.dark .cp-header--scrolled {
+    background: rgba(30, 30, 28, 0.72);
+    border-bottom: 1px solid var(--cp-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Legacy class kept for other glass elements */
   .glass-nav {
     position: relative;
     overflow: hidden;
@@ -179,9 +201,6 @@ a { color: var(--cp-accent); }
     background: linear-gradient(180deg, var(--cp-glass-highlight), transparent 70%);
     opacity: 0.5;
     pointer-events: none;
-  }
-  .glass-nav--scrolled {
-    box-shadow: var(--cp-shadow-card);
   }
 
   .glass-input {
@@ -279,6 +298,7 @@ a { color: var(--cp-accent); }
 
 /* ─── Immersive mode: hides the normal site chrome when search is active ─── */
 body.cp-immersive .cp-site-header,
+body.cp-immersive .cp-site-header-spacer,
 body.cp-immersive .cp-site-footer,
 body.cp-immersive .cp-site-warning {
   display: none !important;
