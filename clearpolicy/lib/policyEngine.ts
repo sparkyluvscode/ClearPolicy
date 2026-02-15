@@ -45,31 +45,39 @@ async function generateGeneralAnswer(
 ): Promise<Answer> {
   const prompt = `The user asked: "${query}"
 
-This is a general knowledge question (not specifically about policy or legislation).
-Provide a helpful, factual, and concise answer. Return ONLY valid JSON (no markdown):
+This is a general knowledge question. Provide a thorough, insightful, and well-structured answer that a curious, intelligent person would find genuinely useful. Go beyond surface-level — include context, nuance, relevant history, and "why it matters."
+
+Return ONLY valid JSON (no markdown):
 {
-  "title": "Short descriptive title",
-  "category": "One short category (e.g. 'People', 'Science', 'History')",
-  "answer": "A clear, thorough 2-5 sentence answer to the question.",
-  "keyFacts": ["Fact 1", "Fact 2", "Fact 3"],
+  "title": "Short, compelling descriptive title",
+  "category": "One short category (e.g. 'People', 'Science', 'History', 'Technology')",
+  "answer": "A detailed, well-written 4-8 sentence answer. Don't just state facts — explain them. Include context, significance, and connections that make the answer genuinely interesting and useful. Write in clear, engaging prose.",
+  "keyFacts": ["Substantive fact with context 1", "Substantive fact with context 2", "Substantive fact with context 3", "Substantive fact with context 4", "Substantive fact with context 5"],
   "sources": [
     { "title": "Source name", "url": "https://...", "domain": "domain.com" }
   ]
 }
 
-Rules: Be factual and helpful. If unsure about something, say so. Include 1-3 real sources where applicable.`;
+Rules:
+- Be thorough and insightful, not generic. The user chose this app over Google — reward that choice.
+- Each key fact should be a complete, informative sentence (not just a fragment).
+- Include 5 key facts that give the reader a real understanding of the topic.
+- Provide 2-4 real, reputable sources (government sites, major publications, academic sources preferred).
+- If the query is about a person, include their significance, major achievements, and current relevance.
+- If the query is about an event, include the timeline, causes, effects, and why it matters today.
+- Write as if explaining to an intelligent adult who deserves a complete picture, not a simplified blurb.`;
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: "You are a knowledgeable assistant. Answer general questions clearly and factually. Return only valid JSON.",
+        content: "You are an expert research assistant known for thorough, insightful answers. You explain topics with depth and clarity, always providing context that makes information genuinely useful. Return only valid JSON.",
       },
       { role: "user", content: prompt },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.3,
+    temperature: 0.4,
   });
 
   const content = completion.choices[0]?.message?.content;
@@ -127,29 +135,38 @@ export async function generatePolicyAnswer(
     }
   }
 
-  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include brief local relevance if applicable.` : "";
+  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include specific local relevance — how this policy or legislation concretely affects people in their area.` : "";
 
-  const prompt = `You are a non-partisan civic education assistant. The user asked: "${query}".${zipHint}
+  const prompt = `You are a world-class non-partisan civic education assistant. The user asked: "${query}".${zipHint}
 
-Provide a clear, neutral policy overview in plain English. Return ONLY valid JSON with this exact structure (no markdown, no code fence):
+Your job is to provide the most helpful, insightful, and thorough policy analysis possible — the kind of briefing a journalist, researcher, or engaged citizen would find genuinely valuable. Go beyond surface-level descriptions.
+
+Return ONLY valid JSON with this exact structure (no markdown, no code fence):
 {
-  "policyName": "Short title for this topic (e.g. 'SECURE Act and retirement savings')",
+  "policyName": "Clear, descriptive title (e.g. 'California Proposition 36 (2024): Tougher Penalties for Drug and Theft Crimes')",
   "level": "Federal" or "State" or "Local",
-  "category": "One short category (e.g. 'Retirement', 'Healthcare')",
-  "fullTextSummary": "2-4 sentences summarizing the policy or topic. Be specific and factual.",
+  "category": "One short category (e.g. 'Criminal Justice', 'Healthcare', 'Education')",
+  "fullTextSummary": "A substantive 4-6 sentence overview that captures what this is, why it matters, and what the real-world implications are. Be specific — include dates, numbers, affected populations, and current status where relevant.",
   "sections": {
-    "summary": "Same or slightly expanded summary paragraph.",
-    "keyProvisions": ["Bullet 1", "Bullet 2", "Bullet 3"],
-    "localImpact": { "zipCode": "${zipCode || ""}", "location": "Brief location label", "content": "1-2 sentences on local impact" } or null if no ZIP,
-    "argumentsFor": ["Pro 1", "Pro 2"],
-    "argumentsAgainst": ["Con 1", "Con 2"]
+    "summary": "A thorough 4-6 sentence summary. Don't just describe — explain significance, context, and real-world impact. If this is a specific bill or proposition, include its current status (passed/pending/failed), when it was introduced, and its key sponsor(s) if notable.",
+    "keyProvisions": ["Detailed provision 1 — explain what it actually does in practice, not just legal language", "Detailed provision 2 — include specific numbers, thresholds, or requirements where applicable", "Detailed provision 3 — explain who is directly affected and how", "Provision 4 — implementation timeline or effective date if known", "Provision 5 — any exceptions or notable carve-outs"],
+    "localImpact": { "zipCode": "${zipCode || ""}", "location": "City/region name based on ZIP", "content": "2-3 specific sentences about how this affects residents in this area — reference local conditions, demographics, or existing local policies that interact with this." } or null if no ZIP,
+    "argumentsFor": ["Substantive argument with supporting reasoning — explain WHY supporters believe this, not just WHAT they believe", "Another detailed argument — include specific data points, expert opinions, or real-world examples where possible", "A third argument — consider economic, social, or practical benefits"],
+    "argumentsAgainst": ["Substantive counterargument with reasoning — explain the genuine concern, not a strawman", "Another detailed objection — include specific risks, costs, or unintended consequences", "A third argument — consider who bears the costs or downsides"]
   },
   "sources": [
-    { "title": "Source name", "url": "https://...", "domain": "domain.com", "type": "Federal" or "State" or "Local" or "Web" }
+    { "title": "Source name (prefer official government sites, major news outlets, and research institutions)", "url": "https://...", "domain": "domain.com", "type": "Federal" or "State" or "Local" or "Web" }
   ]
 }
 
-Rules: Be neutral and factual. Use your knowledge of real laws and policies when the query references them (e.g. SECURE Act, AB 1482, Prop 47). Include 2-4 real or plausible sources. If no ZIP, omit localImpact or set to null.`;
+Critical rules:
+- Be NEUTRAL and FACTUAL, but also substantive. Shallow answers are worse than no answer.
+- Use your knowledge of real laws and policies. When referencing specific legislation (e.g. SECURE Act, AB 1482, Prop 36), include the actual year, sponsor, and current status.
+- Each key provision should be a complete, informative sentence that helps someone understand what will actually change.
+- Arguments for and against should be steel-manned — represent each side's BEST case, not a caricature.
+- Include 3-5 real, reputable sources. Prefer .gov, major news outlets (NYT, AP, Reuters, Politico), and research institutions.
+- If the query references a specific bill number or proposition, be precise about what it does — don't generalize.
+- The user chose this app to understand policy better than they could from a Google search. Deliver on that promise.`;
 
   try {
     const completion = await client.chat.completions.create({
@@ -157,12 +174,12 @@ Rules: Be neutral and factual. Use your knowledge of real laws and policies when
       messages: [
         {
           role: "system",
-          content: "You are a non-partisan policy explainer. Return only valid JSON with the exact keys requested. No markdown or extra text.",
+          content: "You are a world-class non-partisan policy analyst who provides thorough, insightful briefings. You explain complex policy in clear language while preserving important nuance. You always include specific details — dates, numbers, affected populations — rather than vague generalities. Return only valid JSON with the exact keys requested. No markdown or extra text.",
         },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3,
+      temperature: 0.4,
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -245,12 +262,12 @@ export async function generateFollowUpAnswer(
   }
 
   const historyBlock = history
-    .slice(-6)
-    .map((h) => `${h.role}: ${h.content.slice(0, 200)}`)
+    .slice(-8)
+    .map((h) => `${h.role}: ${h.content.slice(0, 400)}`)
     .join("\n");
-  const personaHint = persona && persona !== "general" ? ` Tailor the answer for a ${persona} perspective.` : "";
+  const personaHint = persona && persona !== "general" ? ` Tailor the answer specifically for a ${persona}'s perspective — focus on aspects that directly affect them.` : "";
 
-  const prompt = `You are a non-partisan civic education assistant. The user is asking a follow-up question in the context of an existing policy conversation.
+  const prompt = `You are a world-class non-partisan civic education assistant. The user is asking a follow-up question in the context of an existing policy conversation. Your job is to provide a thorough, insightful answer that genuinely advances their understanding.
 
 Previous context (recent messages):
 ${historyBlock}
@@ -259,26 +276,32 @@ Follow-up question: "${message}"${personaHint}
 
 Return ONLY valid JSON (no markdown):
 {
-  "policyName": "Short heading for this follow-up (e.g. 'Local implications')",
-  "fullTextSummary": "2-4 sentences answering the follow-up. Be specific and neutral.",
+  "policyName": "Clear, descriptive heading for this follow-up (e.g. 'How Proposition 36 Affects Renters in California')",
+  "fullTextSummary": "A substantive 4-6 sentence answer that directly addresses the follow-up question. Include specific details, examples, data points, or expert perspectives. Don't repeat what was already said — build on it with new information and deeper analysis.",
   "sections": {
-    "summary": "Same or slightly expanded.",
-    "keyProvisions": ["Point 1", "Point 2", "Point 3"],
-    "argumentsFor": ["Pro 1", "Pro 2"],
-    "argumentsAgainst": ["Con 1", "Con 2"]
+    "summary": "A thorough 4-6 sentence answer. Be specific and actionable. If the user asks about impact, give concrete examples. If they ask about arguments, steel-man both sides. If they ask for comparison, highlight specific differences.",
+    "keyProvisions": ["Detailed point 1 — substantive and specific", "Detailed point 2 — with context or data", "Detailed point 3 — with real-world implications", "Point 4 if relevant"],
+    "argumentsFor": ["Substantive supporting argument with reasoning", "Another well-reasoned point with evidence"],
+    "argumentsAgainst": ["Substantive counterargument with reasoning", "Another genuine concern with specifics"]
   },
-  "suggestions": ["Suggested follow-up question 1", "Suggested follow-up question 2", "Suggested follow-up question 3"]
-}`;
+  "suggestions": ["Thoughtful follow-up question that goes deeper into an interesting aspect", "A question that explores a different angle or affected group", "A practical question about implementation or timeline"]
+}
+
+Rules:
+- Don't repeat content from previous messages. Build on what's already been discussed.
+- Be specific — use real numbers, dates, affected populations, and concrete examples.
+- The follow-up suggestions should be genuinely interesting questions that a curious person would want to ask next.
+- If the question is about impact on a specific group, explain the mechanisms — not just "it affects them" but HOW and WHY.`;
 
   try {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a non-partisan policy explainer. Return only valid JSON." },
+        { role: "system", content: "You are a world-class non-partisan policy analyst. You provide thorough, specific, and genuinely insightful answers. You never give vague or generic responses. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3,
+      temperature: 0.4,
     });
 
     const content = completion.choices[0]?.message?.content;

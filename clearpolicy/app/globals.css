@@ -8,12 +8,12 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-  /* Backgrounds — clean white with a slight warmth */
-  --cp-bg: #FAFAFA;
-  --cp-surface: rgba(255, 255, 255, 0.85);
-  --cp-surface-2: rgba(252, 252, 251, 0.95);
-  --cp-hover: rgba(248, 248, 248, 0.95);
-  --cp-doc: rgba(255, 255, 255, 0.95);
+  /* Backgrounds — OpenNote-style off-white (#FAF9F6) */
+  --cp-bg: #FAF9F6;
+  --cp-surface: rgba(255, 253, 250, 0.9);
+  --cp-surface-2: rgba(252, 251, 248, 0.95);
+  --cp-hover: rgba(248, 247, 244, 0.95);
+  --cp-doc: rgba(255, 253, 250, 0.95);
 
   /* Text */
   --cp-text: #1A1A1A;
@@ -37,7 +37,7 @@
   --cp-ring: rgba(74, 123, 186, 0.2);
   --cp-glass-highlight: rgba(255, 255, 255, 0.5);
   --cp-glass-tint: rgba(255, 255, 255, 0.1);
-  --cp-nav: rgba(250, 250, 250, 0.9);
+  --cp-nav: rgba(250, 249, 246, 0.9);
 
   /* Shadows — soft, warm */
   --cp-shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.05);
@@ -170,7 +170,7 @@ a { color: var(--cp-accent); }
   }
 
   .cp-header--scrolled {
-    background: rgba(250, 250, 250, 0.72);
+    background: rgba(250, 249, 246, 0.82);
     border-bottom: 1px solid var(--cp-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.03);
     backdrop-filter: blur(20px) saturate(140%);

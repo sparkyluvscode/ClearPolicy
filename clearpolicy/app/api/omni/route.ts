@@ -15,12 +15,26 @@ async function saveConversation(
 ): Promise<string | null> {
   try {
     // Dynamic import so middleware edge runtime doesn't choke on Clerk server
-    const { auth } = await import("@clerk/nextjs/server");
+    const { auth, currentUser } = await import("@clerk/nextjs/server");
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return null;
 
-    const user = await prisma.user.findUnique({ where: { clerkUserId } });
-    if (!user) return null;
+    // Find or create user in DB (handles first-time users automatically)
+    let user = await prisma.user.findUnique({ where: { clerkUserId } });
+    if (!user) {
+      const clerkUser = await currentUser();
+      const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${clerkUserId}@clerk`;
+      user = await prisma.user.create({
+        data: {
+          clerkUserId,
+          email,
+          fullName: clerkUser?.firstName
+            ? `${clerkUser.firstName}${clerkUser.lastName ? " " + clerkUser.lastName : ""}`
+            : null,
+          avatarUrl: clerkUser?.imageUrl ?? null,
+        },
+      });
+    }
 
     const conversation = await prisma.conversation.create({
       data: {

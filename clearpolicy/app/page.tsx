@@ -15,6 +15,29 @@ const EXAMPLE_QUERIES = [
   "What are local zoning laws in Sacramento?",
 ];
 
+function getGreeting(name: string): string {
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay(); // 0 = Sunday
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  // Time-based greetings
+  const greetings: string[] = [];
+  if (hour < 12) greetings.push(`Good morning, ${name}`);
+  else if (hour < 17) greetings.push(`Good afternoon, ${name}`);
+  else greetings.push(`Good evening, ${name}`);
+
+  // Day-based
+  greetings.push(`Happy ${dayNames[day]}, ${name}`);
+
+  // Fun casual ones
+  greetings.push(`Hey ${name}`, `Hi ${name}`, `Welcome back, ${name}`);
+
+  // Pick deterministically based on the day of the year so it changes daily but is stable within the day
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+  return greetings[dayOfYear % greetings.length];
+}
+
 const TOPICS = [
   "Healthcare", "Immigration", "Housing", "Education",
   "Climate", "Economy", "Criminal Justice", "Technology",
@@ -25,7 +48,7 @@ interface ClarifyQuestion { question: string; options: string[]; }
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isSignedIn, openSignUp } = useAuthGate();
+  const { isSignedIn, firstName, openSignUp } = useAuthGate();
   const [query, setQuery] = useState("");
   const [zip, setZip] = useState("");
   const [debateMode, setDebateMode] = useState(false);
@@ -177,20 +200,31 @@ function HomeContent() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 animate-fade-in">
 
-      {/* Hero */}
-      <div className="text-center mb-10 max-w-3xl mx-auto animate-fade-up" style={{ paddingTop: "5rem" }}>
-        <h1 className="font-heading text-5xl sm:text-[64px] font-extrabold text-[var(--cp-text)] tracking-tight mb-5 leading-[1.1]">
-          Policy research that
-          <br />
-          <span className="text-[var(--cp-accent)]">actually explains things</span>
-        </h1>
-        <p className="text-lg sm:text-xl text-[var(--cp-muted)] max-w-xl mx-auto leading-relaxed">
-          Ask about any law or bill and get plain-English answers with sources — plus what it means for your ZIP code.
-        </p>
-        <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--cp-tertiary)]">
-          Non-partisan &middot; Every claim cited &middot; Used by students, journalists, and voters
-        </p>
-      </div>
+      {/* Hero — personalized when signed in, marketing when signed out */}
+      {isSignedIn && firstName ? (
+        <div className="text-center mb-10 max-w-3xl mx-auto animate-fade-up" style={{ paddingTop: "5rem" }}>
+          <h1 className="font-heading text-4xl sm:text-5xl font-bold text-[var(--cp-text)] tracking-tight mb-3 leading-[1.15]">
+            {getGreeting(firstName)}
+          </h1>
+          <p className="text-lg text-[var(--cp-muted)] max-w-md mx-auto leading-relaxed">
+            What policy would you like to explore today?
+          </p>
+        </div>
+      ) : (
+        <div className="text-center mb-10 max-w-3xl mx-auto animate-fade-up" style={{ paddingTop: "5rem" }}>
+          <h1 className="font-heading text-5xl sm:text-[64px] font-extrabold text-[var(--cp-text)] tracking-tight mb-5 leading-[1.1]">
+            Policy research that
+            <br />
+            <span className="text-[var(--cp-accent)]">actually explains things</span>
+          </h1>
+          <p className="text-lg sm:text-xl text-[var(--cp-muted)] max-w-xl mx-auto leading-relaxed">
+            Ask about any law or bill and get plain-English answers with sources — plus what it means for your ZIP code.
+          </p>
+          <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--cp-tertiary)]">
+            Non-partisan &middot; Every claim cited &middot; Used by students, journalists, and voters
+          </p>
+        </div>
+      )}
 
       {/* Search Box — liquid glass */}
       <div className="w-full max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: "100ms" }}>

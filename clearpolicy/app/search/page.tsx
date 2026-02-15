@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
+import { simplify } from "@/lib/reading";
 import type {
   OmniResponse, Source, AnswerSection, PerspectiveView, RhetoricCheck, Persona,
 } from "@/lib/omni-types";
@@ -12,6 +13,13 @@ import { PERSONA_LABELS } from "@/lib/omni-types";
 
 const ALL_PERSONAS: Persona[] = [
   "general", "student", "homeowner", "small_biz", "renter", "immigrant", "parent",
+];
+
+type ReadingLevel = "5" | "8" | "12";
+const READING_LEVELS: { level: ReadingLevel; label: string }[] = [
+  { level: "5", label: "Simple" },
+  { level: "8", label: "Standard" },
+  { level: "12", label: "Detailed" },
 ];
 
 interface ConversationCard {
@@ -53,6 +61,8 @@ function SearchResultsContent() {
   const [followUpQuery, setFollowUpQuery] = useState("");
   const [persona, setPersona] = useState<Persona>("general");
   const [personaLoading, setPersonaLoading] = useState(false);
+  const [readingLevel, setReadingLevel] = useState<ReadingLevel>("8");
+  const [rawCards, setRawCards] = useState<ConversationCard[]>([]);
   const [entered, setEntered] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -152,13 +162,15 @@ function SearchResultsContent() {
           "Compare to similar policies",
         ];
 
-        setCards([{
+        const newCard: ConversationCard = {
           id: "card-0", heading: result.title, cardType,
           sections: result.sections,
           followUpSuggestions: followUps.slice(0, 3),
           perspectives: result.perspectives,
           rhetoricCheck: result.rhetoricCheck,
-        }]);
+        };
+        setRawCards([newCard]);
+        setCards([newCard]);
         setConversationHistory([
           { role: "user", content: q },
           { role: "assistant", content: result.tldr || result.title },
@@ -200,12 +212,14 @@ function SearchResultsContent() {
       const cardType = (fd.cardType === "verified" || fd.cardType === "debate" || fd.cardType === "document"
         ? fd.cardType
         : "general") as ConversationCard["cardType"];
-      setCards(prev => [...prev, {
-        id: `card-${prev.length}`, userQuery: displayQuery,
+      const newFollowUp = {
+        id: `card-${cards.length}`, userQuery: displayQuery,
         heading: fd.heading, cardType,
         sections: fd.sections,
         followUpSuggestions: fd.followUpSuggestions || [],
-      }]);
+      };
+      setRawCards(prev => [...prev, newFollowUp]);
+      setCards(prev => [...prev, applyReadingLevel(newFollowUp, readingLevel)]);
       setConversationHistory(prev => [
         ...prev,
         { role: "user", content: q.trim() },
@@ -220,6 +234,23 @@ function SearchResultsContent() {
   function handleExplainThis(selectedText: string) {
     const internalQuery = `Explain this in more detail in plain English: "${selectedText}"`;
     handleFollowUp(internalQuery);
+  }
+
+  function applyReadingLevel(card: ConversationCard, level: ReadingLevel): ConversationCard {
+    if (level === "8") return card; // "Standard" = original text, no simplification
+    return {
+      ...card,
+      sections: card.sections.map(s => ({
+        ...s,
+        content: simplify(s.content, level),
+      })),
+    };
+  }
+
+  function handleReadingLevelChange(level: ReadingLevel) {
+    setReadingLevel(level);
+    // Re-derive all cards from raw data at the new reading level
+    setCards(rawCards.map(c => applyReadingLevel(c, level)));
   }
 
   function handlePersonaChange(p: Persona) {
@@ -266,17 +297,18 @@ function SearchResultsContent() {
           </div>
           <div className="flex items-center gap-2">
             {!loading && cards.length > 0 && (
-              <div className="hidden sm:flex items-center gap-1">
-                {ALL_PERSONAS.slice(0, 4).map((p) => (
+              <div className="hidden sm:flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
+                {READING_LEVELS.map((rl) => (
                   <button
-                    key={p}
-                    onClick={() => handlePersonaChange(p)}
-                    disabled={personaLoading}
-                    className={`text-[11px] px-2.5 py-1 rounded-md transition-all ${
-                      persona === p ? "bg-[var(--cp-accent-soft)] text-[var(--cp-accent)] font-medium" : "text-[var(--cp-tertiary)] hover:text-[var(--cp-muted)]"
+                    key={rl.level}
+                    onClick={() => handleReadingLevelChange(rl.level)}
+                    className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
+                      readingLevel === rl.level
+                        ? "bg-white dark:bg-[var(--cp-surface)] text-[var(--cp-text)] shadow-sm"
+                        : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
                     }`}
                   >
-                    {PERSONA_LABELS[p]}
+                    {rl.label}
                   </button>
                 ))}
               </div>

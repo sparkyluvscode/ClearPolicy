@@ -19,11 +19,29 @@ export async function GET() {
       return NextResponse.json({ error: "Sign in to view history" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
+    // Find or create user (handles brand-new accounts gracefully)
+    let user = await prisma.user.findUnique({
       where: { clerkUserId },
     });
     if (!user) {
-      return NextResponse.json({ conversations: [] });
+      try {
+        const { currentUser } = await import("@clerk/nextjs/server");
+        const clerkUser = await currentUser();
+        const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${clerkUserId}@clerk`;
+        user = await prisma.user.create({
+          data: {
+            clerkUserId,
+            email,
+            fullName: clerkUser?.firstName
+              ? `${clerkUser.firstName}${clerkUser.lastName ? " " + clerkUser.lastName : ""}`
+              : null,
+            avatarUrl: clerkUser?.imageUrl ?? null,
+          },
+        });
+      } catch {
+        // If creation fails (race condition, etc.), just return empty
+        return NextResponse.json({ conversations: [] });
+      }
     }
 
     const conversations = await prisma.conversation.findMany({
