@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 import { generateFollowUpAnswer } from "@/lib/policyEngine";
 import { trackEvent } from "@/lib/analytics";
 import { z } from "zod";
@@ -31,17 +31,19 @@ export async function POST(
     }
     const { message, persona } = parsed.data;
 
-    const user = await prisma.user.findUnique({
-      where: { clerkUserId },
-    });
+    const user = await withRetry(() =>
+      prisma.user.findUnique({ where: { clerkUserId } })
+    );
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: { messages: { orderBy: { createdAt: "asc" } } },
-    });
+    const conversation = await withRetry(() =>
+      prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: { messages: { orderBy: { createdAt: "asc" } } },
+      })
+    );
 
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
@@ -61,57 +63,72 @@ export async function POST(
       persona
     );
 
-    const userMessage = await prisma.message.create({
-      data: {
-        conversationId,
-        role: "user",
-        content: message,
-      },
-    });
-
-    const assistantMessage = await prisma.message.create({
-      data: {
-        conversationId,
-        role: "assistant",
-        content: answer.fullTextSummary,
-        answerCardData: JSON.stringify({
-          heading: answer.policyName,
-          sections: answer.sections,
-          fullTextSummary: answer.fullTextSummary,
-        }),
-      },
-    });
-
-    for (let i = 0; i < answer.sources.length; i++) {
-      const s = answer.sources[i];
-      const convSource = await prisma.convSource.upsert({
-        where: { url: s.url },
-        create: {
-          url: s.url,
-          title: s.title,
-          domain: s.domain,
-          sourceType: s.type,
-          verified: s.verified,
-        },
-        update: {},
-      });
-      await prisma.messageSource.create({
+    await withRetry(() =>
+      prisma.message.create({
         data: {
-          messageId: assistantMessage.id,
-          sourceId: convSource.id,
-          citationNumber: i + 1,
+          conversationId,
+          role: "user",
+          content: message,
         },
-      });
+      })
+    );
+
+    const assistantMessage = await withRetry(() =>
+      prisma.message.create({
+        data: {
+          conversationId,
+          role: "assistant",
+          content: answer.fullTextSummary,
+          answerCardData: JSON.stringify({
+            heading: answer.policyName,
+            sections: answer.sections,
+            fullTextSummary: answer.fullTextSummary,
+          }),
+        },
+      })
+    );
+
+    const validSources = (answer.sources || []).filter(
+      (s) => s.url && s.url !== "https://example.com"
+    );
+    for (let i = 0; i < validSources.length; i++) {
+      const s = validSources[i];
+      try {
+        const convSource = await withRetry(() =>
+          prisma.convSource.upsert({
+            where: { url: s.url },
+            create: {
+              url: s.url,
+              title: s.title,
+              domain: s.domain,
+              sourceType: s.type,
+              verified: s.verified,
+            },
+            update: {},
+          })
+        );
+        await prisma.messageSource.create({
+          data: {
+            messageId: assistantMessage.id,
+            sourceId: convSource.id,
+            citationNumber: i + 1,
+          },
+        });
+      } catch (srcErr) {
+        console.warn("[conversation/message] Failed to save source:", s.url, srcErr);
+      }
     }
 
-    await prisma.conversation.update({
-      where: { id: conversationId },
-      data: {
-        messageCount: conversation.messageCount + 2,
-        lastMessageAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    await withRetry(() =>
+      prisma.conversation.update({
+        where: { id: conversationId },
+        data: {
+          messageCount: conversation.messageCount + 2,
+          lastMessageAt: new Date(),
+          updatedAt: new Date(),
+        },
+      })
+    );
 
     await trackEvent("follow_up_asked", {
       conversationId,

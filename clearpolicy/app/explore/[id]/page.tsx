@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
 import { ExploreClient } from "./ExploreClient";
 
 export const dynamic = "force-dynamic";
@@ -11,21 +12,39 @@ export default async function ExplorePage({
 }) {
   const { id } = await params;
 
-  const conversation = await prisma.conversation.findUnique({
-    where: { id },
-    include: {
-      messages: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          messageSources: {
-            include: { source: true },
+  let clerkUserId: string | null = null;
+  try {
+    const authResult = await auth();
+    clerkUserId = authResult.userId;
+  } catch {
+    // Auth unavailable — treat as unauthenticated
+  }
+
+  if (!clerkUserId) notFound();
+
+  const conversation = await withRetry(() =>
+    prisma.conversation.findUnique({
+      where: { id },
+      include: {
+        messages: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            messageSources: {
+              include: { source: true },
+            },
           },
         },
       },
-    },
-  });
+    })
+  );
 
   if (!conversation) notFound();
+
+  // Verify ownership
+  const user = await withRetry(() =>
+    prisma.user.findUnique({ where: { clerkUserId: clerkUserId! } })
+  );
+  if (!user || conversation.userId !== user.id) notFound();
 
   // Reconstruct the data in the shape the immersive search UI expects
   const sources = Array.from(
@@ -57,15 +76,24 @@ export default async function ExplorePage({
     ).values()
   );
 
-  // Build cards from assistant messages
+  // Build cards from assistant messages with safe JSON parsing
   const cards = conversation.messages
     .filter((m) => m.role === "assistant" && m.answerCardData)
     .map((m, i) => {
-      const data = JSON.parse(m.answerCardData!) as {
+      let data: {
         heading?: string;
         sections?: Record<string, unknown>;
         fullTextSummary?: string;
       };
+      try {
+        data = JSON.parse(m.answerCardData!);
+      } catch {
+        data = {
+          heading: conversation.policyName,
+          sections: {},
+          fullTextSummary: m.content,
+        };
+      }
       const sec = data.sections || {};
       const sections: import("@/lib/omni-types").AnswerSection[] = [];
 
@@ -120,6 +148,16 @@ export default async function ExplorePage({
         });
       }
 
+      // Fallback if no structured sections were extracted
+      if (sections.length === 0 && (data.fullTextSummary || m.content)) {
+        sections.push({
+          heading: "Overview",
+          content: data.fullTextSummary || m.content,
+          citations: [],
+          confidence: "verified" as const,
+        });
+      }
+
       // Find the user message right before this assistant message
       const msgIndex = conversation.messages.indexOf(m);
       const prevUser =
@@ -144,7 +182,6 @@ export default async function ExplorePage({
       };
     });
 
-  // Get the original user query
   const firstUserMsg = conversation.messages.find((m) => m.role === "user");
 
   return (

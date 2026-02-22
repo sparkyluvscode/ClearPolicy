@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 import { z } from "zod";
 
 const PatchSchema = z.object({
@@ -10,11 +10,13 @@ const PatchSchema = z.object({
 });
 
 async function getConversationForUser(conversationId: string, clerkUserId: string) {
-  const user = await prisma.user.findUnique({ where: { clerkUserId } });
+  const user = await withRetry(() =>
+    prisma.user.findUnique({ where: { clerkUserId } })
+  );
   if (!user) return null;
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-  });
+  const conversation = await withRetry(() =>
+    prisma.conversation.findUnique({ where: { id: conversationId } })
+  );
   if (!conversation || conversation.userId !== user.id) return null;
   return conversation;
 }
@@ -41,14 +43,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid body", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const updated = await prisma.conversation.update({
-      where: { id },
-      data: {
-        ...(parsed.data.title !== undefined && { title: parsed.data.title }),
-        ...(parsed.data.isStarred !== undefined && { isStarred: parsed.data.isStarred }),
-        ...(parsed.data.isArchived !== undefined && { isArchived: parsed.data.isArchived }),
-      },
-    });
+    const updated = await withRetry(() =>
+      prisma.conversation.update({
+        where: { id },
+        data: {
+          ...(parsed.data.title !== undefined && { title: parsed.data.title }),
+          ...(parsed.data.isStarred !== undefined && { isStarred: parsed.data.isStarred }),
+          ...(parsed.data.isArchived !== undefined && { isArchived: parsed.data.isArchived }),
+        },
+      })
+    );
 
     return NextResponse.json({ conversation: { id: updated.id, title: updated.title, isStarred: updated.isStarred, isArchived: updated.isArchived } });
   } catch (e) {
@@ -73,7 +77,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prisma.conversation.delete({ where: { id } });
+    await withRetry(() => prisma.conversation.delete({ where: { id } }));
 
     return NextResponse.json({ success: true });
   } catch (e) {

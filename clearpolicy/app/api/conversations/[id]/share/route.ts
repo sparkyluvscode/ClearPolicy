@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 import { randomBytes } from "crypto";
 
 function generateToken(): string {
@@ -19,12 +19,16 @@ export async function POST(
 
     const { id } = await context.params;
 
-    const user = await prisma.user.findUnique({ where: { clerkUserId } });
+    const user = await withRetry(() =>
+      prisma.user.findUnique({ where: { clerkUserId } })
+    );
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
-    const conversation = await prisma.conversation.findUnique({ where: { id } });
+    const conversation = await withRetry(() =>
+      prisma.conversation.findUnique({ where: { id } })
+    );
     if (!conversation || conversation.userId !== user.id) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -37,10 +41,12 @@ export async function POST(
     }
 
     const token = generateToken();
-    await prisma.conversation.update({
-      where: { id },
-      data: { shareToken: token },
-    });
+    await withRetry(() =>
+      prisma.conversation.update({
+        where: { id },
+        data: { shareToken: token },
+      })
+    );
 
     return NextResponse.json({
       shareToken: token,

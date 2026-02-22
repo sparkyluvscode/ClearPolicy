@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -19,43 +19,47 @@ export async function GET() {
       return NextResponse.json({ error: "Sign in to view history" }, { status: 401 });
     }
 
-    // Find or create user (handles brand-new accounts gracefully)
-    let user = await prisma.user.findUnique({
-      where: { clerkUserId },
-    });
+    let user = await withRetry(() =>
+      prisma.user.findUnique({ where: { clerkUserId } })
+    );
+
     if (!user) {
       try {
         const { currentUser } = await import("@clerk/nextjs/server");
         const clerkUser = await currentUser();
         const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${clerkUserId}@clerk`;
-        user = await prisma.user.create({
-          data: {
-            clerkUserId,
-            email,
-            fullName: clerkUser?.firstName
-              ? `${clerkUser.firstName}${clerkUser.lastName ? " " + clerkUser.lastName : ""}`
-              : null,
-            avatarUrl: clerkUser?.imageUrl ?? null,
-          },
-        });
-      } catch {
-        // If creation fails (race condition, etc.), just return empty
+        user = await withRetry(() =>
+          prisma.user.create({
+            data: {
+              clerkUserId,
+              email,
+              fullName: clerkUser?.firstName
+                ? `${clerkUser.firstName}${clerkUser.lastName ? " " + clerkUser.lastName : ""}`
+                : null,
+              avatarUrl: clerkUser?.imageUrl ?? null,
+            },
+          })
+        );
+      } catch (createErr) {
+        console.warn("[api/conversations] User creation failed:", createErr);
         return NextResponse.json({ conversations: [] });
       }
     }
 
-    const conversations = await prisma.conversation.findMany({
-      where: { userId: user.id },
-      orderBy: { lastMessageAt: "desc" },
-      take: 50,
-      select: {
-        id: true,
-        title: true,
-        policyName: true,
-        updatedAt: true,
-        isStarred: true,
-      },
-    });
+    const conversations = await withRetry(() =>
+      prisma.conversation.findMany({
+        where: { userId: user!.id, isArchived: false },
+        orderBy: { lastMessageAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          title: true,
+          policyName: true,
+          updatedAt: true,
+          isStarred: true,
+        },
+      })
+    );
 
     const list: ConversationListItem[] = conversations.map((c) => ({
       id: c.id,
@@ -69,7 +73,7 @@ export async function GET() {
   } catch (e) {
     console.error("[api/conversations]", e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed" },
+      { error: e instanceof Error ? e.message : "Failed to load conversations" },
       { status: 500 }
     );
   }

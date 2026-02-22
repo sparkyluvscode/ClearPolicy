@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generatePolicyAnswer, generateDebateAnswer } from "@/lib/policyEngine";
 import { classifyQuery } from "@/lib/omni-classifier";
 import { matchKnownSummary } from "@/lib/known-summaries";
-import { prisma } from "@/lib/db";
+import { prisma, withRetry } from "@/lib/db";
 import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
 
@@ -21,81 +21,96 @@ async function saveConversation(
     if (!clerkUserId) return null;
 
     // Find or create user in DB (handles first-time users automatically)
-    let user = await prisma.user.findUnique({ where: { clerkUserId } });
+    let user = await withRetry(() =>
+      prisma.user.findUnique({ where: { clerkUserId } })
+    );
     if (!user) {
       const clerkUser = await currentUser();
       const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${clerkUserId}@clerk`;
-      user = await prisma.user.create({
-        data: {
-          clerkUserId,
-          email,
-          fullName: clerkUser?.firstName
-            ? `${clerkUser.firstName}${clerkUser.lastName ? " " + clerkUser.lastName : ""}`
-            : null,
-          avatarUrl: clerkUser?.imageUrl ?? null,
-        },
-      });
+      user = await withRetry(() =>
+        prisma.user.create({
+          data: {
+            clerkUserId,
+            email,
+            fullName: clerkUser?.firstName
+              ? `${clerkUser.firstName}${clerkUser.lastName ? " " + clerkUser.lastName : ""}`
+              : null,
+            avatarUrl: clerkUser?.imageUrl ?? null,
+          },
+        })
+      );
     }
 
-    const conversation = await prisma.conversation.create({
-      data: {
-        userId: user.id,
-        policyId: answer.policyId,
-        policyName: answer.policyName,
-        policyLevel: answer.level,
-        policyCategory: answer.category,
-        title: answer.policyName.slice(0, 120),
-        zipCode: zip ?? null,
-        messageCount: 2,
-        lastMessageAt: new Date(),
-      },
-    });
-
-    // User message
-    await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "user",
-        content: query,
-      },
-    });
-
-    // Assistant message (with full answer data for re-rendering)
-    const assistantMsg = await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content: answer.fullTextSummary,
-        answerCardData: JSON.stringify({
-          heading: answer.policyName,
-          sections: answer.sections,
-          fullTextSummary: answer.fullTextSummary,
-        }),
-      },
-    });
-
-    // Save sources + link to assistant message
-    for (let i = 0; i < answer.sources.length; i++) {
-      const s = answer.sources[i];
-      if (!s.url || s.url === "https://example.com") continue;
-      const convSource = await prisma.convSource.upsert({
-        where: { url: s.url },
-        create: {
-          url: s.url,
-          title: s.title,
-          domain: s.domain,
-          sourceType: s.type,
-          verified: s.verified,
-        },
-        update: {},
-      });
-      await prisma.messageSource.create({
+    const conversation = await withRetry(() =>
+      prisma.conversation.create({
         data: {
-          messageId: assistantMsg.id,
-          sourceId: convSource.id,
-          citationNumber: i + 1,
+          userId: user!.id,
+          policyId: answer.policyId,
+          policyName: answer.policyName,
+          policyLevel: answer.level,
+          policyCategory: answer.category,
+          title: answer.policyName.slice(0, 120),
+          zipCode: zip ?? null,
+          messageCount: 2,
+          lastMessageAt: new Date(),
         },
-      });
+      })
+    );
+
+    await withRetry(() =>
+      prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: "user",
+          content: query,
+        },
+      })
+    );
+
+    const assistantMsg = await withRetry(() =>
+      prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: answer.fullTextSummary,
+          answerCardData: JSON.stringify({
+            heading: answer.policyName,
+            sections: answer.sections,
+            fullTextSummary: answer.fullTextSummary,
+          }),
+        },
+      })
+    );
+
+    const validSources = (answer.sources || []).filter(
+      (s) => s.url && s.url !== "https://example.com"
+    );
+    for (let i = 0; i < validSources.length; i++) {
+      const s = validSources[i];
+      try {
+        const convSource = await withRetry(() =>
+          prisma.convSource.upsert({
+            where: { url: s.url },
+            create: {
+              url: s.url,
+              title: s.title,
+              domain: s.domain,
+              sourceType: s.type,
+              verified: s.verified,
+            },
+            update: {},
+          })
+        );
+        await prisma.messageSource.create({
+          data: {
+            messageId: assistantMsg.id,
+            sourceId: convSource.id,
+            citationNumber: i + 1,
+          },
+        });
+      } catch (srcErr) {
+        console.warn("[omni] Failed to save source:", s.url, srcErr);
+      }
     }
 
     return conversation.id;
