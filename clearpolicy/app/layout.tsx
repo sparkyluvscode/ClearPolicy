@@ -5,6 +5,9 @@ import { Inter, Libre_Baskerville } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthGateProvider } from "@/components/AuthGateProvider";
+import { ToastProvider } from "@/components/Toast";
+import { WelcomeModal } from "@/components/WelcomeModal";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import Script from "next/script";
 
 const inter = Inter({
@@ -20,9 +23,17 @@ const libreBaskerville = Libre_Baskerville({
   display: "swap",
 });
 
+import type { Viewport } from "next";
+
 export const metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME || "ClearPolicy",
   description: "Non-partisan civic education: understand policy quickly with sources.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -59,9 +70,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Script id="cp-theme-init" strategy="beforeInteractive">
           {`(function(){try{var s=localStorage.getItem('cp_theme');var el=document.documentElement;if(s){var dark=s==='dark';if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(prefersDark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
         </Script>
-        <div className="relative z-10">
-          {hasClerkKey ? <AuthGateProvider>{inner}</AuthGateProvider> : inner}
-        </div>
+        <ToastProvider>
+          <div className="relative z-10">
+            {hasClerkKey ? <AuthGateProvider>{inner}</AuthGateProvider> : inner}
+          </div>
+          <WelcomeModal />
+          <KeyboardShortcuts />
+        </ToastProvider>
       </body>
     </html>
   );

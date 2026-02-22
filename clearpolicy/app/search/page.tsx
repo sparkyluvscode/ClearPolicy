@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
 import { simplify } from "@/lib/reading";
+import { useToast } from "@/components/Toast";
 import type {
   OmniResponse, Source, AnswerSection, PerspectiveView, RhetoricCheck, Persona,
 } from "@/lib/omni-types";
@@ -53,6 +54,8 @@ function SearchResultsContent() {
   const [policyLevel, setPolicyLevel] = useState("");
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
 
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +136,7 @@ function SearchResultsContent() {
           body: JSON.stringify(body), signal: controller.signal,
         });
         const text = await res.text();
-        let data: { success?: boolean; error?: string; data?: OmniResponse };
+        let data: { success?: boolean; error?: string; data?: OmniResponse; conversationId?: string };
         try {
           data = JSON.parse(text);
         } catch {
@@ -143,6 +146,7 @@ function SearchResultsContent() {
         if (!data.data) throw new Error("No data returned");
 
         const result: OmniResponse = data.data;
+        if (data.conversationId) setConversationId(data.conversationId);
         setSources(result.sources);
         setPolicyName(result.title);
         setPolicyLevel(
@@ -297,25 +301,74 @@ function SearchResultsContent() {
           </div>
           <div className="flex items-center gap-2">
             {!loading && cards.length > 0 && (
-              <div className="hidden sm:flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
-                {READING_LEVELS.map((rl) => (
+              <>
+                <div className="hidden sm:flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
+                  {READING_LEVELS.map((rl) => (
+                    <button
+                      key={rl.level}
+                      onClick={() => handleReadingLevelChange(rl.level)}
+                      className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
+                        readingLevel === rl.level
+                          ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm"
+                          : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+                      }`}
+                    >
+                      {rl.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const text = cards.map(c => `${c.heading}\n\n${c.sections.map(s => `${s.heading}\n${s.content}`).join("\n\n")}`).join("\n\n---\n\n");
+                    navigator.clipboard.writeText(text).then(() => toast("Copied to clipboard"));
+                  }}
+                  className="p-2 rounded-lg text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)] transition-all"
+                  aria-label="Copy summary"
+                  title="Copy summary"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                </button>
+                {conversationId && (
                   <button
-                    key={rl.level}
-                    onClick={() => handleReadingLevelChange(rl.level)}
-                    className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
-                      readingLevel === rl.level
-                        ? "bg-white dark:bg-[var(--cp-surface)] text-[var(--cp-text)] shadow-sm"
-                        : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
-                    }`}
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST" });
+                        const data = await res.json();
+                        if (data.url) {
+                          await navigator.clipboard.writeText(data.url);
+                          toast("Share link copied!");
+                        }
+                      } catch { toast("Failed to generate share link"); }
+                    }}
+                    className="p-2 rounded-lg text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)] transition-all"
+                    aria-label="Share"
+                    title="Share link"
                   >
-                    {rl.label}
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                   </button>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Mobile reading level row */}
+      {!loading && cards.length > 0 && (
+        <div className="sm:hidden flex-shrink-0 border-b border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 py-1.5">
+          <div className="flex items-center justify-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
+            {READING_LEVELS.map(rl => (
+              <button
+                key={rl.level}
+                onClick={() => handleReadingLevelChange(rl.level)}
+                className={`flex-1 text-[11px] px-2 py-1 rounded-md transition-all font-medium ${readingLevel === rl.level ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm" : "text-[var(--cp-muted)]"}`}
+              >
+                {rl.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Scrollable Content Area ── */}
       <div ref={scrollRef} data-scroll-container className="flex-1 overflow-y-auto">
@@ -447,7 +500,7 @@ function SearchResultsContent() {
 
       {/* ── Fixed Bottom Input ── */}
       {!loading && cards.length > 0 && (
-        <div className={`flex-shrink-0 border-t border-[var(--cp-border)] bg-[var(--cp-bg)] transition-all duration-500 ease-out delay-200 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
+        <div className={`flex-shrink-0 border-t border-[var(--cp-border)] bg-[var(--cp-bg)] pb-safe transition-all duration-500 ease-out delay-200 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
           <div className="max-w-3xl mx-auto px-5 sm:px-8 py-3">
             <form onSubmit={handleSubmit} className="relative">
               <input
@@ -569,7 +622,7 @@ function SearchResultsContent() {
         <>
           <button
             onClick={() => setMobileSourcesOpen(true)}
-            className="md:hidden fixed bottom-20 right-4 z-[99998] rounded-full p-3 glass-card shadow-elevated text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+            className="md:hidden fixed bottom-24 right-4 z-[99998] rounded-full p-3 glass-card shadow-elevated text-[var(--cp-muted)] hover:text-[var(--cp-text)] mb-safe"
             aria-label="Open sources"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>

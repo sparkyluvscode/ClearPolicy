@@ -232,6 +232,129 @@ Critical rules:
 }
 
 /**
+ * Generate a structured debate brief with multiple named perspectives.
+ */
+export async function generateDebateAnswer(
+  query: string,
+  zipCode?: string | null
+): Promise<{ answer: Answer; perspectives: { label: string; summary: string; thinktank?: string }[] }> {
+  const client = getOpenAI();
+  if (!client) {
+    return {
+      answer: stubAnswer(query, zipCode),
+      perspectives: [],
+    };
+  }
+
+  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}.` : "";
+
+  const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}
+
+Provide a thorough, multi-perspective analysis that would prepare someone for an informed discussion or debate. Present the STRONGEST version of each side's argument (steel-man, not strawman).
+
+Return ONLY valid JSON:
+{
+  "policyName": "Clear title framing the debate (e.g. 'Should the US Adopt Universal Healthcare?')",
+  "level": "Federal" or "State" or "Local",
+  "category": "Short category",
+  "fullTextSummary": "3-4 sentence overview of the debate — what is at stake, why reasonable people disagree, and what the key fault lines are.",
+  "thesis": "One clear sentence framing the central question.",
+  "perspectives": [
+    {
+      "label": "Progressive",
+      "summary": "3-4 sentences presenting the progressive case. Include specific policy proposals, data points, or examples. Explain the underlying values and reasoning.",
+      "thinktank": "Center for American Progress or similar"
+    },
+    {
+      "label": "Conservative",
+      "summary": "3-4 sentences presenting the conservative case. Include specific concerns, data, or historical examples. Explain the underlying values and reasoning.",
+      "thinktank": "Heritage Foundation or similar"
+    },
+    {
+      "label": "Libertarian",
+      "summary": "3-4 sentences presenting the libertarian/free-market case. Focus on individual liberty, market solutions, and government overreach concerns.",
+      "thinktank": "Cato Institute or similar"
+    },
+    {
+      "label": "Pragmatic Center",
+      "summary": "3-4 sentences presenting a centrist or pragmatic view. Focus on compromise positions, evidence-based approaches, and practical trade-offs.",
+      "thinktank": "Brookings Institution or similar"
+    }
+  ],
+  "commonGround": ["Area of agreement 1 — something most sides actually agree on", "Area of agreement 2"],
+  "keyDisagreements": ["Core disagreement 1 — the fundamental value tension", "Core disagreement 2 — the empirical dispute"],
+  "sources": [
+    { "title": "Source", "url": "https://...", "domain": "domain.com", "type": "Web" }
+  ]
+}`;
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are a world-class debate coach and policy analyst. You present every perspective at its strongest. You never take sides but help the user understand ALL viewpoints deeply. Return only valid JSON." },
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.5,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error("Empty AI response");
+
+    const parsed = JSON.parse(content);
+
+    const perspectives: { label: string; summary: string; thinktank?: string }[] =
+      Array.isArray(parsed.perspectives)
+        ? parsed.perspectives.map((p: { label?: string; summary?: string; thinktank?: string }) => ({
+            label: p.label || "Perspective",
+            summary: p.summary || "",
+            thinktank: p.thinktank,
+          }))
+        : [];
+
+    const commonGround: string[] = Array.isArray(parsed.commonGround) ? parsed.commonGround : [];
+    const keyDisagreements: string[] = Array.isArray(parsed.keyDisagreements) ? parsed.keyDisagreements : [];
+
+    const sections: AnswerSection = {
+      summary: parsed.fullTextSummary || "",
+      keyProvisions: parsed.thesis ? [parsed.thesis, ...commonGround] : commonGround,
+      argumentsFor: keyDisagreements,
+      argumentsAgainst: undefined,
+    };
+
+    const rawSources = Array.isArray(parsed.sources) ? parsed.sources : [];
+    const sources: AnswerSource[] = rawSources
+      .filter((s: { url?: string }) => s.url && s.url !== "https://example.com")
+      .slice(0, 6)
+      .map((s: { title?: string; url: string; domain?: string; type?: string }, i: number) => ({
+        id: i + 1,
+        title: s.title || "Source",
+        url: s.url,
+        domain: s.domain || (() => { try { return new URL(s.url).hostname; } catch { return "source"; } })(),
+        type: (["Federal", "State", "Local", "Web"].includes(s.type || "") ? s.type : "Web") as "Federal" | "State" | "Local" | "Web",
+        verified: true,
+      }));
+
+    return {
+      answer: {
+        policyId: `debate-${Date.now()}`,
+        policyName: parsed.policyName || query.slice(0, 100),
+        level: ["Federal", "State", "Local"].includes(parsed.level) ? parsed.level : "Federal",
+        category: parsed.category || "Debate",
+        fullTextSummary: parsed.fullTextSummary || "",
+        sections,
+        sources,
+      },
+      perspectives,
+    };
+  } catch (error) {
+    console.error("Debate engine AI failed:", error);
+    return { answer: stubAnswer(query, zipCode), perspectives: [] };
+  }
+}
+
+/**
  * Generate a follow-up answer using OpenAI when available.
  */
 export async function generateFollowUpAnswer(

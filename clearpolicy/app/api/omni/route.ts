@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generatePolicyAnswer } from "@/lib/policyEngine";
+import { generatePolicyAnswer, generateDebateAnswer } from "@/lib/policyEngine";
+import { classifyQuery } from "@/lib/omni-classifier";
 import { matchKnownSummary } from "@/lib/known-summaries";
 import { prisma } from "@/lib/db";
-import type { OmniResponse, AnswerSection as OmniAnswerSection, Source } from "@/lib/omni-types";
+import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +163,7 @@ function knownSummaryToAnswer(query: string, zipCode: string | null): Answer | n
   };
 }
 
-function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: "general_policy" | "bill_lookup" = "general_policy"): OmniResponse {
+function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string = "general_policy", perspectives?: PerspectiveView[]): OmniResponse {
   const sections: OmniAnswerSection[] = [];
   if (answer.sections.summary) {
     sections.push({
@@ -226,11 +227,12 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: "general
 
   return {
     id: answer.policyId,
-    intent,
+    intent: intent as OmniResponse["intent"],
     title: answer.policyName,
     tldr: answer.fullTextSummary.slice(0, 200),
     sections,
     sources,
+    perspectives,
     persona: (persona as "general") || "general",
     followUps: [
       "What are the main arguments for and against?",
@@ -252,11 +254,29 @@ export async function POST(req: NextRequest) {
     }
     const zip = typeof body?.zip === "string" ? body.zip : undefined;
     const persona = typeof body?.persona === "string" ? body.persona : "general";
+    const debateMode = body?.debateMode === true;
 
-    // Use verified known summaries for CA propositions/bills when available (avoids AI hallucination).
-    const knownAnswer = knownSummaryToAnswer(query, zip ?? null);
-    const answer = knownAnswer ?? (await generatePolicyAnswer(query, zip ?? null));
-    const data = mapPolicyAnswerToOmni(answer, persona);
+    const classified = classifyQuery(query);
+    const useDebate = debateMode || classified.needsDebate;
+
+    let data: OmniResponse;
+    let answer: Answer;
+
+    if (useDebate) {
+      const result = await generateDebateAnswer(query, zip ?? null);
+      answer = result.answer;
+      const perspectives: PerspectiveView[] = result.perspectives.map(p => ({
+        label: p.label,
+        summary: p.summary,
+        citations: [],
+        thinktank: p.thinktank,
+      }));
+      data = mapPolicyAnswerToOmni(answer, persona, "debate_prep", perspectives);
+    } else {
+      const knownAnswer = knownSummaryToAnswer(query, zip ?? null);
+      answer = knownAnswer ?? (await generatePolicyAnswer(query, zip ?? null));
+      data = mapPolicyAnswerToOmni(answer, persona, classified.intent);
+    }
 
     // Save conversation in the background (never blocks the response)
     const conversationId = await saveConversation(query, answer, zip).catch(() => null);

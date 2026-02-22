@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
 import { simplify } from "@/lib/reading";
+import { useToast } from "@/components/Toast";
 import type { Source, AnswerSection } from "@/lib/omni-types";
 
 type ReadingLevel = "5" | "8" | "12";
@@ -52,6 +53,7 @@ export function ExploreClient({
   sources: Source[];
 }) {
   const router = useRouter();
+  const { toast } = useToast();
 
   const [cards, setCards] = useState<ConversationCard[]>(initialCards);
   const [rawCards, setRawCards] = useState<ConversationCard[]>(initialCards);
@@ -122,64 +124,69 @@ export function ExploreClient({
     setCards(rawCards.map(c => applyReadingLevel(c, level)));
   }
 
+  function mapSectionsToOmni(sections: Record<string, unknown>, fullTextSummary: string): AnswerSection[] {
+    const result: AnswerSection[] = [];
+    const summary = sections.summary as string | undefined;
+    if (summary) {
+      result.push({ heading: "Summary", content: summary, citations: [], confidence: "verified" });
+    }
+    const kp = sections.keyProvisions as string[] | undefined;
+    if (kp?.length) {
+      result.push({ heading: "Key points", content: kp.join("\n\n"), citations: [], confidence: "verified" });
+    }
+    const af = sections.argumentsFor as string[] | undefined;
+    if (af?.length) {
+      result.push({ heading: "Arguments for", content: af.map(p => p.trim()).filter(Boolean).join("\n"), citations: [], confidence: "inferred" });
+    }
+    const aa = sections.argumentsAgainst as string[] | undefined;
+    if (aa?.length) {
+      result.push({ heading: "Arguments against", content: aa.map(p => p.trim()).filter(Boolean).join("\n"), citations: [], confidence: "inferred" });
+    }
+    if (result.length === 0) {
+      result.push({ heading: "Follow-up", content: fullTextSummary, citations: [], confidence: "verified" });
+    }
+    return result;
+  }
+
   async function handleFollowUp(q: string) {
     if (!q.trim() || followUpLoading) return;
     setFollowUpLoading(true);
     setFollowUpQuery("");
     try {
-      const res = await fetch("/api/followup", {
+      const res = await fetch(`/api/conversation/${conversationId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: q.trim(),
-          policyName,
-          conversationHistory,
-          sources,
-          zip,
-          persona: "general",
-          readingLevel: "8",
-        }),
+        body: JSON.stringify({ message: q.trim(), persona: "general" }),
       });
-      const text = await res.text();
-      let data: {
-        success?: boolean;
-        error?: string;
-        data?: {
-          heading: string;
-          cardType?: string;
-          sections: AnswerSection[];
-          followUpSuggestions?: string[];
-        };
-      };
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error(res.ok ? "Invalid response" : "Follow-up request failed. Please try again.");
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json) {
+        throw new Error(json?.error || "Follow-up request failed. Please try again.");
       }
-      if (!data.success) throw new Error(data.error || "Follow-up failed");
-      const fd = data.data;
-      if (!fd) throw new Error("No data returned");
+
+      const heading = json.answer?.policyName || "Follow-up";
+      const sections = mapSectionsToOmni(
+        json.answer?.sections || {},
+        json.answer?.fullTextSummary || ""
+      );
+      const followUpSuggestions: string[] = json.followUpSuggestions || [];
 
       const isExplainThis = q.trim().startsWith('Explain this in more detail in plain English: "');
       const displayQuery = isExplainThis ? undefined : q.trim();
 
-      const cardType = (fd.cardType === "verified" || fd.cardType === "debate" || fd.cardType === "document"
-        ? fd.cardType
-        : "general") as ConversationCard["cardType"];
       const newFollowUp: ConversationCard = {
-        id: `card-${cards.length}`,
+        id: json.assistantMessage?.id || `card-${cards.length}`,
         userQuery: displayQuery,
-        heading: fd.heading,
-        cardType,
-        sections: fd.sections,
-        followUpSuggestions: fd.followUpSuggestions || [],
+        heading,
+        cardType: "general",
+        sections,
+        followUpSuggestions,
       };
       setRawCards(prev => [...prev, newFollowUp]);
       setCards(prev => [...prev, applyReadingLevel(newFollowUp, readingLevel)]);
       setConversationHistory(prev => [
         ...prev,
         { role: "user", content: q.trim() },
-        { role: "assistant", content: fd.heading },
+        { role: "assistant", content: heading },
       ]);
       setTimeout(
         () => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }),
@@ -244,25 +251,72 @@ export function ExploreClient({
             </div>
             <div className="flex items-center gap-2">
               {cards.length > 0 && (
-                <div className="hidden sm:flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
-                  {READING_LEVELS.map(rl => (
-                    <button
-                      key={rl.level}
-                      onClick={() => handleReadingLevelChange(rl.level)}
-                      className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
-                        readingLevel === rl.level
-                          ? "bg-white dark:bg-[var(--cp-surface)] text-[var(--cp-text)] shadow-sm"
-                          : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
-                      }`}
-                    >
-                      {rl.label}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="hidden sm:flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
+                    {READING_LEVELS.map(rl => (
+                      <button
+                        key={rl.level}
+                        onClick={() => handleReadingLevelChange(rl.level)}
+                        className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
+                          readingLevel === rl.level
+                            ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm"
+                            : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+                        }`}
+                      >
+                        {rl.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => {
+                      const text = cards.map(c => `${c.heading}\n\n${c.sections.map(s => `${s.heading}\n${s.content}`).join("\n\n")}`).join("\n\n---\n\n");
+                      navigator.clipboard.writeText(text).then(() => toast("Copied to clipboard"));
+                    }}
+                    className="p-2 rounded-lg text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)] transition-all"
+                    aria-label="Copy summary"
+                    title="Copy summary"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST" });
+                        const data = await res.json();
+                        if (data.url) {
+                          await navigator.clipboard.writeText(data.url);
+                          toast("Share link copied!");
+                        }
+                      } catch { toast("Failed to generate share link"); }
+                    }}
+                    className="p-2 rounded-lg text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)] transition-all"
+                    aria-label="Share"
+                    title="Share link"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                  </button>
+                </>
               )}
             </div>
           </div>
         </div>
+
+        {/* Mobile reading level row */}
+        {cards.length > 0 && (
+          <div className="sm:hidden flex-shrink-0 border-b border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 py-1.5">
+            <div className="flex items-center justify-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
+              {READING_LEVELS.map(rl => (
+                <button
+                  key={rl.level}
+                  onClick={() => handleReadingLevelChange(rl.level)}
+                  className={`flex-1 text-[11px] px-2 py-1 rounded-md transition-all font-medium ${readingLevel === rl.level ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm" : "text-[var(--cp-muted)]"}`}
+                >
+                  {rl.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Scrollable content */}
         <div ref={scrollRef} data-scroll-container className="flex-1 overflow-y-auto">
@@ -345,7 +399,7 @@ export function ExploreClient({
         {/* Bottom input */}
         {cards.length > 0 && (
           <div
-            className={`flex-shrink-0 border-t border-[var(--cp-border)] bg-[var(--cp-bg)] transition-all duration-500 ease-out delay-200 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
+            className={`flex-shrink-0 border-t border-[var(--cp-border)] bg-[var(--cp-bg)] pb-safe transition-all duration-500 ease-out delay-200 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
           >
             <div className="max-w-3xl mx-auto px-5 sm:px-8 py-3">
               <form onSubmit={handleSubmit} className="relative">
@@ -511,7 +565,7 @@ export function ExploreClient({
         <>
           <button
             onClick={() => setMobileSourcesOpen(true)}
-            className="md:hidden fixed bottom-20 right-4 z-[99998] rounded-full p-3 glass-card shadow-elevated text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+            className="md:hidden fixed bottom-24 right-4 z-[99998] rounded-full p-3 glass-card shadow-elevated text-[var(--cp-muted)] hover:text-[var(--cp-text)] mb-safe"
             aria-label="Open sources"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -332,10 +332,11 @@ function HomeContent() {
 
           <textarea
             ref={inputRef}
+            data-search-input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={uploadedFile ? `Ask a question about ${uploadedFile.name}, or press Search to analyze...` : "Ask anything about policy, law, or government..."}
+            placeholder={uploadedFile ? `Ask a question about ${uploadedFile.name}, or press Search to analyze...` : "Ask anything about policy, law, or government... (⌘K)"}
             rows={uploadedFile ? 2 : 3}
             className="w-full resize-none bg-transparent px-5 pt-5 pb-2 text-[var(--cp-text)] text-base placeholder:text-[var(--cp-tertiary)]/60 focus:outline-none"
           />

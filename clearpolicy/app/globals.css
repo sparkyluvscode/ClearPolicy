@@ -322,3 +322,9 @@ body.cp-immersive > div:not([style*="z-index"]) {
 
 /* ─── Shadow elevated utility ─── */
 .shadow-elevated { box-shadow: var(--cp-shadow-elevated); }
+
+/* ─── iOS safe area padding ─── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+}

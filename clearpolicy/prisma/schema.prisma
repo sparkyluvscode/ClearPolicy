@@ -92,6 +92,7 @@ model Conversation {
   viewCount      Int       @default(0)
   isStarred      Boolean   @default(false)
   isArchived     Boolean   @default(false)
+  shareToken     String?   @unique
 
   messages Message[]
 }

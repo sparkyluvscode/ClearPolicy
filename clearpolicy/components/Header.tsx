@@ -84,7 +84,7 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-white/40 dark:hover:bg-white/5 transition-all focus-ring"
+                  className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all focus-ring"
                 >
                   {link.label}
                 </Link>
@@ -96,7 +96,7 @@ export default function Header() {
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-white/40 dark:hover:bg-white/5 transition-all focus-ring"
+                        className="rounded-lg px-4 py-2 text-[13px] font-medium text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all focus-ring"
                       >
                         {link.label}
                       </Link>
@@ -110,7 +110,7 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-2 ml-4">
               <button
                 onClick={toggleDark}
-                className="rounded-lg p-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-white/40 dark:hover:bg-white/5 transition-all"
+                className="rounded-lg p-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all"
                 aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {dark ? (
