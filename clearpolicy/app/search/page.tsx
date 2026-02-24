@@ -7,6 +7,7 @@ import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
 import { simplify } from "@/lib/reading";
 import { useToast } from "@/components/Toast";
+import { useAuthGate } from "@/components/AuthGateProvider";
 import type {
   OmniResponse, Source, AnswerSection, PerspectiveView, RhetoricCheck, Persona,
 } from "@/lib/omni-types";
@@ -47,6 +48,7 @@ interface ConversationMessage {
 function SearchResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isSignedIn } = useAuthGate();
 
   const [cards, setCards] = useState<ConversationCard[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
@@ -68,6 +70,7 @@ function SearchResultsContent() {
   const [rawCards, setRawCards] = useState<ConversationCard[]>([]);
   const [entered, setEntered] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [saveRetried, setSaveRetried] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -95,6 +98,41 @@ function SearchResultsContent() {
       document.body.classList.remove("cp-immersive");
     };
   }, []);
+
+  // Fallback save: when user is signed in but conversation wasn't saved, retry save
+  useEffect(() => {
+    if (
+      !saveRetried &&
+      isSignedIn &&
+      cards.length > 0 &&
+      !conversationId &&
+      sources.length >= 0
+    ) {
+      setSaveRetried(true);
+      const q = searchParams?.get("q");
+      const zip = searchParams?.get("zip");
+      const card = cards[0];
+      if (!q || !card) return;
+      fetch("/api/conversations/save-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          query: q,
+          title: card.heading,
+          tldr: card.sections?.[0]?.content || "",
+          sections: card.sections || [],
+          sources,
+          zip: zip || undefined,
+        }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.conversationId) setConversationId(d.conversationId);
+        })
+        .catch(() => {});
+    }
+  }, [isSignedIn, cards, conversationId, sources, saveRetried, searchParams]);
 
   // Initial search
   useEffect(() => {
@@ -132,8 +170,11 @@ function SearchResultsContent() {
         };
         if (documentText) { body.documentText = documentText; body.documentFilename = documentFilename; }
         const res = await fetch("/api/omni", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body), signal: controller.signal,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          credentials: "include",
+          signal: controller.signal,
         });
         const text = await res.text();
         let data: { success?: boolean; error?: string; data?: OmniResponse; conversationId?: string };

@@ -15,7 +15,6 @@ async function saveConversation(
   zip?: string,
 ): Promise<string | null> {
   try {
-    // Dynamic import so middleware edge runtime doesn't choke on Clerk server
     const { auth, currentUser } = await import("@clerk/nextjs/server");
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return null;

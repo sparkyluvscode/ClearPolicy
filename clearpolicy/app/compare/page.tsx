@@ -56,6 +56,7 @@ export default function ComparePage() {
                 const res = await fetch("/api/omni", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    credentials: "include",
                     body: JSON.stringify({ query, persona: "general" }),
                 });
                 const json = await res.json();
