@@ -110,20 +110,20 @@ export default function ExplainThis({ onExplain, containerRef }: ExplainThisProp
     >
       <button
         onClick={handleClick}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-white bg-[var(--cp-text)] shadow-elevated hover:brightness-125 active:scale-95 transition-all whitespace-nowrap"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-medium text-white shadow-elevated hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
+        style={{ background: "var(--cp-accent)" }}
       >
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         Explain this
       </button>
-      {/* Arrow */}
       <div
         className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0"
         style={{
-          borderLeft: "5px solid transparent",
-          borderRight: "5px solid transparent",
-          borderTop: "5px solid var(--cp-text)",
+          borderLeft: "6px solid transparent",
+          borderRight: "6px solid transparent",
+          borderTop: "6px solid var(--cp-accent)",
         }}
       />
     </div>

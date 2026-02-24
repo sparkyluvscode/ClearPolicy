@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
-import { simplify } from "@/lib/reading";
 import { useToast } from "@/components/Toast";
 import type { Source, AnswerSection } from "@/lib/omni-types";
 
@@ -67,6 +66,8 @@ export function ExploreClient({
   const [mobileSourcesOpen, setMobileSourcesOpen] = useState(false);
   const [followUpQuery, setFollowUpQuery] = useState("");
   const [readingLevel, setReadingLevel] = useState<ReadingLevel>("8");
+  const [levelCache, setLevelCache] = useState<Record<string, ConversationCard[]>>({});
+  const [levelLoading, setLevelLoading] = useState(false);
   const [entered, setEntered] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -108,20 +109,57 @@ export function ExploreClient({
     };
   }, []);
 
-  const applyReadingLevel = useCallback((card: ConversationCard, level: ReadingLevel): ConversationCard => {
-    if (level === "8") return card;
-    return {
-      ...card,
-      sections: card.sections.map(s => ({
-        ...s,
-        content: simplify(s.content, level),
-      })),
-    };
-  }, []);
-
-  function handleReadingLevelChange(level: ReadingLevel) {
+  async function handleReadingLevelChange(level: ReadingLevel) {
     setReadingLevel(level);
-    setCards(rawCards.map(c => applyReadingLevel(c, level)));
+
+    if (level === "8") {
+      setCards(rawCards);
+      return;
+    }
+
+    const cacheKey = `${level}-${rawCards.map(c => c.id).join(",")}`;
+    if (levelCache[cacheKey]) {
+      setCards(levelCache[cacheKey]);
+      return;
+    }
+
+    setLevelLoading(true);
+    try {
+      const rewritten = await Promise.all(
+        rawCards.map(async (card) => {
+          const res = await fetch("/api/rewrite-level", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              level,
+              title: card.heading,
+              sections: card.sections.map(s => ({
+                heading: s.heading,
+                content: s.content,
+              })),
+            }),
+          });
+          const data = await res.json();
+          if (!data.success || !Array.isArray(data.sections)) return card;
+          return {
+            ...card,
+            sections: card.sections.map((s, i) => ({
+              ...s,
+              heading: data.sections[i]?.heading || s.heading,
+              content: data.sections[i]?.content || s.content,
+            })),
+          };
+        })
+      );
+      setLevelCache(prev => ({ ...prev, [cacheKey]: rewritten }));
+      setCards(rewritten);
+    } catch {
+      toast("Failed to adjust reading level. Please try again.");
+      setCards(rawCards);
+      setReadingLevel("8");
+    } finally {
+      setLevelLoading(false);
+    }
   }
 
   function mapSectionsToOmni(sections: Record<string, unknown>, fullTextSummary: string): AnswerSection[] {
@@ -182,7 +220,11 @@ export function ExploreClient({
         followUpSuggestions,
       };
       setRawCards(prev => [...prev, newFollowUp]);
-      setCards(prev => [...prev, applyReadingLevel(newFollowUp, readingLevel)]);
+      setLevelCache({});
+      setCards(prev => [...prev, newFollowUp]);
+      if (readingLevel !== "8") {
+        setReadingLevel("8");
+      }
       setConversationHistory(prev => [
         ...prev,
         { role: "user", content: q.trim() },
@@ -252,20 +294,26 @@ export function ExploreClient({
             <div className="flex items-center gap-2">
               {cards.length > 0 && (
                 <>
-                  <div className="hidden sm:flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
-                    {READING_LEVELS.map(rl => (
-                      <button
-                        key={rl.level}
-                        onClick={() => handleReadingLevelChange(rl.level)}
-                        className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
-                          readingLevel === rl.level
-                            ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm"
-                            : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
-                        }`}
-                      >
-                        {rl.label}
-                      </button>
-                    ))}
+                  <div className="hidden sm:flex items-center gap-2">
+                    <div className="flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
+                      {READING_LEVELS.map(rl => (
+                        <button
+                          key={rl.level}
+                          onClick={() => handleReadingLevelChange(rl.level)}
+                          disabled={levelLoading}
+                          className={`text-[12px] px-3 py-1.5 rounded-md transition-all font-medium ${
+                            readingLevel === rl.level
+                              ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm"
+                              : "text-[var(--cp-muted)] hover:text-[var(--cp-text)]"
+                          } disabled:opacity-50 disabled:cursor-wait`}
+                        >
+                          {rl.label}
+                        </button>
+                      ))}
+                    </div>
+                    {levelLoading && (
+                      <div className="w-3.5 h-3.5 border-2 border-[var(--cp-accent)]/30 border-t-[var(--cp-accent)] rounded-full animate-spin" />
+                    )}
                   </div>
                   <button
                     onClick={() => {
@@ -304,16 +352,22 @@ export function ExploreClient({
         {/* Mobile reading level row */}
         {cards.length > 0 && (
           <div className="sm:hidden flex-shrink-0 border-b border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 py-1.5">
-            <div className="flex items-center justify-center rounded-lg bg-[var(--cp-surface-2)] p-0.5">
-              {READING_LEVELS.map(rl => (
-                <button
-                  key={rl.level}
-                  onClick={() => handleReadingLevelChange(rl.level)}
-                  className={`flex-1 text-[11px] px-2 py-1 rounded-md transition-all font-medium ${readingLevel === rl.level ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm" : "text-[var(--cp-muted)]"}`}
-                >
-                  {rl.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center rounded-lg bg-[var(--cp-surface-2)] p-0.5 flex-1">
+                {READING_LEVELS.map(rl => (
+                  <button
+                    key={rl.level}
+                    onClick={() => handleReadingLevelChange(rl.level)}
+                    disabled={levelLoading}
+                    className={`flex-1 text-[11px] px-2 py-1 rounded-md transition-all font-medium ${readingLevel === rl.level ? "bg-[var(--cp-bg)] text-[var(--cp-text)] shadow-sm" : "text-[var(--cp-muted)]"} disabled:opacity-50 disabled:cursor-wait`}
+                  >
+                    {rl.label}
+                  </button>
+                ))}
+              </div>
+              {levelLoading && (
+                <div className="w-3 h-3 border-2 border-[var(--cp-accent)]/30 border-t-[var(--cp-accent)] rounded-full animate-spin flex-shrink-0" />
+              )}
             </div>
           </div>
         )}
@@ -334,6 +388,7 @@ export function ExploreClient({
               </div>
             )}
 
+          <div className={`transition-opacity duration-300 ${levelLoading ? "opacity-30 pointer-events-none" : ""}`}>
             {/* Trust line */}
             {cards.length > 0 && (
               <div className="flex items-center gap-2 text-xs text-[var(--cp-tertiary)] mb-2 animate-fade-in">
@@ -393,6 +448,7 @@ export function ExploreClient({
             )}
 
             <div className="h-20" />
+          </div>
           </div>
         </div>
 
