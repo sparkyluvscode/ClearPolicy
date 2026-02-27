@@ -7,6 +7,8 @@ import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
 import { useToast } from "@/components/Toast";
 import { useAuthGate } from "@/components/AuthGateProvider";
+import { useFreeSearchGate } from "@/lib/free-search-gate";
+import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
 import type {
   OmniResponse, Source, AnswerSection, PerspectiveView, RhetoricCheck, Persona,
 } from "@/lib/omni-types";
@@ -47,7 +49,8 @@ interface ConversationMessage {
 function SearchResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isSignedIn } = useAuthGate();
+  const { isSignedIn, openSignUp } = useAuthGate();
+  const { showGate, tryConsumeSearch, dismissGate } = useFreeSearchGate(isSignedIn);
 
   const [cards, setCards] = useState<ConversationCard[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
@@ -72,6 +75,7 @@ function SearchResultsContent() {
   const [entered, setEntered] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [saveRetried, setSaveRetried] = useState(false);
+  const [saveInProgress, setSaveInProgress] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -100,42 +104,60 @@ function SearchResultsContent() {
     };
   }, []);
 
-  // Fallback save: when user is signed in but conversation wasn't saved, retry save
-  useEffect(() => {
-    if (
-      !saveRetried &&
-      isSignedIn &&
-      cards.length > 0 &&
-      !conversationId &&
-      sources.length >= 0
-    ) {
-      setSaveRetried(true);
-      const q = searchParams?.get("q");
-      const zip = searchParams?.get("zip");
-      const card = cards[0];
-      if (!q || !card) return;
-      fetch("/api/conversations/save-search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          query: q,
-          title: card.heading,
-          tldr: card.sections?.[0]?.content || "",
-          sections: card.sections || [],
-          sources,
-          zip: zip || undefined,
-        }),
+  // Save to My Research: try whenever we have results and no conversationId yet.
+  // Don't gate on isSignedIn — server will 401 if not signed in. This handles Clerk hydration delay.
+  const runSaveSearch = useCallback((attempt = 1) => {
+    const q = searchParams?.get("q");
+    const zip = searchParams?.get("zip");
+    const card = cards[0];
+    if (!q || !card) return;
+    setSaveInProgress(true);
+    fetch("/api/conversations/save-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        query: q,
+        title: card.heading,
+        tldr: card.sections?.[0]?.content || card.heading,
+        sections: card.sections || [{ heading: "Summary", content: card.heading }],
+        sources: sources,
+        zip: zip || undefined,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.conversationId) {
+          setConversationId(d.conversationId);
+        } else if (d.error && attempt < 3) {
+          setTimeout(() => runSaveSearch(attempt + 1), 1500);
+        } else if (d.error === "Sign in to save") {
+          toast("Sign in to save your research to My Research.");
+        } else if (d.error) {
+          toast("Could not save to My Research. Please try again.");
+        }
+        setSaveInProgress(false);
       })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.conversationId) setConversationId(d.conversationId);
-        })
-        .catch(() => {});
-    }
-  }, [isSignedIn, cards, conversationId, sources, saveRetried, searchParams]);
+      .catch(() => {
+        if (attempt < 3) setTimeout(() => runSaveSearch(attempt + 1), 1500);
+        else toast("Could not save to My Research. Please try again.");
+        setSaveInProgress(false);
+      });
+  }, [cards, sources, searchParams, toast]);
 
-  // Initial search
+  useEffect(() => {
+    if (!saveRetried && cards.length > 0 && !conversationId && !loading) {
+      setSaveRetried(true);
+      // Run immediately, then retry after 2s in case Clerk hadn't hydrated
+      runSaveSearch();
+      const t = setTimeout(() => {
+        if (document.visibilityState === "visible") runSaveSearch();
+      }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [cards, conversationId, loading, runSaveSearch, saveRetried]);
+
+  // Initial search — gated for free users
   useEffect(() => {
     const q = searchParams?.get("q");
     const zip = searchParams?.get("zip");
@@ -143,6 +165,7 @@ function SearchResultsContent() {
     const p = searchParams?.get("persona") as Persona | null;
     const hasDoc = searchParams?.get("doc") === "1";
     if (!q) { router.push("/"); return; }
+    if (!tryConsumeSearch()) { setLoading(false); return; }
     if (p && ALL_PERSONAS.includes(p)) setPersona(p);
 
     let docText: string | undefined;
@@ -231,6 +254,7 @@ function SearchResultsContent() {
 
   async function handleFollowUp(q: string) {
     if (!q.trim() || followUpLoading) return;
+    if (!tryConsumeSearch()) return;
     setFollowUpLoading(true); setFollowUpQuery("");
     try {
       const zip = searchParams?.get("zip");
@@ -287,19 +311,21 @@ function SearchResultsContent() {
   }
 
   async function handleReadingLevelChange(level: ReadingLevel) {
-    setReadingLevel(level);
-
     if (level === "8") {
+      setReadingLevel(level);
       setCards(rawCards);
       return;
     }
 
     const cacheKey = `${level}-${rawCards.map(c => c.id).join(",")}`;
     if (levelCache[cacheKey]) {
+      setReadingLevel(level);
       setCards(levelCache[cacheKey]);
       return;
     }
 
+    if (!tryConsumeSearch()) return;
+    setReadingLevel(level);
     setLevelLoading(true);
     try {
       const rewritten = await Promise.all(
@@ -340,6 +366,7 @@ function SearchResultsContent() {
   }
 
   function handlePersonaChange(p: Persona) {
+    if (!tryConsumeSearch()) return;
     setPersona(p); setPersonaLoading(true);
     const q = searchParams?.get("q"); const zip = searchParams?.get("zip");
     const debate = searchParams?.get("debate") === "1";
@@ -416,11 +443,26 @@ function SearchResultsContent() {
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
                 </button>
+                {!conversationId && (
+                  <button
+                    onClick={() => runSaveSearch()}
+                    disabled={saveInProgress}
+                    className="p-2 rounded-lg text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)] transition-all disabled:opacity-50"
+                    aria-label="Save to My Research"
+                    title="Save to My Research"
+                  >
+                    {saveInProgress ? (
+                      <span className="w-4 h-4 block border-2 border-[var(--cp-accent)]/30 border-t-[var(--cp-accent)] rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                    )}
+                  </button>
+                )}
                 {conversationId && (
                   <button
                     onClick={async () => {
                       try {
-                        const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST" });
+                        const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST", credentials: "include" });
                         const data = await res.json();
                         if (data.url) {
                           await navigator.clipboard.writeText(data.url);
@@ -505,15 +547,27 @@ function SearchResultsContent() {
           {/* Content dims during persona or reading-level reload */}
           <div className={`transition-opacity duration-300 ${personaLoading || levelLoading ? "opacity-30 pointer-events-none" : ""}`}>
 
-            {/* Trust line */}
+            {/* Trust line + Save to My Research */}
             {!loading && cards.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-[var(--cp-tertiary)] mb-2 animate-fade-in">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--cp-tertiary)] mb-2 animate-fade-in">
                 <svg className="w-3 h-3 text-[var(--cp-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <span>{allVerified}/{totalSections} cited</span>
                 <span className="text-[var(--cp-border-medium)]">&middot;</span>
                 <span>{sources.length} sources</span>
+                {!conversationId && (
+                  <>
+                    <span className="text-[var(--cp-border-medium)]">&middot;</span>
+                    <button
+                      onClick={() => runSaveSearch()}
+                      disabled={saveInProgress}
+                      className="text-[var(--cp-accent)] hover:underline disabled:opacity-50"
+                    >
+                      {saveInProgress ? "Saving…" : "Save to My Research"}
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
@@ -761,6 +815,11 @@ function SearchResultsContent() {
       {/* ── Explain This popover ── */}
       {!loading && cards.length > 0 && (
         <ExplainThis containerRef={contentRef} onExplain={handleExplainThis} />
+      )}
+
+      {/* ── Free search gate overlay ── */}
+      {showGate && (
+        <FreeSearchGateOverlay onSignUp={() => openSignUp()} onDismiss={dismissGate} />
       )}
     </div>
   );

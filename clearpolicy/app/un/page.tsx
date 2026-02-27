@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Button, Input } from "@/components/ui";
+import { useAuthGate } from "@/components/AuthGateProvider";
+import { useFreeSearchGate } from "@/lib/free-search-gate";
+import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
 
 /**
  * UN/International Policy Documents - Input Page
@@ -19,6 +22,8 @@ type ProcessingState = "idle" | "processing" | "error";
 export default function UNDocsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isSignedIn, openSignUp } = useAuthGate();
+  const { showGate, tryConsumeSearch, dismissGate } = useFreeSearchGate(isSignedIn);
   
   const [inputMethod, setInputMethod] = useState<InputMethod>("url");
   const [url, setUrl] = useState("");
@@ -48,6 +53,7 @@ export default function UNDocsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!tryConsumeSearch()) return;
     setError(null);
     setProcessing("processing");
 
@@ -334,6 +340,10 @@ export default function UNDocsPage() {
           ))}
         </div>
       </Card>
+
+      {showGate && (
+        <FreeSearchGateOverlay onSignUp={() => openSignUp()} onDismiss={dismissGate} />
+      )}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { useAuthGate } from "@/components/AuthGateProvider";
+import { useFreeSearchGate } from "@/lib/free-search-gate";
 
 const hasClerkKey =
   typeof process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY === "string" &&
@@ -23,6 +25,8 @@ export default function Header() {
   const [dark, setDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isSignedIn, openSignUp } = useAuthGate();
+  const { canSearch, triggerGate, showGate, dismissGate } = useFreeSearchGate(isSignedIn);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -185,7 +189,7 @@ export default function Header() {
                 </button>
               </div>
               <div className="p-4">
-                <form role="search" onSubmit={(e) => { e.preventDefault(); if (!q.trim()) return; router.push(`/search?q=${encodeURIComponent(q.trim())}`); setMobileMenuOpen(false); }}>
+                <form role="search" onSubmit={(e) => { e.preventDefault(); if (!q.trim()) return; if (!canSearch()) { openSignUp(); return; } router.push(`/search?q=${encodeURIComponent(q.trim())}`); setMobileMenuOpen(false); }}>
                   <div className="relative">
                     <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--cp-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search policies..." className="w-full pl-10 pr-4 py-3 text-sm rounded-xl bg-[var(--cp-surface-2)] border-2 border-[var(--cp-border)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:border-[var(--cp-accent)] transition-all" />

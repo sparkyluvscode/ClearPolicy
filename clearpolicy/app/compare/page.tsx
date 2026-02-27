@@ -4,6 +4,9 @@ import Link from "next/link";
 import { Badge, Button, Card } from "@/components/ui";
 import { propositions } from "@/lib/propositions-data";
 import type { AnswerSection } from "@/lib/omni-types";
+import { useAuthGate } from "@/components/AuthGateProvider";
+import { useFreeSearchGate } from "@/lib/free-search-gate";
+import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
 
 interface CompareResult {
     title: string;
@@ -13,6 +16,8 @@ interface CompareResult {
 }
 
 export default function ComparePage() {
+    const { isSignedIn, openSignUp } = useAuthGate();
+    const { showGate, tryConsumeSearch, dismissGate } = useFreeSearchGate(isSignedIn);
     const [selectedProps, setSelectedProps] = useState<string[]>(["1", "36"]);
     const [showSelector, setShowSelector] = useState<number | null>(null);
     const [topicA, setTopicA] = useState("");
@@ -45,6 +50,7 @@ export default function ComparePage() {
 
     async function runCompare() {
         if (!topicA.trim() || !topicB.trim()) return;
+        if (!tryConsumeSearch()) return;
         setComparing(true);
         setCompareResults([
             { title: "", sections: [], loading: true, error: null },
@@ -372,6 +378,10 @@ export default function ComparePage() {
                     </Link>
                 </div>
             </div>
+
+            {showGate && (
+                <FreeSearchGateOverlay onSignUp={() => openSignUp()} onDismiss={dismissGate} />
+            )}
         </div>
     );
 }

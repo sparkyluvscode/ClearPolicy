@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import AnswerCard from "@/components/AnswerCard";
 import ExplainThis from "@/components/ExplainThis";
 import { useToast } from "@/components/Toast";
+import { useAuthGate } from "@/components/AuthGateProvider";
+import { useFreeSearchGate } from "@/lib/free-search-gate";
+import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
 import type { Source, AnswerSection } from "@/lib/omni-types";
 
 type ReadingLevel = "5" | "8" | "12";
@@ -53,6 +56,8 @@ export function ExploreClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { isSignedIn, openSignUp } = useAuthGate();
+  const { showGate, tryConsumeSearch, dismissGate } = useFreeSearchGate(isSignedIn);
 
   const [cards, setCards] = useState<ConversationCard[]>(initialCards);
   const [rawCards, setRawCards] = useState<ConversationCard[]>(initialCards);
@@ -110,19 +115,21 @@ export function ExploreClient({
   }, []);
 
   async function handleReadingLevelChange(level: ReadingLevel) {
-    setReadingLevel(level);
-
     if (level === "8") {
+      setReadingLevel(level);
       setCards(rawCards);
       return;
     }
 
     const cacheKey = `${level}-${rawCards.map(c => c.id).join(",")}`;
     if (levelCache[cacheKey]) {
+      setReadingLevel(level);
       setCards(levelCache[cacheKey]);
       return;
     }
 
+    if (!tryConsumeSearch()) return;
+    setReadingLevel(level);
     setLevelLoading(true);
     try {
       const rewritten = await Promise.all(
@@ -188,6 +195,7 @@ export function ExploreClient({
 
   async function handleFollowUp(q: string) {
     if (!q.trim() || followUpLoading) return;
+    if (!tryConsumeSearch()) return;
     setFollowUpLoading(true);
     setFollowUpQuery("");
     try {
@@ -329,7 +337,7 @@ export function ExploreClient({
                   <button
                     onClick={async () => {
                       try {
-                        const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST" });
+                        const res = await fetch(`/api/conversations/${conversationId}/share`, { method: "POST", credentials: "include" });
                         const data = await res.json();
                         if (data.url) {
                           await navigator.clipboard.writeText(data.url);
@@ -693,6 +701,10 @@ export function ExploreClient({
       {/* Explain This popover */}
       {cards.length > 0 && (
         <ExplainThis containerRef={contentRef} onExplain={handleExplainThis} />
+      )}
+
+      {showGate && (
+        <FreeSearchGateOverlay onSignUp={() => openSignUp()} onDismiss={dismissGate} />
       )}
     </div>
   );

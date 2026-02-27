@@ -6,6 +6,9 @@ import Link from "next/link";
 import { Card, Button, Badge, SegmentedControl } from "@/components/ui";
 import type { UNDocumentAnalysis, ReadingLevel } from "@/lib/un-types";
 import { STAGE_LABELS, PROCESS_LABELS } from "@/lib/un-types";
+import { useAuthGate } from "@/components/AuthGateProvider";
+import { useFreeSearchGate } from "@/lib/free-search-gate";
+import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
 
 /**
  * UN Document Analysis Results Page
@@ -27,6 +30,8 @@ interface ChatMessage {
 function UNResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isSignedIn, openSignUp } = useAuthGate();
+  const { showGate, tryConsumeSearch, dismissGate } = useFreeSearchGate(isSignedIn);
   
   const [analysis, setAnalysis] = useState<UNDocumentAnalysis | null>(null);
   const [documentHash, setDocumentHash] = useState<string | null>(null);
@@ -185,6 +190,7 @@ function UNResultsContent() {
     }
     
     if (chatLoading) return;
+    if (!tryConsumeSearch()) return;
     
     setChatError(null);
     
@@ -764,6 +770,10 @@ function UNResultsContent() {
           animation: slideUp 0.3s ease-out forwards;
         }
       `}</style>
+
+      {showGate && (
+        <FreeSearchGateOverlay onSignUp={() => openSignUp()} onDismiss={dismissGate} />
+      )}
     </div>
   );
 }
