@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generatePolicyAnswer, generateDebateAnswer } from "@/lib/policyEngine";
 import { classifyQuery } from "@/lib/omni-classifier";
 import { matchKnownSummary } from "@/lib/known-summaries";
+import { searchWeb } from "@/lib/web-search";
 import { prisma, withRetry } from "@/lib/db";
 import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
@@ -17,7 +18,10 @@ async function saveConversation(
   try {
     const { auth, currentUser } = await import("@clerk/nextjs/server");
     const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) return null;
+    if (!clerkUserId) {
+      // User not signed in — expected for anonymous searches
+      return null;
+    }
 
     // Find or create user in DB (handles first-time users automatically)
     let user = await withRetry(() =>
@@ -115,7 +119,8 @@ async function saveConversation(
     return conversation.id;
   } catch (e) {
     // Never let DB errors block the search response
-    console.error("[omni] saveConversation failed (non-fatal):", e);
+    const err = e instanceof Error ? e : new Error(String(e));
+    console.error("[omni] saveConversation failed (non-fatal):", err.message, err.stack);
     return null;
   }
 }
@@ -273,11 +278,22 @@ export async function POST(req: NextRequest) {
     const classified = classifyQuery(query);
     const useDebate = debateMode || classified.needsDebate;
 
+    // Fetch real-time web context (skipped for known summaries)
+    const knownAnswer = !useDebate ? knownSummaryToAnswer(query, zip ?? null) : null;
+    const isNews = classified.intent === "news_update";
+    const webSearchResults = knownAnswer
+      ? null
+      : await searchWeb(query, { isNews }).catch((e) => {
+          console.error("[omni] web search failed (non-fatal):", e);
+          return null;
+        });
+    const webResults = webSearchResults?.results ?? [];
+
     let data: OmniResponse;
     let answer: Answer;
 
     if (useDebate) {
-      const result = await generateDebateAnswer(query, zip ?? null);
+      const result = await generateDebateAnswer(query, zip ?? null, webResults);
       answer = result.answer;
       const perspectives: PerspectiveView[] = result.perspectives.map(p => ({
         label: p.label,
@@ -287,8 +303,7 @@ export async function POST(req: NextRequest) {
       }));
       data = mapPolicyAnswerToOmni(answer, persona, "debate_prep", perspectives);
     } else {
-      const knownAnswer = knownSummaryToAnswer(query, zip ?? null);
-      answer = knownAnswer ?? (await generatePolicyAnswer(query, zip ?? null));
+      answer = knownAnswer ?? (await generatePolicyAnswer(query, zip ?? null, webResults));
       data = mapPolicyAnswerToOmni(answer, persona, classified.intent);
     }
 

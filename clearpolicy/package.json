@@ -12,6 +12,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:accept": "playwright test -g '@acceptance'",
+    "test:my-research:setup": "playwright test tests/acceptance.my-research.spec.ts -g 'auth-setup' --headed",
+    "test:my-research": "playwright test tests/acceptance.my-research.spec.ts -g 'signed-in search' --project=chromium-authenticated",
     "ci": "npm run build && playwright test",
     "deploy:check": "ts-node scripts/deploy-ready-checks.ts"
   },
@@ -19,6 +21,7 @@
     "@clerk/nextjs": "^6.37.3",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.20.0",
+    "@tavily/core": "^0.7.2",
     "autoprefixer": "^10.4.19",
     "diff-match-patch": "^1.0.5",
     "dotenv": "^17.2.3",

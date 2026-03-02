@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateFollowUpAnswer } from "@/lib/policyEngine";
+import { searchWeb } from "@/lib/web-search";
 import type { AnswerSection as OmniAnswerSection } from "@/lib/omni-types";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,10 @@ export async function POST(req: NextRequest) {
     const history = Array.isArray(body?.conversationHistory) ? body.conversationHistory : [];
     const persona = typeof body?.persona === "string" ? body.persona : null;
 
-    const { answer, suggestions } = await generateFollowUpAnswer(query, history, persona);
+    const webSearchResults = await searchWeb(query, { maxResults: 4 }).catch(() => null);
+    const webResults = webSearchResults?.results ?? [];
+
+    const { answer, suggestions } = await generateFollowUpAnswer(query, history, persona, webResults);
     const sections = mapFollowUpToSections(answer);
 
     return NextResponse.json({

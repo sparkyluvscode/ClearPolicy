@@ -38,6 +38,9 @@ const NEWS_KEYWORDS = [
   "latest", "recent", "update", "breaking",
   "just passed", "just signed", "new law",
   "markup", "committee action", "vote today",
+  "right now", "currently", "happening now",
+  "this month", "signed into law", "executive order",
+  "news", "announced", "proposed today",
 ];
 
 const LEGAL_EXPLAINER_KEYWORDS = [

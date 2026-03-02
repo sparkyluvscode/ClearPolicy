@@ -99,6 +99,28 @@ GOOGLE_CIVIC_API_KEY=AIzaSyAbC123dEf456GhI789JkL
 
 ---
 
+### 5. Tavily Web Search API (Real-time Web Context)
+
+**What it does:** Provides real-time web search results so AI answers include current, verified information with real source URLs instead of potentially hallucinated ones.
+
+**How to get it:**
+1. Go to https://app.tavily.com/sign-in
+2. Create an account with email or GitHub
+3. After signing in, your API key is on the dashboard
+4. Copy the key
+5. Open `clearpolicy/.env`
+6. Find `TAVILY_API_KEY=tvly-dev-placeholder`
+7. Replace `tvly-dev-placeholder` with your actual key
+
+**Example:**
+```
+TAVILY_API_KEY=tvly-abc123xyz456
+```
+
+**Note:** The app works without this key — AI answers will still generate but without real-time web context. Adding this key significantly improves answer accuracy and provides verified source URLs.
+
+---
+
 ## After Adding Keys
 
 1. Save the `.env` file
@@ -147,11 +169,12 @@ Test each API:
 
 ## Free Tier Limits
 
-All three APIs have free tiers suitable for testing:
+All APIs have free tiers suitable for testing:
 
 - **Congress.gov:** Unlimited (educational/research use)
 - **Open States:** 2,000 requests/day (free tier)
 - **Google Civic:** 1,000 requests/day (free tier)
+- **Tavily:** 1,000 searches/month (free tier)
 
 For CAC submission, these limits are more than enough.
 
