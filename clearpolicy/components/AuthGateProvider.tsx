@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useCallback, ReactNode } from "react";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 
 type AuthGate = {
@@ -10,9 +10,11 @@ type AuthGate = {
 };
 
 const AuthGateContext = createContext<AuthGate>({
-  isSignedIn: true, // default: no gating when Clerk is not configured
+  isSignedIn: true,
   firstName: null,
-  openSignUp: () => {},
+  openSignUp: () => {
+    window.location.href = "/sign-up";
+  },
 });
 
 export const useAuthGate = () => useContext(AuthGateContext);
@@ -22,12 +24,24 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const clerk = useClerk();
 
+  const openSignUp = useCallback(() => {
+    try {
+      if (clerk && typeof clerk.openSignUp === "function") {
+        clerk.openSignUp({});
+      } else {
+        window.location.href = "/sign-up";
+      }
+    } catch {
+      window.location.href = "/sign-up";
+    }
+  }, [clerk]);
+
   return (
     <AuthGateContext.Provider
       value={{
         isSignedIn: !!isSignedIn,
         firstName: user?.firstName ?? null,
-        openSignUp: () => clerk.openSignUp({}),
+        openSignUp,
       }}
     >
       {children}

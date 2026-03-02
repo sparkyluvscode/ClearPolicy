@@ -14,6 +14,11 @@ export default function FreeSearchGateOverlay({
   onDismiss,
   overlay = true,
 }: FreeSearchGateOverlayProps) {
+  const handleSignUp = () => {
+    onDismiss();
+    onSignUp();
+  };
+
   const content = (
     <div className="w-full max-w-md mx-auto text-center">
       <div className="glass-card rounded-2xl p-8 md:p-10 animate-fade-up shadow-elevated">
@@ -40,7 +45,7 @@ export default function FreeSearchGateOverlay({
           get unlimited access to policy research, saved history, and more.
         </p>
         <button
-          onClick={onSignUp}
+          onClick={handleSignUp}
           className="w-full bg-[var(--cp-accent)] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] transition-all mb-3"
         >
           Get Started — it&apos;s free
