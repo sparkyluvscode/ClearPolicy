@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useCallback, ReactNode } from "react";
-import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 type AuthGate = {
   isSignedIn: boolean;
@@ -9,12 +9,16 @@ type AuthGate = {
   openSignUp: () => void;
 };
 
+function navigateToSignUp() {
+  const current = window.location.pathname + window.location.search;
+  const url = `/sign-up?redirect_url=${encodeURIComponent(current)}`;
+  window.location.href = url;
+}
+
 const AuthGateContext = createContext<AuthGate>({
   isSignedIn: true,
   firstName: null,
-  openSignUp: () => {
-    window.location.href = "/sign-up";
-  },
+  openSignUp: navigateToSignUp,
 });
 
 export const useAuthGate = () => useContext(AuthGateContext);
@@ -22,19 +26,10 @@ export const useAuthGate = () => useContext(AuthGateContext);
 export function AuthGateProvider({ children }: { children: ReactNode }) {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
-  const clerk = useClerk();
 
   const openSignUp = useCallback(() => {
-    try {
-      if (clerk && typeof clerk.openSignUp === "function") {
-        clerk.openSignUp({});
-      } else {
-        window.location.href = "/sign-up";
-      }
-    } catch {
-      window.location.href = "/sign-up";
-    }
-  }, [clerk]);
+    navigateToSignUp();
+  }, []);
 
   return (
     <AuthGateContext.Provider
