@@ -8,6 +8,8 @@ import { AuthGateProvider } from "@/components/AuthGateProvider";
 import { ToastProvider } from "@/components/Toast";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import LayoutWithSidebar from "@/components/LayoutWithSidebar";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 import Script from "next/script";
 
 const inter = Inter({
@@ -47,19 +49,34 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 0 &&
     !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("YOUR_");
 
-  const inner = (
+  const warningBanner = missingKeys && (
+    <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
+        Live data temporarily unavailable — showing verified sample content.
+      </div>
+    </div>
+  );
+
+  const mainContent = (
+    <main className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-12 pb-20 pt-6">
+      {children}
+    </main>
+  );
+
+  const inner = hasClerkKey ? (
     <>
       <Header />
-      {missingKeys && (
-        <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
-          <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
-            Live data temporarily unavailable — showing verified sample content.
-          </div>
-        </div>
-      )}
-      <main className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-12 pb-20 pt-6">
-        {children}
-      </main>
+      {warningBanner}
+      <LayoutWithSidebar>
+        {mainContent}
+        <Footer />
+      </LayoutWithSidebar>
+    </>
+  ) : (
+    <>
+      <Header />
+      {warningBanner}
+      {mainContent}
       <Footer />
     </>
   );
@@ -81,5 +98,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 
-  return hasClerkKey ? <ClerkProvider>{content}</ClerkProvider> : content;
+  return hasClerkKey ? (
+    <ClerkProvider appearance={clerkAppearance}>{content}</ClerkProvider>
+  ) : content;
 }
