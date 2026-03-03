@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as fs from 'fs';
+
+const hasAuthState = fs.existsSync('.auth/user.json');
 
 export default defineConfig({
   testDir: './tests',
@@ -18,6 +21,18 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    ...(hasAuthState
+      ? [
+          {
+            name: 'chromium-authenticated',
+            testIgnore: /auth-setup/,
+            use: {
+              ...devices['Desktop Chrome'],
+              storageState: '.auth/user.json',
+            },
+          },
+        ]
+      : []),
     {
       name: 'mobile',
       use: { ...devices['Pixel 5'] },

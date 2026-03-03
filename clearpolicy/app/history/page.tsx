@@ -67,7 +67,7 @@ export default function HistoryPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/conversations");
+        const res = await fetch("/api/conversations", { credentials: "include" });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to load history");
@@ -82,6 +82,28 @@ export default function HistoryPage() {
     }
     load();
   }, []);
+
+  // Poll briefly when empty to catch conversations still being saved (race with search)
+  useEffect(() => {
+    if (conversations.length > 0 || loading) return;
+    let attempts = 0;
+    const maxAttempts = 4;
+    const id = setInterval(() => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(id);
+        return;
+      }
+      fetch("/api/conversations", { credentials: "include" })
+        .then((r) => (r.ok ? r.json() : { conversations: [] }))
+        .then((data) => {
+          const next = data.conversations || [];
+          if (next.length > 0) setConversations(next);
+        })
+        .catch(() => {});
+    }, 2000);
+    return () => clearInterval(id);
+  }, [conversations.length, loading]);
 
   useEffect(() => {
     if (renaming && renameRef.current) {
@@ -108,6 +130,7 @@ export default function HistoryPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isStarred: !current }),
+        credentials: "include",
       });
       if (!res.ok) {
         setConversations(prev => prev.map(c => c.id === id ? { ...c, isStarred: current } : c));
@@ -133,6 +156,7 @@ export default function HistoryPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: trimmed }),
+        credentials: "include",
       });
     } catch { /* optimistic — revert would need refetch */ }
   }, [renameValue]);
@@ -142,7 +166,7 @@ export default function HistoryPage() {
     setDeleteConfirm(null);
     setMenuOpen(null);
     try {
-      await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+      await fetch(`/api/conversations/${id}`, { method: "DELETE", credentials: "include" });
     } catch { /* already removed from UI */ }
   }, []);
 
@@ -223,7 +247,7 @@ export default function HistoryPage() {
             onClick={() => {
               setError(null);
               setLoading(true);
-              fetch("/api/conversations")
+              fetch("/api/conversations", { credentials: "include" })
                 .then((r) => r.json())
                 .then((d) => setConversations(d.conversations || []))
                 .catch((e) => setError(e instanceof Error ? e.message : "Failed"))

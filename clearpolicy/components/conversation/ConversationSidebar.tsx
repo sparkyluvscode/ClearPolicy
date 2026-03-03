@@ -31,7 +31,7 @@ export function ConversationSidebar({
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/conversations")
+    fetch("/api/conversations", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : { conversations: [] }))
       .then((data) => {
         if (!cancelled) setConversations(data.conversations ?? []);
