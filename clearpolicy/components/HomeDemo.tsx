@@ -5,7 +5,7 @@ import { Card } from "@/components/ui";
 export default function HomeDemo() {
   const prompts = useMemo(
     () => [
-      "prop 17 retail theft — what changed and who is affected?",
+      "prop 17 retail theft - what changed and who is affected?",
       "H.R. 50 voting rights",
       "prop 47 criminal justice",
       "Find my representative for ZIP 95014",

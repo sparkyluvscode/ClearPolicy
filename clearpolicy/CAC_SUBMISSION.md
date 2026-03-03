@@ -68,7 +68,7 @@
 ### Solution Demo (40s)
 "ClearPolicy solves this three ways:
 
-First, search for a measure—like 'prop 17 retail theft.' See how the disambiguation chips appear, helping you choose the right one.
+First, search for a measure, like 'prop 17 retail theft.' See how the disambiguation chips appear, helping you choose the right one.
 
 Click through to Prop 47. Notice the reading-level toggle: toggle to 5th grade, and watch the text simplify while keeping the meaning accurate.
 
@@ -136,7 +136,7 @@ Finally, try the Local lens: enter your ZIP to see your representatives."
 "ClearPolicy promotes civic engagement by reducing barriers to understanding policy. A more informed electorate strengthens democracy."
 
 **When judges ask about innovation:**
-"The disambiguation system solves a real user pain point—similar-sounding measures. And the reading-level slider makes policy accessible to students as young as 5th grade."
+"The disambiguation system solves a real user pain point: similar-sounding measures. And the reading-level slider makes policy accessible to students as young as 5th grade."
 
 **When judges ask about scalability:**
 "The API-based architecture means I can add any state or federal jurisdiction. The Prisma schema supports unlimited measures with automatic citation tracking."

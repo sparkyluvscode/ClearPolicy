@@ -388,7 +388,7 @@ export default function BillCard({
                     <span className="text-[var(--cp-text)]">{c.sourceName}</span>
                   )}
                   <Badge variant={variant as any}>{badge}</Badge>
-                  {c.location ? <span className="text-xs text-[var(--cp-muted)]">— {c.location}</span> : null}
+                  {c.location ? <span className="text-xs text-[var(--cp-muted)]">- {c.location}</span> : null}
                 </li>
               );
             })}

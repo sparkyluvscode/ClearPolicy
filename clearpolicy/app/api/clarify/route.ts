@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     const client = getOpenAI();
     if (!client) {
-      // No API key — just proceed without clarification
+      // No API key - just proceed without clarification
       return NextResponse.json({ needsClarification: false, refinedQuery: trimmed });
     }
 
@@ -77,16 +77,16 @@ export async function POST(req: NextRequest) {
 Your job: determine if a user's query is specific enough to search, or if it needs clarification.
 
 Queries that NEED clarification:
-- "prop 50" — which state? which year? (many states have propositions)
-- "healthcare bill" — which one? federal or state?
-- "immigration" — too broad, what aspect?
-- "SB 1234" — which state? which session?
+- "prop 50" - which state? which year? (many states have propositions)
+- "healthcare bill" - which one? federal or state?
+- "immigration" - too broad, what aspect?
+- "SB 1234" - which state? which session?
 
 Queries that DON'T need clarification:
-- "California Prop 36 2024" — specific enough
-- "What is the Inflation Reduction Act?" — clear intent
-- "Explain F-1 visa work restrictions" — specific topic
-- "Arguments for and against rent control" — clear request
+- "California Prop 36 2024" - specific enough
+- "What is the Inflation Reduction Act?" - clear intent
+- "Explain F-1 visa work restrictions" - specific topic
+- "Arguments for and against rent control" - clear request
 - Any full question with enough context
 
 Respond with valid JSON only:

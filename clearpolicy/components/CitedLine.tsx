@@ -10,12 +10,12 @@ export default function CitedLine({ quote, sourceName, url, location }: { quote:
           className="mt-2 inline-flex items-center gap-1 text-xs inline-link focus-ring rounded"
         >
           {sourceName}
-          {location ? ` — ${location}` : ""}
+          {location ? ` - ${location}` : ""}
         </a>
       ) : (
         <div className="mt-2 text-xs text-[var(--cp-muted)]">
           {sourceName}
-          {location ? ` — ${location}` : ""}
+          {location ? ` - ${location}` : ""}
         </div>
       )}
     </blockquote>

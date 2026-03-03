@@ -48,7 +48,7 @@ export default function FreeSearchGateOverlay({
           onClick={handleSignUp}
           className="w-full bg-[var(--cp-accent)] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:brightness-110 active:scale-[0.98] transition-all mb-3"
         >
-          Get Started — it&apos;s free
+          Get Started - it&apos;s free
         </button>
         <button
           onClick={onDismiss}

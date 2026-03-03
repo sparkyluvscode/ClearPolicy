@@ -8,7 +8,7 @@ test.describe("Critical fixes – new test cases @acceptance", () => {
     });
   });
 
-  // —— Reading level content adaptation ——
+  // -- Reading level content adaptation --
   test("5th, 8th, 12th grade toggles produce different summary text on Prop 17", async ({ page }) => {
     await page.goto("/measure/prop/17");
     await page.waitForLoadState("networkidle");
@@ -66,7 +66,7 @@ test.describe("Critical fixes – new test cases @acceptance", () => {
     expect(what5 === what12, "5th vs 12th grade 'What it does' should differ").toBe(false);
   });
 
-  // —— Search timeout / no indefinite hang ——
+  // -- Search timeout / no indefinite hang --
   test("search resolves within 6s – SB 1047 shows results or error (no infinite wait)", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -107,7 +107,7 @@ test.describe("Critical fixes – new test cases @acceptance", () => {
     ).toBeVisible({ timeout: 6500 });
   });
 
-  // —— Page load: skeleton then content ——
+  // -- Page load: skeleton then content --
   test("measure prop page shows skeleton then summary (or finishes within 4s)", async ({ page }) => {
     const nav = page.goto("/measure/prop/17");
     // Skeleton may appear first (suspense)
@@ -128,7 +128,7 @@ test.describe("Critical fixes – new test cases @acceptance", () => {
     await expect(page.getByTestId("measure-summary")).toBeVisible({ timeout: 4000 });
   });
 
-  // —— Trust messaging ——
+  // -- Trust messaging --
   test("proposition detail shows Official summary or trusted source messaging", async ({ page }) => {
     await page.goto("/measure/prop/17");
     await page.waitForLoadState("networkidle");
@@ -138,7 +138,7 @@ test.describe("Critical fixes – new test cases @acceptance", () => {
     ).toBeVisible();
   });
 
-  // —— Nationwide browsing ——
+  // -- Nationwide browsing --
   test("browse page has heading Browse Legislation and By level filter", async ({ page }) => {
     await page.goto("/browse");
     await page.waitForLoadState("networkidle");
@@ -175,7 +175,7 @@ test.describe("Critical fixes – new test cases @acceptance", () => {
     await expect(page.getByRole("heading", { name: /Federal \(Congress\.gov\)/i })).toHaveCount(0);
   });
 
-  // —— Mobile 375px ——
+  // -- Mobile 375px --
   test("browse and search work at 375px viewport", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");

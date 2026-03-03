@@ -27,8 +27,8 @@ export default function FeedbackBar({ page, measureSlug }: { page: string; measu
           ) : (
             <form onSubmit={submit} className="space-y-2">
               <div className="text-sm font-medium text-[var(--cp-text)]">How can we improve?</div>
-              <textarea className="w-full rounded-md border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm text-[var(--cp-text)] focus-ring" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} required />
-              <Input placeholder="Your email (optional)" value={contact} onChange={(e) => setContact(e.target.value)} />
+              <textarea className="font-user-input w-full rounded-md border border-[var(--cp-border)] bg-[var(--cp-surface)] p-2 text-sm text-[var(--cp-text)] focus-ring" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} required />
+              <Input placeholder="Your email (optional)" value={contact} onChange={(e) => setContact(e.target.value)} className="font-user-input" />
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(false)}>Close</Button>
                 <Button type="submit" size="sm">Send</Button>

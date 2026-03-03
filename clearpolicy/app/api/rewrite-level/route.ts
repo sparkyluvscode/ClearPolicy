@@ -19,7 +19,7 @@ interface SectionInput {
 }
 
 const LEVEL_INSTRUCTIONS: Record<string, string> = {
-  "5": `Rewrite at a 5th-grade reading level. Use short, simple sentences. Replace jargon with everyday words. Use analogies a child would understand. Keep each section to 2-3 sentences max. Avoid complex vocabulary — if a simpler word exists, use it.`,
+  "5": `Rewrite at a 5th-grade reading level. Use short, simple sentences. Replace jargon with everyday words. Use analogies a child would understand. Keep each section to 2-3 sentences max. Avoid complex vocabulary - if a simpler word exists, use it.`,
   "12": `Rewrite at a 12th-grade / college-prep reading level. Add more technical detail, nuance, and specificity. Use precise terminology (with brief explanations where helpful). Include additional context such as historical precedent, legal mechanisms, or economic implications. Expand each section with deeper analysis. Aim for 4-8 sentences per section.`,
 };
 
@@ -72,7 +72,7 @@ Return ONLY valid JSON (no markdown, no code fence):
 }
 
 Critical rules:
-- Preserve ALL factual information — do not remove data, dates, numbers, or key details.
+- Preserve ALL factual information - do not remove data, dates, numbers, or key details.
 - Keep the same number of sections and the same heading text for each.
 - ${level === "5" ? "Simplify vocabulary and sentence structure. Use analogies. Keep it concise but complete." : "Add depth, technical precision, and analytical context. Make it richer, not just longer."}
 - Do NOT add disclaimers or meta-commentary about the rewriting itself.

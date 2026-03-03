@@ -186,7 +186,7 @@ export function ConversationView({
                 onChange={(e) => setFollowUp(e.target.value)}
                 disabled={loading}
                 placeholder={`Ask a follow-up about ${policyName}...`}
-                className="flex-1 rounded-xl border border-[var(--border-light)] bg-[var(--bg-card)] px-4 py-3 text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent-blue)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)]/20"
+                className="font-user-input flex-1 rounded-xl border border-[var(--border-light)] bg-[var(--bg-card)] px-4 py-3 text-[15px] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent-blue)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)]/20"
               />
               <button
                 type="submit"

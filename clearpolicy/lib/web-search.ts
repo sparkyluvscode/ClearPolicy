@@ -70,7 +70,6 @@ export async function searchWeb(
       maxResults,
       includeAnswer: false,
       ...(isNews ? { days: 7 } : {}),
-      ...(isNews ? {} : { includeDomains: POLICY_DOMAINS }),
     });
 
     const results: WebSearchResult[] = response.results.map((r) => ({

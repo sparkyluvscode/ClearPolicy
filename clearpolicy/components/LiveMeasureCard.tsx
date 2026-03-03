@@ -149,40 +149,40 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
         const primaryUrl = raw?.openstates_url || raw?.openstatesUrl || raw?.sources?.[0]?.url || "";
         const aiCitations = Array.isArray(payload?.aiSummary?.citations) ? payload.aiSummary.citations : [];
         addEvidenceList(citations, seen, [
-          { text: raw?.extras?.impact_clause, label: "Open States — impact clause", url: primaryUrl, location: "tldr" },
-          { text: raw?.latest_action_description, label: "Open States — latest action", url: primaryUrl, location: "what" },
-          { text: raw?.latest_action?.description, label: "Open States — latest action", url: primaryUrl, location: "what" },
-          { text: raw?.latest_action?.text, label: "Open States — latest action", url: primaryUrl, location: "what" },
-          { text: raw?.summary, label: "Open States — summary", url: primaryUrl, location: "tldr" },
-          { text: raw?.summary_text, label: "Open States — summary", url: primaryUrl, location: "tldr" },
-          { text: raw?.description, label: "Open States — description", url: primaryUrl, location: "tldr" },
-          { text: raw?.purpose, label: "Open States — purpose", url: primaryUrl, location: "what" },
-          { text: raw?.abstracts?.[0]?.abstract, label: "Open States — abstract", url: primaryUrl, location: "tldr" },
-          { text: raw?.extras?.summary, label: "Open States — official summary", url: primaryUrl, location: "tldr" },
-          { text: raw?.extras?.digest, label: "Open States — digest", url: primaryUrl, location: "tldr" },
-          { text: raw?.extras?.official_summary, label: "Open States — official summary", url: primaryUrl, location: "tldr" },
-          { text: raw?.extras?.analysis, label: "Open States — analysis", url: primaryUrl, location: "what" },
-          { text: raw?.extras?.purpose, label: "Open States — purpose", url: primaryUrl, location: "what" },
-          { text: raw?.extras?.fiscal_impact, label: "Open States — fiscal impact", url: primaryUrl, location: "what" },
-          { text: raw?.extras?.fiscal_note, label: "Open States — fiscal note", url: primaryUrl, location: "what" },
-          { text: raw?.short_title || raw?.shortTitle, label: "Open States — short title", url: primaryUrl, location: "tldr" },
-          { text: title, label: "Open States — title", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.impact_clause, label: "Open States - impact clause", url: primaryUrl, location: "tldr" },
+          { text: raw?.latest_action_description, label: "Open States - latest action", url: primaryUrl, location: "what" },
+          { text: raw?.latest_action?.description, label: "Open States - latest action", url: primaryUrl, location: "what" },
+          { text: raw?.latest_action?.text, label: "Open States - latest action", url: primaryUrl, location: "what" },
+          { text: raw?.summary, label: "Open States - summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.summary_text, label: "Open States - summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.description, label: "Open States - description", url: primaryUrl, location: "tldr" },
+          { text: raw?.purpose, label: "Open States - purpose", url: primaryUrl, location: "what" },
+          { text: raw?.abstracts?.[0]?.abstract, label: "Open States - abstract", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.summary, label: "Open States - official summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.digest, label: "Open States - digest", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.official_summary, label: "Open States - official summary", url: primaryUrl, location: "tldr" },
+          { text: raw?.extras?.analysis, label: "Open States - analysis", url: primaryUrl, location: "what" },
+          { text: raw?.extras?.purpose, label: "Open States - purpose", url: primaryUrl, location: "what" },
+          { text: raw?.extras?.fiscal_impact, label: "Open States - fiscal impact", url: primaryUrl, location: "what" },
+          { text: raw?.extras?.fiscal_note, label: "Open States - fiscal note", url: primaryUrl, location: "what" },
+          { text: raw?.short_title || raw?.shortTitle, label: "Open States - short title", url: primaryUrl, location: "tldr" },
+          { text: title, label: "Open States - title", url: primaryUrl, location: "tldr" },
         ]);
         if (Array.isArray(raw?.subjects) && raw.subjects.length) {
-          addEvidence(citations, seen, `Subjects: ${raw.subjects.slice(0, 12).join(", ")}`, "Open States — subjects", primaryUrl, "who");
+          addEvidence(citations, seen, `Subjects: ${raw.subjects.slice(0, 12).join(", ")}`, "Open States - subjects", primaryUrl, "who");
         }
         if (Array.isArray(raw?.subject) && raw.subject.length) {
-          addEvidence(citations, seen, `Subjects: ${raw.subject.slice(0, 12).join(", ")}`, "Open States — subjects", primaryUrl, "who");
+          addEvidence(citations, seen, `Subjects: ${raw.subject.slice(0, 12).join(", ")}`, "Open States - subjects", primaryUrl, "who");
         }
         if (Array.isArray(raw?.classification) && raw.classification.length) {
-          addEvidence(citations, seen, `Classification: ${raw.classification.slice(0, 8).join(", ")}`, "Open States — classification", primaryUrl, "who");
+          addEvidence(citations, seen, `Classification: ${raw.classification.slice(0, 8).join(", ")}`, "Open States - classification", primaryUrl, "who");
         }
         if (Array.isArray(raw?.committees) && raw.committees.length) {
-          addEvidence(citations, seen, `Committees: ${raw.committees.slice(0, 6).map((c: any) => c?.name || c).filter(Boolean).join(", ")}`, "Open States — committees", primaryUrl, "who");
+          addEvidence(citations, seen, `Committees: ${raw.committees.slice(0, 6).map((c: any) => c?.name || c).filter(Boolean).join(", ")}`, "Open States - committees", primaryUrl, "who");
         }
         if (Array.isArray(raw?.actions)) {
           raw.actions.slice(0, 4).forEach((a: any) => {
-            addEvidence(citations, seen, a?.description, "Open States — action", primaryUrl, "what");
+            addEvidence(citations, seen, a?.description, "Open States - action", primaryUrl, "what");
           });
         }
         if (citations.length === 0) {
@@ -279,46 +279,46 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const citations: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
       const seen: string[] = [];
       addEvidenceList(citations, seen, [
-        { text: impactClause, label: "Open States — impact clause", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
-        { text: abstract, label: "Open States — abstract", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.summary, label: "Open States — summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.summary_text, label: "Open States — summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.description, label: "Open States — description", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.purpose, label: "Open States — purpose", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
-        { text: raw?.extras?.summary, label: "Open States — official summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.extras?.digest, label: "Open States — digest", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.extras?.official_summary, label: "Open States — official summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
-        { text: raw?.extras?.analysis, label: "Open States — analysis", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
-        { text: raw?.extras?.purpose, label: "Open States — purpose", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
-        { text: raw?.extras?.fiscal_impact, label: "Open States — fiscal impact", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
-        { text: raw?.extras?.fiscal_note, label: "Open States — fiscal note", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
-        { text: latestAction, label: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
-        { text: title, label: "Open States — title", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
-        { text: raw?.short_title || raw?.shortTitle, label: "Open States — short title", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
-        { text: raw?.latest_action?.description, label: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
-        { text: raw?.latest_action_description, label: "Open States — latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
+        { text: impactClause, label: "Open States - impact clause", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
+        { text: abstract, label: "Open States - abstract", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.summary, label: "Open States - summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.summary_text, label: "Open States - summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.description, label: "Open States - description", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.purpose, label: "Open States - purpose", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.summary, label: "Open States - official summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.extras?.digest, label: "Open States - digest", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.extras?.official_summary, label: "Open States - official summary", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "tldr" },
+        { text: raw?.extras?.analysis, label: "Open States - analysis", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.purpose, label: "Open States - purpose", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.fiscal_impact, label: "Open States - fiscal impact", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: raw?.extras?.fiscal_note, label: "Open States - fiscal note", url: primaryUrl || raw?.sources?.[0]?.url || "", location: "what" },
+        { text: latestAction, label: "Open States - latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
+        { text: title, label: "Open States - title", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
+        { text: raw?.short_title || raw?.shortTitle, label: "Open States - short title", url: primaryUrl || raw?.openstates_url || "", location: "tldr" },
+        { text: raw?.latest_action?.description, label: "Open States - latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
+        { text: raw?.latest_action_description, label: "Open States - latest action", url: primaryUrl || raw?.openstates_url || "", location: "what" },
       ]);
       if (subjectsArr.length) {
-        addEvidence(citations, seen, `Subjects: ${subjectsArr.slice(0, 10).join(", ")}`, "Open States — subjects", primaryUrl || raw?.openstates_url || "", "who");
+        addEvidence(citations, seen, `Subjects: ${subjectsArr.slice(0, 10).join(", ")}`, "Open States - subjects", primaryUrl || raw?.openstates_url || "", "who");
       }
       if (Array.isArray(raw?.subject) && raw.subject.length) {
-        addEvidence(citations, seen, `Subjects: ${raw.subject.slice(0, 10).join(", ")}`, "Open States — subjects", primaryUrl || raw?.openstates_url || "", "who");
+        addEvidence(citations, seen, `Subjects: ${raw.subject.slice(0, 10).join(", ")}`, "Open States - subjects", primaryUrl || raw?.openstates_url || "", "who");
       }
       if (Array.isArray(raw?.classification) && raw.classification.length) {
-        addEvidence(citations, seen, `Classification: ${raw.classification.slice(0, 8).join(", ")}`, "Open States — classification", primaryUrl || raw?.openstates_url || "", "who");
+        addEvidence(citations, seen, `Classification: ${raw.classification.slice(0, 8).join(", ")}`, "Open States - classification", primaryUrl || raw?.openstates_url || "", "who");
       }
       if (Array.isArray(raw?.committees) && raw.committees.length) {
-        addEvidence(citations, seen, `Committees: ${raw.committees.slice(0, 6).map((c: any) => c?.name || c).filter(Boolean).join(", ")}`, "Open States — committees", primaryUrl || raw?.openstates_url || "", "who");
+        addEvidence(citations, seen, `Committees: ${raw.committees.slice(0, 6).map((c: any) => c?.name || c).filter(Boolean).join(", ")}`, "Open States - committees", primaryUrl || raw?.openstates_url || "", "who");
       }
       if (Array.isArray(raw?.actions)) {
         raw.actions.slice(0, 4).forEach((a: any) => {
-          addEvidence(citations, seen, a?.description, "Open States — action", primaryUrl || raw?.openstates_url || "", "what");
+          addEvidence(citations, seen, a?.description, "Open States - action", primaryUrl || raw?.openstates_url || "", "what");
         });
       }
       if (Array.isArray(raw?.sources)) {
         raw.sources.slice(0, 3).forEach((s: any) => {
           if (s?.url) {
-            addEvidence(citations, seen, s.note || "See source for details.", s.note || "Open States — source", s.url);
+            addEvidence(citations, seen, s.note || "See source for details.", s.note || "Open States - source", s.url);
           }
         });
       }
@@ -392,16 +392,16 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
       const citations: { quote: string; sourceName: string; url?: string; location?: "tldr" | "what" | "who" | "pros" | "cons" }[] = [];
       const seen: string[] = [];
       addEvidenceList(citations, seen, [
-        { text: summaryText, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
-        { text: bill?.summaries?.[1]?.text, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
-        { text: bill?.summaries?.[2]?.text, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
-        { text: bill?.summary?.text, label: "Congress.gov — summary", url: congressUrl, location: "tldr" },
-        { text: latest, label: "Congress.gov — latest action", url: congressUrl, location: "what" },
-        { text: bill?.latestAction?.text, label: "Congress.gov — latest action", url: congressUrl, location: "what" },
-        { text: title, label: "Congress.gov — title", url: congressUrl, location: "tldr" },
-        { text: bill?.shortTitle || bill?.short_title, label: "Congress.gov — short title", url: congressUrl, location: "tldr" },
-        { text: bill?.description, label: "Congress.gov — description", url: congressUrl, location: "tldr" },
-        { text: bill?.purpose, label: "Congress.gov — purpose", url: congressUrl, location: "what" },
+        { text: summaryText, label: "Congress.gov - summary", url: congressUrl, location: "tldr" },
+        { text: bill?.summaries?.[1]?.text, label: "Congress.gov - summary", url: congressUrl, location: "tldr" },
+        { text: bill?.summaries?.[2]?.text, label: "Congress.gov - summary", url: congressUrl, location: "tldr" },
+        { text: bill?.summary?.text, label: "Congress.gov - summary", url: congressUrl, location: "tldr" },
+        { text: latest, label: "Congress.gov - latest action", url: congressUrl, location: "what" },
+        { text: bill?.latestAction?.text, label: "Congress.gov - latest action", url: congressUrl, location: "what" },
+        { text: title, label: "Congress.gov - title", url: congressUrl, location: "tldr" },
+        { text: bill?.shortTitle || bill?.short_title, label: "Congress.gov - short title", url: congressUrl, location: "tldr" },
+        { text: bill?.description, label: "Congress.gov - description", url: congressUrl, location: "tldr" },
+        { text: bill?.purpose, label: "Congress.gov - purpose", url: congressUrl, location: "what" },
       ]);
       if (Array.isArray(bill?.titles) && bill.titles.length) {
         const titleList = bill.titles
@@ -409,13 +409,13 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
           .map((t: any) => `${t?.titleType ? `${t.titleType}: ` : ""}${t?.title || ""}`.trim())
           .filter(Boolean)
           .join(" | ");
-        addEvidence(citations, seen, titleList, "Congress.gov — titles", congressUrl, "tldr");
+        addEvidence(citations, seen, titleList, "Congress.gov - titles", congressUrl, "tldr");
       }
       if (subjectsArr.length) {
-        addEvidence(citations, seen, `Subjects: ${subjectsArr.slice(0, 10).join(", ")}`, "Congress.gov — subjects", congressUrl, "who");
+        addEvidence(citations, seen, `Subjects: ${subjectsArr.slice(0, 10).join(", ")}`, "Congress.gov - subjects", congressUrl, "who");
       }
       if (policyArea) {
-        addEvidence(citations, seen, `Policy area: ${policyArea}`, "Congress.gov — policy area", congressUrl, "who");
+        addEvidence(citations, seen, `Policy area: ${policyArea}`, "Congress.gov - policy area", congressUrl, "who");
       }
       if (Array.isArray(bill?.sponsors) && bill.sponsors.length) {
         const sponsors = bill.sponsors
@@ -423,20 +423,20 @@ export default function LiveMeasureCard({ payload }: { payload: any }) {
           .map((s: any) => [s?.firstName, s?.lastName].filter(Boolean).join(" ").trim() || s?.name)
           .filter(Boolean)
           .join(", ");
-        addEvidence(citations, seen, `Sponsors: ${sponsors}`, "Congress.gov — sponsors", congressUrl, "who");
+        addEvidence(citations, seen, `Sponsors: ${sponsors}`, "Congress.gov - sponsors", congressUrl, "who");
       }
       if (committees.length) {
-        addEvidence(citations, seen, `Committees: ${committees.slice(0, 6).join(", ")}`, "Congress.gov — committees", congressUrl, "who");
+        addEvidence(citations, seen, `Committees: ${committees.slice(0, 6).join(", ")}`, "Congress.gov - committees", congressUrl, "who");
       }
       actions.slice(0, 4).forEach((a: any) => {
-        addEvidence(citations, seen, a?.text || a?.description, "Congress.gov — action", congressUrl, "what");
+        addEvidence(citations, seen, a?.text || a?.description, "Congress.gov - action", congressUrl, "what");
       });
       if (textVersions.length) {
         const versions = textVersions
           .map((v: any) => [v?.type, v?.date].filter(Boolean).join(" "))
           .filter(Boolean)
           .join(", ");
-        addEvidence(citations, seen, `Text versions: ${versions}`, "Congress.gov — text versions", congressUrl, "tldr");
+        addEvidence(citations, seen, `Text versions: ${versions}`, "Congress.gov - text versions", congressUrl, "tldr");
       }
       const blocks = [tldr, whatItDoes, whoAffected, pros, cons];
       const sourceRatio = sourceRatioFrom(blocks, citations);

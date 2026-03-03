@@ -17,7 +17,7 @@ export default async function ExplorePage({
     const authResult = await auth();
     clerkUserId = authResult.userId;
   } catch {
-    // Auth unavailable — treat as unauthenticated
+    // Auth unavailable, treat as unauthenticated
   }
 
   if (!clerkUserId) notFound();

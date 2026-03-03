@@ -58,10 +58,10 @@ export default function BrowsePage() {
                     </svg>
                     <input
                         type="text"
-                        placeholder="Search legislation..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-[var(--cp-surface-2)] border border-transparent text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:outline-none focus:border-[var(--cp-accent)]/25 transition-all"
+                        placeholder="Search legislation..."
+                        className="font-user-input w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-[var(--cp-surface-2)] border border-transparent text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:outline-none focus:border-[var(--cp-accent)]/25 transition-all"
                     />
                 </div>
 

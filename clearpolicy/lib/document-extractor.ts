@@ -194,7 +194,7 @@ function decodeHTMLEntities(text: string): string {
     "&#39;": "'",
     "&apos;": "'",
     "&ndash;": "–",
-    "&mdash;": "—",
+    "&mdash;": "-",
     "&hellip;": "…",
     "&copy;": "©",
     "&reg;": "®",

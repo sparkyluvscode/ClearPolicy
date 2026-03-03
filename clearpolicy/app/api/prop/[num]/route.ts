@@ -221,7 +221,7 @@ export async function GET(_req: NextRequest, { params }: { params: { num: string
   const shouldContinue = () => Date.now() - startAt < 10000;
 
   // When user requested a specific year, try known summary first so we don't show wrong-year content
-  // (e.g. Prop 6 (2024) is incarcerated labor; Prop 6 (2018) is gas tax — OpenStates can return any year)
+  // (e.g. Prop 6 (2024) is incarcerated labor; Prop 6 (2018) is gas tax - OpenStates can return any year)
   if (requestedYear) {
     const known = matchKnownSummary({
       title: `California Proposition ${n}`,

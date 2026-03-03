@@ -38,7 +38,7 @@ export default async function MeasurePage({ params }: { params: { slug: string }
     if (!measure.summaries || measure.summaries.length === 0) {
       return (
         <Card>
-          <h1 className="text-xl font-semibold text-[var(--cp-text)]">{measure.number} — {measure.title}</h1>
+          <h1 className="text-xl font-semibold text-[var(--cp-text)]">{measure.number} - {measure.title}</h1>
           <p className="mt-2 text-sm text-[var(--cp-muted)]">No summaries available for this measure.</p>
         </Card>
       );
@@ -49,7 +49,7 @@ export default async function MeasurePage({ params }: { params: { slug: string }
     const localContext = {
       source: "seeded" as const,
       jurisdiction: "CA" as const,
-      title: `${measure.number} — ${measure.title}`,
+      title: `${measure.number} - ${measure.title}`,
     };
 
     // Parse citations for all summaries
@@ -70,7 +70,7 @@ export default async function MeasurePage({ params }: { params: { slug: string }
         <div className="space-y-6">
           <Card>
             <div className="space-y-2">
-              <h1 className="page-title" data-testid="measure-title">{measure.number} — {measure.title}</h1>
+              <h1 className="page-title" data-testid="measure-title">{measure.number} - {measure.title}</h1>
               {measure.status && <p className="text-sm text-[var(--cp-muted)]">{measure.status}</p>}
             </div>
           </Card>

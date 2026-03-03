@@ -28,7 +28,7 @@ export const clerkAppearance: Appearance = {
     formButtonPrimary:
       "bg-[#4A7BBA] dark:bg-[#7BA3D4] hover:brightness-110 active:scale-[0.98] rounded-xl text-sm font-semibold shadow-none transition-all",
     formFieldInput:
-      "rounded-xl border border-[rgba(26,26,26,0.08)] dark:border-[rgba(248,248,240,0.1)] bg-[#FDFCF7] dark:bg-[rgba(42,42,39,0.7)] text-[#1A1A1A] dark:text-[#FDFCF7] placeholder:text-[#8A8A8A] dark:placeholder:text-[#7A7870] focus:ring-2 focus:ring-[#4A7BBA]/15 dark:focus:ring-[#7BA3D4]/20 focus:border-[#4A7BBA]/30 dark:focus:border-[#7BA3D4]/30 transition-all",
+      "font-user-input rounded-xl border border-[rgba(26,26,26,0.08)] dark:border-[rgba(248,248,240,0.1)] bg-[#FDFCF7] dark:bg-[rgba(42,42,39,0.7)] text-[#1A1A1A] dark:text-[#FDFCF7] placeholder:text-[#8A8A8A] dark:placeholder:text-[#7A7870] focus:ring-2 focus:ring-[#4A7BBA]/15 dark:focus:ring-[#7BA3D4]/20 focus:border-[#4A7BBA]/30 dark:focus:border-[#7BA3D4]/30 transition-all",
     formFieldLabel: "text-[#1A1A1A] dark:text-[#FDFCF7] font-medium text-sm",
     footerAction: "text-sm",
     footerActionLink:
@@ -42,7 +42,7 @@ export const clerkAppearance: Appearance = {
     identityPreviewText: "dark:text-[#FDFCF7]",
     formResendCodeLink: "text-[#4A7BBA] dark:text-[#7BA3D4]",
     otpCodeFieldInput:
-      "rounded-lg border border-[rgba(26,26,26,0.08)] dark:border-[rgba(248,248,240,0.1)] bg-[#FDFCF7] dark:bg-[rgba(42,42,39,0.7)] text-[#1A1A1A] dark:text-[#FDFCF7] focus:ring-2 focus:ring-[#4A7BBA]/15 dark:focus:ring-[#7BA3D4]/20",
+      "font-user-input rounded-lg border border-[rgba(26,26,26,0.08)] dark:border-[rgba(248,248,240,0.1)] bg-[#FDFCF7] dark:bg-[rgba(42,42,39,0.7)] text-[#1A1A1A] dark:text-[#FDFCF7] focus:ring-2 focus:ring-[#4A7BBA]/15 dark:focus:ring-[#7BA3D4]/20",
     alert: "rounded-xl",
     alertText: "text-sm",
     avatarBox: "rounded-full",

@@ -475,7 +475,7 @@ export function ExploreClient({
                   disabled={followUpLoading}
                   placeholder={`Ask a follow-up about ${policyName || "this policy"}...`}
                   aria-label="Ask a follow-up question"
-                  className="w-full pl-4 pr-12 py-3 rounded-xl glass-input text-[var(--cp-text)] text-[15px] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all disabled:opacity-50"
+                  className="font-user-input w-full pl-4 pr-12 py-3 rounded-xl glass-input text-[var(--cp-text)] text-[15px] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all disabled:opacity-50"
                 />
                 <button
                   type="submit"

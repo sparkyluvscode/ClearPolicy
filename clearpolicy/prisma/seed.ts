@@ -65,7 +65,7 @@ async function main() {
       },
       {
         id: "src-prop17-vig",
-        name: "Official Voter Information Guide — Prop 17 (Title & Analysis)",
+        name: "Official Voter Information Guide - Prop 17 (Title & Analysis)",
         url: "https://vig.cdn.sos.ca.gov/2020/general/pdf/prop17-title-summ-analysis.pdf",
         docType: "summary",
       },

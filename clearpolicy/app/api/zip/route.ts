@@ -269,9 +269,9 @@ export async function GET(req: NextRequest) {
             const r = await fetch(sUrl, { cache: "no-store" });
             const html = await r.text();
             const nm = parseNameFromHtml(html, "Senator");
-            inferred.push({ name: nm || `Senator — SD ${upperNum}`, office: "Senator", urls: [sUrl] });
+            inferred.push({ name: nm || `Senator - SD ${upperNum}`, office: "Senator", urls: [sUrl] });
           } catch {
-            inferred.push({ name: `Senator — SD ${upperNum}`, office: "Senator", urls: [sUrl] });
+            inferred.push({ name: `Senator - SD ${upperNum}`, office: "Senator", urls: [sUrl] });
           }
         }
         // Assembly: probe both party domains to find a live homepage
@@ -291,15 +291,15 @@ export async function GET(req: NextRequest) {
             } catch {}
           }
           if (!aUrl) aUrl = finderUrl;
-          inferred.push({ name: nm || `Assemblymember — AD ${lowerNum}`, office: "Assemblymember", urls: [aUrl] });
+          inferred.push({ name: nm || `Assemblymember - AD ${lowerNum}`, office: "Assemblymember", urls: [aUrl] });
         }
       }
 
       if (inferred.length) officials.push(...inferred);
       // Ensure the panel is never blank
       if (officials.length === 0) {
-        if (upperNum) officials.push({ name: `Senator — SD ${upperNum}`, office: "Senator", urls: [`https://sd${pad2(upperNum)}.senate.ca.gov/`] });
-        if (lowerNum) officials.push({ name: `Assemblymember — AD ${lowerNum}`, office: "Assemblymember", urls: [finderUrl] });
+        if (upperNum) officials.push({ name: `Senator - SD ${upperNum}`, office: "Senator", urls: [`https://sd${pad2(upperNum)}.senate.ca.gov/`] });
+        if (lowerNum) officials.push({ name: `Assemblymember - AD ${lowerNum}`, office: "Assemblymember", urls: [finderUrl] });
       }
       return respond({ officials, normalizedInput, finderUrl }, { place: placeInfo, districts });
     }
@@ -313,7 +313,7 @@ export async function GET(req: NextRequest) {
         const billJson: any = await billRes.json();
         const title: string = billJson?.title || billJson?.identifier || "";
         const latest: string = billJson?.latest_action_description || billJson?.latest_action?.description || "";
-        contextLine = title ? `Context: ${title}${latest ? ` — ${latest}` : ""}` : null;
+        contextLine = title ? `Context: ${title}${latest ? ` - ${latest}` : ""}` : null;
         const voteEvents: any[] = ([] as any[])
           .concat(billJson?.votes || [])
           .concat(billJson?.vote_events || [])

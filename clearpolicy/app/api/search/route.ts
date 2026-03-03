@@ -18,7 +18,7 @@ const knownCaResultsFor = (query: string) => {
     results.push({
       id: "ca-virtual-ab-5-2019",
       identifier: "AB 5",
-      title: "AB 5 (2019) — Worker classification (ABC test)",
+      title: "AB 5 (2019) - Worker classification (ABC test)",
       classification: ["bill"],
       session: "2019-2020",
       _year: "2019",
@@ -35,7 +35,7 @@ const knownCaResultsFor = (query: string) => {
       {
         id: "ca-virtual-sb-1383-2016",
         identifier: "SB 1383",
-        title: "SB 1383 (2016) — Short-lived climate pollutants / organic waste",
+        title: "SB 1383 (2016) - Short-lived climate pollutants / organic waste",
         classification: ["bill"],
         session: "2015-2016",
         _year: "2016",
@@ -49,7 +49,7 @@ const knownCaResultsFor = (query: string) => {
       {
         id: "ca-virtual-sb-1383-2020",
         identifier: "SB 1383",
-        title: "SB 1383 (2020) — Family leave expansion (CFRA)",
+        title: "SB 1383 (2020) - Family leave expansion (CFRA)",
         classification: ["bill"],
         session: "2019-2020",
         _year: "2020",
@@ -68,7 +68,7 @@ const knownCaResultsFor = (query: string) => {
       results.push({
         id: "ca-virtual-sb-1383-climate",
         identifier: "SB 1383",
-        title: "SB 1383 (2016) — Organic waste & methane reduction",
+        title: "SB 1383 (2016) - Organic waste & methane reduction",
         classification: ["bill"],
         session: "2015-2016",
         _year: "2016",
@@ -85,7 +85,7 @@ const knownCaResultsFor = (query: string) => {
     results.push({
       id: "ca-virtual-prop-50-2016",
       identifier: "Prop 50",
-      title: "Proposition 50 (2016) — Water infrastructure financing",
+      title: "Proposition 50 (2016) - Water infrastructure financing",
       classification: ["ballot"],
       _year: "2016",
       _status: "Statewide ballot measure",
@@ -100,7 +100,7 @@ const knownCaResultsFor = (query: string) => {
     results.push({
       id: "ca-prop-17-2020",
       identifier: "Prop 17",
-      title: "Proposition 17 (2020) — Voting rights for people on parole",
+      title: "Proposition 17 (2020) - Voting rights for people on parole",
       classification: ["ballot"],
       _year: "2020",
       _status: "Passed (2020)",
@@ -116,7 +116,7 @@ const knownCaResultsFor = (query: string) => {
     results.push({
       id: "ca-prop-47-2014",
       identifier: "Prop 47",
-      title: "Proposition 47 (2014) — Reduced penalties for theft & drug crimes",
+      title: "Proposition 47 (2014) - Reduced penalties for theft & drug crimes",
       classification: ["ballot"],
       _year: "2014",
       _status: "Passed (2014)",

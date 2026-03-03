@@ -138,7 +138,7 @@ export default async function AdminAnalyticsPage() {
                 key={row.zipCode ?? "unknown"}
                 className="flex justify-between text-sm text-[var(--text-primary)]"
               >
-                <span>{row.zipCode ?? "—"}</span>
+                <span>{row.zipCode ?? "-"}</span>
                 <span className="font-medium">{row._count.userId}</span>
               </li>
             ))}

@@ -26,8 +26,8 @@ export function isFreeSearchLimitReached(): boolean {
 /**
  * Hook that manages free-search gating for unsigned-in users.
  *
- * - `canSearch()` — read-only check, no side effects.
- * - `tryConsumeSearch()` — checks limit, increments count if allowed,
+ * - `canSearch()`: read-only check, no side effects.
+ * - `tryConsumeSearch()`: checks limit, increments count if allowed,
  *    sets `showGate=true` if blocked. Returns whether the call is allowed.
  */
 export function useFreeSearchGate(isSignedIn: boolean) {

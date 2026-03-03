@@ -44,7 +44,7 @@ export interface ClassifiedQuery {
 
 /** Persona types for "View As" filtering */
 export type Persona =
-  | "general"        // default — no filtering
+  | "general"        // default - no filtering
   | "student"        // focus: FAFSA, tuition, campus, curriculum
   | "homeowner"      // focus: property tax, zoning, HOA, mortgage
   | "small_biz"      // focus: regulations, tax, permits, labor
@@ -140,7 +140,7 @@ export interface AnswerSection {
   heading: string;
   /** The paragraph/content of this section */
   content: string;
-  /** Inline citation indices — each number maps to OmniResponse.sources */
+  /** Inline citation indices - each number maps to OmniResponse.sources */
   citations: number[];
   /** Confidence: 'verified' = has source, 'inferred' = LLM inference, 'unverified' */
   confidence: "verified" | "inferred" | "unverified";

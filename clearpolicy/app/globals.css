@@ -1,3 +1,5 @@
+@import url("https://db.onlinewebfonts.com/c/325e5a9e7148fe15f4c18fb53d28243e?family=Quadranta");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,7 +10,7 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-  /* Backgrounds — OpenNote-style off-white (#FAF9F6) */
+  /* Backgrounds - OpenNote-style off-white (#FAF9F6) */
   --cp-bg: #FAF9F6;
   --cp-surface: rgba(255, 253, 250, 0.9);
   --cp-surface-2: rgba(252, 251, 248, 0.95);
@@ -29,7 +31,7 @@
   --cp-warning: #E0A95F;
   --cp-error: #D76A5F;
 
-  /* Borders — translucent for glass */
+  /* Borders - translucent for glass */
   --cp-border: rgba(26, 26, 26, 0.08);
   --cp-border-medium: rgba(26, 26, 26, 0.12);
 
@@ -39,7 +41,7 @@
   --cp-glass-tint: rgba(255, 255, 255, 0.1);
   --cp-nav: rgba(250, 249, 246, 0.9);
 
-  /* Shadows — soft, warm */
+  /* Shadows - soft, warm */
   --cp-shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px rgba(0, 0, 0, 0.05);
   --cp-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 20px 48px rgba(0, 0, 0, 0.06);
   --cp-shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.06), 0 32px 64px rgba(0, 0, 0, 0.1);
@@ -51,6 +53,7 @@
   /* Fonts (--font-heading overridden by next/font Libre Baskerville when loaded) */
   --font-heading: "Libre Baskerville", Georgia, serif;
   --font-sans: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-user-input: "Quadranta", var(--font-heading), Georgia, serif;
 }
 
 /* ─── Dark Mode ─── */
@@ -130,6 +133,11 @@ a { color: var(--cp-accent); }
   color: var(--cp-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+
+/* User input font: prompts, follow-ups, search boxes */
+.font-user-input {
+  font-family: var(--font-user-input);
 }
 
 /* ═══════════════════════════════════════

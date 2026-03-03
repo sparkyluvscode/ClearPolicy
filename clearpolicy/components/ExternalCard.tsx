@@ -12,7 +12,7 @@ export default function ExternalCard({ label, url, hint, kind, top = false }: { 
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="font-medium text-[var(--cp-text)]">{label}</div>
-            <div className="mt-1 text-xs text-[var(--cp-muted)]">{hint}{host ? ` — ${host}` : ""}</div>
+            <div className="mt-1 text-xs text-[var(--cp-muted)]">{hint}{host ? ` - ${host}` : ""}</div>
           </div>
           <Badge variant={kind === "official" ? "official" : kind === "analysis" ? "analysis" : "neutral"}>{badge}</Badge>
         </div>

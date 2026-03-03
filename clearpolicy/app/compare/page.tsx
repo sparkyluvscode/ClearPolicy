@@ -106,14 +106,14 @@ export default function ComparePage() {
                         value={topicA}
                         onChange={e => setTopicA(e.target.value)}
                         placeholder="e.g. Universal healthcare"
-                        className="w-full px-4 py-3 rounded-xl glass-input text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15"
+                        className="font-user-input w-full px-4 py-3 rounded-xl glass-input text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15"
                     />
                     <input
                         type="text"
                         value={topicB}
                         onChange={e => setTopicB(e.target.value)}
                         placeholder="e.g. Private insurance system"
-                        className="w-full px-4 py-3 rounded-xl glass-input text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15"
+                        className="font-user-input w-full px-4 py-3 rounded-xl glass-input text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15"
                     />
                 </div>
                 <Button

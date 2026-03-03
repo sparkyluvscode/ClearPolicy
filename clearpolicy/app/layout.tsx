@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const warningBanner = missingKeys && (
     <div className="cp-site-warning border-b border-[var(--cp-border)] bg-[var(--cp-surface-2)]">
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-2 text-xs tracking-wide text-[var(--cp-muted)]">
-        Live data temporarily unavailable — showing verified sample content.
+        Live data temporarily unavailable, showing verified sample content.
       </div>
     </div>
   );

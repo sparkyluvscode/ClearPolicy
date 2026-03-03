@@ -19,7 +19,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ref={ref}
         id={id}
         className={cn(
-          "glass-input h-10 w-full rounded-xl px-3 text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus-ring",
+          "font-user-input glass-input h-10 w-full rounded-xl px-3 text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus-ring",
           className
         )}
         {...props}
@@ -47,7 +47,7 @@ export function SearchInput({
         </svg>
       </span>
           <input
-            className="glass-input h-10 w-full rounded-xl pl-10 pr-3 text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus-ring"
+            className="font-user-input glass-input h-10 w-full rounded-xl pl-10 pr-3 text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus-ring"
             {...props}
           />
     </div>

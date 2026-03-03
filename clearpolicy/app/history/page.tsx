@@ -158,7 +158,7 @@ export default function HistoryPage() {
         body: JSON.stringify({ title: trimmed }),
         credentials: "include",
       });
-    } catch { /* optimistic — revert would need refetch */ }
+    } catch { /* optimistic - revert would need refetch */ }
   }, [renameValue]);
 
   const deleteConversation = useCallback(async (id: string) => {
@@ -206,7 +206,7 @@ export default function HistoryPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search your research..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl glass-input text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all"
+              className="font-user-input w-full pl-10 pr-4 py-2.5 rounded-xl glass-input text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all"
             />
           </div>
           <div className="flex gap-1">
@@ -329,7 +329,7 @@ export default function HistoryPage() {
                               onChange={e => setRenameValue(e.target.value)}
                               onBlur={() => submitRename(c.id)}
                               onKeyDown={e => { if (e.key === "Escape") setRenaming(null); }}
-                              className="w-full px-3 py-1.5 rounded-lg glass-input text-sm text-[var(--cp-text)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/20"
+                              className="font-user-input w-full px-3 py-1.5 rounded-lg glass-input text-sm text-[var(--cp-text)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/20"
                             />
                           </form>
                         </div>

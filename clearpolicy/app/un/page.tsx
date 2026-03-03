@@ -183,7 +183,7 @@ export default function UNDocsPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://undocs.org/..."
-                className="w-full"
+                className="font-user-input w-full"
               />
               <p className="mt-2 text-xs text-[var(--cp-muted)]">
                 Works best with text-based pages from undocs.org, un.org, and similar official sites.
@@ -258,7 +258,7 @@ export default function UNDocsPage() {
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste the document text here..."
                 rows={6}
-                className="w-full rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] px-4 py-3 text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-y min-h-[120px] max-h-[300px]"
+                className="font-user-input w-full rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] px-4 py-3 text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent resize-y min-h-[120px] max-h-[300px]"
               />
               <p className="mt-2 text-xs text-[var(--cp-muted)]">
                 {text.length.toLocaleString()} characters {text.length < 100 && text.length > 0 && "(need at least 100)"}

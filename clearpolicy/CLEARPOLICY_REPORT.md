@@ -8,7 +8,7 @@ ClearPolicy is a non-partisan civic education web application designed to democr
 
 ## 1. Introduction: The Mission of ClearPolicy
 
-ClearPolicy exists to solve a fundamental problem in American democracy: the gap between complex legal language and public understanding. The platform's tagline—"Clarity on every ballot"—encapsulates its core mission: empowering voters, parents, and students to understand policy at a glance through instant plain-English summaries that are neutral, sourced, searchable, and accessible.
+ClearPolicy exists to solve a fundamental problem in American democracy: the gap between complex legal language and public understanding. The platform's tagline: "Clarity on every ballot" - encapsulates its core mission: empowering voters, parents, and students to understand policy at a glance through instant plain-English summaries that are neutral, sourced, searchable, and accessible.
 
 The application represents a technological solution to a civic challenge. Research indicates that approximately 75% of voters skip reading ballot measures because they find the language too difficult to understand. This creates a democratic deficit where citizens make decisions without fully comprehending the policies they're voting on. ClearPolicy addresses this by providing multiple reading levels (5th, 8th, and 12th grade), comprehensive source citations, and intelligent search capabilities that help users find exactly what they're looking for.
 
@@ -334,8 +334,8 @@ The disambiguation system (`lib/normalize.ts`) uses pattern matching:
 **Example:**
 Query: "prop 17 retail theft"
 Chips:
-- "Prop 17 (2020) — voting rights for people on parole"
-- "Prop 47 (2014) — theft & drug penalties ($950)"
+- "Prop 17 (2020) - voting rights for people on parole"
+- "Prop 47 (2014) - theft & drug penalties ($950)"
 
 ### 4.6 Search Ranking Algorithm
 
@@ -885,13 +885,13 @@ ClearPolicy includes comprehensive end-to-end tests:
 
 ## 13. Conclusion: The Impact of ClearPolicy
 
-ClearPolicy represents a significant advancement in civic technology. By combining sophisticated text simplification, intelligent search, comprehensive citation tracking, and seamless API integration, the platform makes policy accessible to everyone—from 5th-grade students to engaged citizens.
+ClearPolicy represents a significant advancement in civic technology. By combining sophisticated text simplification, intelligent search, comprehensive citation tracking, and seamless API integration, the platform makes policy accessible to everyone - from 5th-grade students to engaged citizens.
 
 The application's commitment to non-partisanship, source transparency, and educational empowerment positions it as a trusted tool for civic engagement. Every feature is designed to teach users **how** to read and understand policy, not **what** to think about it.
 
 As democracy faces challenges from misinformation and civic disengagement, tools like ClearPolicy are essential. They bridge the gap between complex government documents and public understanding, empowering citizens to make informed decisions and participate meaningfully in democratic processes.
 
-The technical sophistication of ClearPolicy—from its rule-based NLP algorithms to its intelligent disambiguation system—demonstrates that civic technology can be both powerful and accessible. The platform's architecture supports future expansion while maintaining the simplicity and clarity that make it effective.
+The technical sophistication of ClearPolicy - from its rule-based NLP algorithms to its intelligent disambiguation system - demonstrates that civic technology can be both powerful and accessible. The platform's architecture supports future expansion while maintaining the simplicity and clarity that make it effective.
 
 ClearPolicy is more than a web application; it's a tool for strengthening democracy through education, transparency, and accessibility. By making policy understandable, it empowers citizens to engage with their government, understand their representatives' actions, and make informed choices at the ballot box.
 

@@ -33,7 +33,7 @@ export function ExploreAnswerCard({
     <article className="rounded-xl border border-[var(--border-light)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-sm)]">
       {userQuery && (
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
-          You asked: {userQuery}
+          You asked: <span className="font-user-input">{userQuery}</span>
         </p>
       )}
       <h2

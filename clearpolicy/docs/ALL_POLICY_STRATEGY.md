@@ -52,7 +52,7 @@ For a first step, **Phase 1 + clear federal treatment** gets us to "all state + 
 - **Ballot measures**  
   CA: Ballotpedia URLs + LAO + known-summaries. Other states: would need a similar pattern (Ballotpedia has other states; we don’t yet have a generic "state proposition" fetcher).
 
-So for **all state + federal legislation**, we don’t need new APIs—we need **jurisdiction inference** and **multi-jurisdiction search**.
+So for **all state + federal legislation**, we don’t need new APIs - we need **jurisdiction inference** and **multi-jurisdiction search**.
 
 ---
 
@@ -118,7 +118,7 @@ Recommendation: **Option A for Phase 1** (add `otherStates` and optionally a `st
   - CA: keep `/measure/prop/[num]?year=...` (or slug `ca-prop-17-2020`).  
   - Other states: add a generic route, e.g. `/measure/state/[state]/prop/[num]?year=...`, and a data layer that can fetch Ballotpedia (or other) for that state. Phase 3.
 
-So for Phase 1 we don’t need new detail page routes—we need **search** to return bills from more states and **UI** to show which state each result is from and link to the right external site.
+So for Phase 1 we don’t need new detail page routes - we need **search** to return bills from more states and **UI** to show which state each result is from and link to the right external site.
 
 ---
 

@@ -117,7 +117,7 @@ GOOGLE_CIVIC_API_KEY=AIzaSyAbC123dEf456GhI789JkL
 TAVILY_API_KEY=tvly-abc123xyz456
 ```
 
-**Note:** The app works without this key — AI answers will still generate but without real-time web context. Adding this key significantly improves answer accuracy and provides verified source URLs.
+**Note:** The app works without this key - AI answers will still generate but without real-time web context. Adding this key significantly improves answer accuracy and provides verified source URLs.
 
 ---
 
@@ -188,5 +188,5 @@ The app works with sample data for CAC! Judges understand that API approvals tak
 2. Mention in your demo video: "Live API integration ready; awaiting approval"
 3. Note in submission materials that real keys will enable live data
 
-The technical implementation is identical—only the data source changes.
+The technical implementation is identical - only the data source changes.
 

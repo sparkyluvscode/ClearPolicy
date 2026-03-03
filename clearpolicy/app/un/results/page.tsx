@@ -534,7 +534,7 @@ function UNResultsContent() {
                     <div key={i} className="border-b border-[var(--cp-border)] pb-3 last:border-0 last:pb-0">
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="font-mono text-sm font-bold text-accent">{term.term}</span>
-                        <span className="text-sm text-[var(--cp-text)]">— {term.meaning}</span>
+                        <span className="text-sm text-[var(--cp-text)]">- {term.meaning}</span>
                       </div>
                       <p className="mt-1 text-xs text-[var(--cp-muted)]">{term.simpleExplanation}</p>
                     </div>
@@ -672,7 +672,7 @@ function UNResultsContent() {
                     : "bg-[var(--cp-surface)] text-[var(--cp-text)] rounded-bl-md border border-[var(--cp-border)]"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                <p className={`text-sm whitespace-pre-wrap leading-relaxed ${msg.role === "user" ? "font-user-input" : ""}`}>{msg.content}</p>
               </div>
             </div>
           ))}
@@ -715,7 +715,7 @@ function UNResultsContent() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               placeholder={documentHash ? "Ask a question..." : "Loading..."}
-              className="flex-1 rounded-xl border border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 py-3 text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50"
+              className="font-user-input flex-1 rounded-xl border border-[var(--cp-border)] bg-[var(--cp-bg)] px-4 py-3 text-sm text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50"
               disabled={chatLoading || !documentHash}
             />
             <button

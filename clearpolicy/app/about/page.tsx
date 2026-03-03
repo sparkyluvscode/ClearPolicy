@@ -25,7 +25,7 @@ export default function AboutPage() {
           <p className="text-sm text-[var(--cp-muted)] mt-1">Our multi-source policy intelligence engine</p>
         </div>
         <p className="text-[15px] text-[var(--cp-text)] leading-relaxed mb-5">
-          Omni-Search doesn&apos;t just look things up — it cross-references federal databases, state legislative trackers, government archives, and trusted news sources simultaneously. Every claim is cited, every source is verifiable, and ambiguous queries are clarified before results are generated.
+          Omni-Search doesn&apos;t just look things up - it cross-references federal databases, state legislative trackers, government archives, and trusted news sources simultaneously. Every claim is cited, every source is verifiable, and ambiguous queries are clarified before results are generated.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           {[
@@ -46,7 +46,7 @@ export default function AboutPage() {
         <p className="section-label mb-4">How it works</p>
         <div className="grid gap-3 md:grid-cols-3 stagger">
           {[
-            { step: "1", title: "Ask anything", desc: "Type a question, search a bill, or drop a document — Omni-Search handles it all." },
+            { step: "1", title: "Ask anything", desc: "Type a question, search a bill, or drop a document - Omni-Search handles it all." },
             { step: "2", title: "Get cited answers", desc: "Every claim references a real source. Unverified claims are clearly flagged." },
             { step: "3", title: "Explore deeper", desc: "Ask follow-ups within the same conversation. Adjust persona and reading level." },
           ].map((item) => (

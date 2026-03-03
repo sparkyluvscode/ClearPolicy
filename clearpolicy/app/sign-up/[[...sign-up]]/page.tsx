@@ -21,7 +21,7 @@ const pageAppearance = {
       "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] hover:bg-[var(--cp-hover)] text-[var(--cp-text)] font-medium transition-all",
     formFieldRow: "gap-3",
     formFieldInput:
-      "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:ring-2 focus:ring-[var(--cp-accent)]/15 focus:border-[var(--cp-accent)]/30 transition-all",
+      "font-user-input rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:ring-2 focus:ring-[var(--cp-accent)]/15 focus:border-[var(--cp-accent)]/30 transition-all",
     formFieldLabel: "text-[var(--cp-text)] font-medium text-sm",
     formButtonPrimary:
       "bg-[var(--cp-accent)] hover:brightness-110 active:scale-[0.98] rounded-xl text-sm font-semibold shadow-none transition-all mt-2",

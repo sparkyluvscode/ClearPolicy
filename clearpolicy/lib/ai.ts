@@ -58,7 +58,7 @@ export async function generateSummary(req: SummaryRequest): Promise<GeneratedSum
     return generateFallbackSummary(req);
   }
 
-  // Even with minimal content, try AI if we at least have a title — GPT can
+  // Even with minimal content, try AI if we at least have a title; GPT can
   // produce a real summary from just the bill name (e.g. "Inflation Reduction Act").
   const hasUsableInput = (req.title && req.title.length > 3) ||
     (req.content && req.content.length > 5) ||
@@ -271,12 +271,12 @@ function generateFallbackSummary(req: SummaryRequest): GeneratedSummary {
 
     if (!tldr || tldr.length < 30) {
       if (title && title.length > 15) {
-        // Use the title as the basis — much better than "addresses policy changes"
+        // Use the title as the basis - much better than "addresses policy changes"
         tldr = `${name}: ${title}${subjects && subjects.length > 0 ? ". Covers " + subjects.slice(0, 2).join(" and ") : ""}.`;
       } else if (subjects && subjects.length > 0) {
         tldr = `${name} addresses ${subjects.slice(0, 3).join(", ")}.`;
       } else {
-        tldr = `${name}. Details not yet available — use the "Analyze with AI" button or search on Congress.gov for the full text.`;
+        tldr = `${name}. Details not yet available - use the "Analyze with AI" button or search on Congress.gov for the full text.`;
       }
     }
   }

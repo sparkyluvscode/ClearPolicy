@@ -19,10 +19,10 @@ export default function DisambiguatorChips({ chips }: { chips: Chip[] }) {
             onClick={() => {
               if (c.slug) router.push(`/measure/${c.slug}`);
             }}
-            aria-label={`${c.label} — ${c.hint}`}
+            aria-label={`${c.label} - ${c.hint}`}
           >
             <span className="font-medium">{c.label}</span>
-            <span className="ml-1 text-[var(--cp-muted)]">— {c.hint}</span>
+            <span className="ml-1 text-[var(--cp-muted)]">- {c.hint}</span>
           </Button>
         ))}
       </div>

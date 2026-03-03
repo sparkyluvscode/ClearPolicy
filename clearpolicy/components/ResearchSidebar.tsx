@@ -86,7 +86,7 @@ export default function ResearchSidebar({
 
   return (
     <>
-      {/* Toggle button — always visible */}
+      {/* Toggle button: always visible */}
       <button
         onClick={onToggle}
         className="fixed left-0 top-20 z-40 p-2 rounded-r-lg bg-[var(--cp-surface)] border border-l-0 border-[var(--cp-border)] text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all shadow-sm"

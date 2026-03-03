@@ -33,10 +33,6 @@ function isValidSourceUrl(url: string | undefined | null): boolean {
   }
 }
 
-function filterValidSources(sources: AnswerSource[]): AnswerSource[] {
-  return sources.filter(s => isValidSourceUrl(s.url));
-}
-
 function webResultsToSources(results: WebSearchResult[]): AnswerSource[] {
   return results.slice(0, 6).map((r, i) => {
     let domain = "";
@@ -101,16 +97,15 @@ Return ONLY valid JSON (no markdown):
   "category": "One short category (e.g. 'People', 'Science', 'History', 'Technology')",
   "answer": "A detailed, well-written 4-8 sentence answer. Don't just state facts - explain them. Include context, significance, and connections that make the answer genuinely interesting and useful. Write in clear, engaging prose.",
   "keyFacts": ["Substantive fact with context 1", "Substantive fact with context 2", "Substantive fact with context 3", "Substantive fact with context 4", "Substantive fact with context 5"],
-  "sources": [
-    { "title": "Source name", "url": "https://...", "domain": "domain.com" }
-  ]
+  "sources": []
 }
 
 Rules:
 - Be thorough and insightful, not generic. The user chose this app over Google - reward that choice.
 - Each key fact should be a complete, informative sentence (not just a fragment).
 - Include 5 key facts that give the reader a real understanding of the topic.
-- Include specific numbers, statistics, dollar amounts, dates, and percentages wherever possible. Quantitative data makes answers credible.${hasVerifiedData ? "\n- CRITICAL: Government data and web search results are provided above WITH THEIR URLS. Use them as your PRIMARY factual basis. ONLY use URLs that appear in the provided data above. Do NOT invent, guess, or hallucinate any URLs." : "\n- CRITICAL: If you are not 100% certain a URL is real and accessible, do NOT include it. It is better to return an empty sources array than to fabricate URLs. Only cite URLs you are completely confident exist."}
+- Include specific numbers, statistics, dollar amounts, dates, and percentages wherever possible. Quantitative data makes answers credible.
+- IMPORTANT: Always return an empty sources array []. Sources are handled separately by the system. Do NOT generate any source URLs.${hasVerifiedData ? "\n- Government data and web search results are provided above. Use them as your PRIMARY factual basis." : ""}
 - If the query is about a person, include their significance, major achievements, and current relevance.
 - If the query is about an event, include the timeline, causes, effects, and why it matters today.
 - Write as if explaining to an intelligent adult who deserves a complete picture, not a simplified blurb.`;
@@ -134,21 +129,10 @@ Rules:
   const parsed = JSON.parse(content);
   const keyFacts: string[] = Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [];
 
+  // ONLY use verified sources from web search. Never use AI-generated URLs.
   const sources: AnswerSource[] = webResults?.length
     ? webResultsToSources(webResults)
-    : filterValidSources(
-        (Array.isArray(parsed.sources) ? parsed.sources : [])
-          .filter((s: any) => isValidSourceUrl(s.url))
-          .slice(0, 4)
-          .map((s: any, i: number) => ({
-            id: i + 1,
-            title: s.title || "Source",
-            url: s.url,
-            domain: s.domain || (() => { try { return new URL(s.url).hostname; } catch { return "source"; } })(),
-            type: "Web" as const,
-            verified: false,
-          }))
-      );
+    : [];
 
   return {
     policyId: `general-${Date.now()}`,
@@ -263,21 +247,10 @@ Critical rules:
       argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? sec.argumentsAgainst : [],
     };
 
+    // ONLY use verified sources from web search. Never use AI-generated URLs.
     const sources: AnswerSource[] = webResults?.length
       ? webResultsToSources(webResults)
-      : filterValidSources(
-          (Array.isArray(parsed.sources) ? parsed.sources : [])
-            .filter((s: any) => isValidSourceUrl(s.url))
-            .slice(0, 6)
-            .map((s: any, i: number) => ({
-              id: i + 1,
-              title: s.title || "Source",
-              url: s.url,
-              domain: s.domain || (() => { try { return new URL(s.url).hostname; } catch { return "source"; } })(),
-              type: ["Federal", "State", "Local", "Web"].includes(s.type) ? s.type : "Web",
-              verified: false,
-            }))
-        );
+      : [];
 
     return {
       policyId: `policy-${Date.now()}`,
@@ -391,21 +364,10 @@ Return ONLY valid JSON:
       argumentsAgainst: undefined,
     };
 
+    // ONLY use verified sources from web search. Never use AI-generated URLs.
     const sources: AnswerSource[] = webResults?.length
       ? webResultsToSources(webResults)
-      : filterValidSources(
-          (Array.isArray(parsed.sources) ? parsed.sources : [])
-            .filter((s: { url?: string }) => isValidSourceUrl(s.url))
-            .slice(0, 6)
-            .map((s: { title?: string; url: string; domain?: string; type?: string }, i: number) => ({
-              id: i + 1,
-              title: s.title || "Source",
-              url: s.url,
-              domain: s.domain || (() => { try { return new URL(s.url).hostname; } catch { return "source"; } })(),
-              type: (["Federal", "State", "Local", "Web"].includes(s.type || "") ? s.type : "Web") as "Federal" | "State" | "Local" | "Web",
-              verified: false,
-            }))
-        );
+      : [];
 
     return {
       answer: {

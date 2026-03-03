@@ -3,7 +3,7 @@
 1) Home search (10s)
 - Narration: "Search a policy and get clear, non‑partisan results."
 - Action: Type "prop 17 retail theft" and press Enter.
-- On screen: Two chips appear — Prop 17 (2020) and Prop 47 (2014).
+- On screen: Two chips appear: Prop 17 (2020) and Prop 47 (2014).
 
 2) Disambiguation (10s)
 - Narration: "Built‑in disambiguation helps you land on the right measure."

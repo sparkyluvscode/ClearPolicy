@@ -1,5 +1,5 @@
 /**
- * Gov Data First pipeline — fetches structured data from government APIs
+ * Gov Data First pipeline - fetches structured data from government APIs
  * (Congress.gov, Open States, Google Civic) BEFORE calling the LLM.
  *
  * The AI's job becomes: summarize and explain verified data, not invent facts.
@@ -9,7 +9,7 @@ import { congress } from "./clients/congress";
 import { openstates } from "./clients/openstates";
 import type { AnswerSource } from "./policy-types";
 
-/* ─── Types ─── */
+/* --- Types --- */
 
 export interface GovBill {
   identifier: string;
@@ -41,7 +41,7 @@ export interface GovContext {
   hadDirectBillLookup: boolean;
 }
 
-/* ─── Bill ID parsing ─── */
+/* --- Bill ID parsing --- */
 
 interface ParsedBillRef {
   type: "federal" | "state";
@@ -95,7 +95,7 @@ function parseBillId(raw: string, state?: string): ParsedBillRef | null {
   return null;
 }
 
-/* ─── Congress.gov fetcher ─── */
+/* --- Congress.gov fetcher --- */
 
 async function fetchFederalBill(ref: ParsedBillRef): Promise<GovBill | null> {
   try {
@@ -149,7 +149,7 @@ async function fetchFederalBill(ref: ParsedBillRef): Promise<GovBill | null> {
   return null;
 }
 
-/* ─── Open States fetcher ─── */
+/* --- Open States fetcher --- */
 
 async function fetchStateBills(ref: ParsedBillRef, stateCode: string): Promise<GovBill[]> {
   try {
@@ -198,7 +198,7 @@ function mapOpenStatesBill(b: any, stateCode: string, fallbackId: string): GovBi
   };
 }
 
-/* ─── Topic search (returns multiple related bills) ─── */
+/* --- Topic search (returns multiple related bills) --- */
 
 const TOPIC_TO_SEARCH: Record<string, string> = {
   healthcare: "healthcare health care medical",
@@ -266,7 +266,7 @@ async function searchBillsByTopic(query: string, state?: string, topics?: string
   return bills;
 }
 
-/* ─── Civic API — representative lookup ─── */
+/* --- Civic API - representative lookup --- */
 
 async function fetchRepresentatives(zip: string): Promise<{
   reps: GovRepresentative[];
@@ -321,7 +321,7 @@ async function fetchRepresentatives(zip: string): Promise<{
   }
 }
 
-/* ─── Main orchestrator ─── */
+/* --- Main orchestrator --- */
 
 export interface FetchGovDataOptions {
   query: string;
@@ -337,7 +337,7 @@ export async function fetchGovData(options: FetchGovDataOptions): Promise<GovCon
 
   const context: GovContext = { bills: [], representatives: [], hadDirectBillLookup: false };
 
-  // 1. Bill lookup — highest priority when a bill identifier is detected
+  // 1. Bill lookup - highest priority when a bill identifier is detected
   if (billId) {
     const ref = parseBillId(billId, state);
     if (ref) {
@@ -357,7 +357,7 @@ export async function fetchGovData(options: FetchGovDataOptions): Promise<GovCon
     }
   }
 
-  // 2. Topic search — when no specific bill is found, search for related legislation
+  // 2. Topic search - when no specific bill is found, search for related legislation
   if (context.bills.length === 0 && intent !== "news_update") {
     const topicBills = await searchBillsByTopic(query, state, topics);
     // Filter to bills that are actually relevant to the query
@@ -382,7 +382,7 @@ export async function fetchGovData(options: FetchGovDataOptions): Promise<GovCon
   return context;
 }
 
-/* ─── Format gov data into prompt context ─── */
+/* --- Format gov data into prompt context --- */
 
 export function formatGovContext(ctx: GovContext): string {
   if (ctx.bills.length === 0 && ctx.representatives.length === 0) return "";
@@ -394,7 +394,7 @@ export function formatGovContext(ctx: GovContext): string {
 
     for (const bill of ctx.bills) {
       const lines: string[] = [];
-      lines.push(`Bill: ${bill.identifier} — ${bill.title}`);
+      lines.push(`Bill: ${bill.identifier} - ${bill.title}`);
       lines.push(`Source: ${bill.sourceName} (${bill.sourceUrl})`);
       lines.push(`Level: ${bill.level}${bill.state ? ` (${bill.state})` : ""}`);
       if (bill.status) lines.push(`Status: ${bill.status}`);
@@ -425,7 +425,7 @@ export function formatGovContext(ctx: GovContext): string {
       const repLine = [
         rep.name,
         rep.party ? `(${rep.party})` : "",
-        rep.office ? `— ${rep.office}` : "",
+        rep.office ? `- ${rep.office}` : "",
       ].filter(Boolean).join(" ");
       parts.push(`• ${repLine}`);
     }
@@ -434,7 +434,7 @@ export function formatGovContext(ctx: GovContext): string {
   return parts.join("\n\n");
 }
 
-/* ─── Convert gov bills to AnswerSource for the UI ─── */
+/* --- Convert gov bills to AnswerSource for the UI --- */
 
 export function govBillsToSources(bills: GovBill[]): AnswerSource[] {
   return bills.slice(0, 6).map((b, i) => {

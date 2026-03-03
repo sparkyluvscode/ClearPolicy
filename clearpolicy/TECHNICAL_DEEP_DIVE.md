@@ -681,7 +681,7 @@ const citations: Citation[] = [];
 if (impactClause) {
   citations.push({
     quote: impactClause,
-    sourceName: "Open States — impact clause",
+    sourceName: "Open States - impact clause",
     url: primaryUrl,
     location: "tldr"
   });
@@ -691,7 +691,7 @@ if (impactClause) {
 if (abstract) {
   citations.push({
     quote: pickPolicySentence(abstract),
-    sourceName: "Open States — abstract",
+    sourceName: "Open States - abstract",
     url: primaryUrl,
     location: "tldr"
   });
@@ -701,7 +701,7 @@ if (abstract) {
 if (latestAction) {
   citations.push({
     quote: pickPolicySentence(latestAction),
-    sourceName: "Open States — latest action",
+    sourceName: "Open States - latest action",
     url: primaryUrl,
     location: "what"
   });

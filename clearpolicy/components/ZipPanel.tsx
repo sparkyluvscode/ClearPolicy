@@ -159,11 +159,12 @@ export default function ZipPanel({ contextId, context }: { contextId?: string; c
           id="zip-input"
           data-testid="zip-input"
           inputMode="numeric"
-          placeholder="Enter ZIP (e.g., 95014)"
           value={zip}
           onChange={(e) => setZip(e.target.value)}
+          placeholder="Enter ZIP (e.g., 95014)"
           aria-invalid={!!error}
           title="Enter a 5-digit ZIP code"
+          className="font-user-input"
         />
         <Button
           type="submit"
@@ -212,7 +213,7 @@ export default function ZipPanel({ contextId, context }: { contextId?: string; c
               )}
               {!o.vote && contextId && (
                 <div className="mt-1 text-xs text-[var(--cp-muted)]">
-                  Vote unknown — no roll-call vote found for this bill yet.
+                  Vote unknown - no roll-call vote found for this bill yet.
                 </div>
               )}
               <div className="mt-1 flex items-center gap-3">
