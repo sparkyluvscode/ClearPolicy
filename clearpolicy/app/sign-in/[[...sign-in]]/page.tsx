@@ -11,11 +11,11 @@ const pageAppearance = {
   ...clerkAppearance,
   elements: {
     ...clerkAppearance.elements,
-    rootBox: "w-full",
-    card: "glass-card rounded-2xl overflow-hidden py-8 px-6 sm:py-10 sm:px-8 w-full",
+    rootBox: "w-full flex flex-col items-center",
+    card: "glass-card rounded-2xl overflow-hidden py-8 px-6 sm:py-10 sm:px-8 w-full mx-auto",
     header: "hidden",
     footer: "hidden",
-    main: "gap-4",
+    main: "gap-4 flex flex-col items-center w-full",
     socialButtons: "gap-2",
     socialButtonsBlockButton:
       "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] hover:bg-[var(--cp-hover)] text-[var(--cp-text)] font-medium transition-all",
@@ -38,7 +38,7 @@ export default function SignInPage({
   const afterUrl = searchParams?.redirect_url || "/";
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-[var(--cp-bg)] overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] bg-[var(--cp-bg)] overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
       {/* Atmospheric glows */}
       <div
         className="pointer-events-none fixed inset-0"
@@ -49,7 +49,7 @@ export default function SignInPage({
         }}
       />
 
-      <div className="relative z-10 flex flex-col items-center min-h-full px-5 pt-20 pb-12">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-full w-full px-5 pt-20 pb-12">
         {/* Back link */}
         <Link
           href="/"
@@ -71,8 +71,8 @@ export default function SignInPage({
           </p>
         </div>
 
-        {/* Clerk form — card element styled as glass-card directly */}
-        <div className="w-full max-w-[440px]">
+        {/* Clerk form - card element styled as glass-card directly */}
+        <div className="w-full max-w-[440px] mx-auto">
           {hasClerkKey ? (
             <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
               <SignIn
