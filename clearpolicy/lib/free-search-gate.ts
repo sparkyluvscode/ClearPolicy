@@ -44,6 +44,14 @@ export function useFreeSearchGate(isSignedIn: boolean) {
     refreshRemaining();
   }, [refreshRemaining]);
 
+  // Auto-dismiss: if the gate was shown during auth loading and
+  // isSignedIn later becomes true, clear the gate immediately.
+  useEffect(() => {
+    if (isSignedIn && showGate) {
+      setShowGate(false);
+    }
+  }, [isSignedIn, showGate]);
+
   const canSearch = useCallback((): boolean => {
     if (isSignedIn) return true;
     return !isFreeSearchLimitReached();

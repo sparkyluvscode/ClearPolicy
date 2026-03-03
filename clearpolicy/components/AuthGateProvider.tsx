@@ -24,7 +24,7 @@ const AuthGateContext = createContext<AuthGate>({
 export const useAuthGate = () => useContext(AuthGateContext);
 
 export function AuthGateProvider({ children }: { children: ReactNode }) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
 
   const openSignUp = useCallback(() => {
@@ -34,7 +34,9 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
   return (
     <AuthGateContext.Provider
       value={{
-        isSignedIn: !!isSignedIn,
+        // While Clerk is loading, treat user as signed-in to avoid
+        // falsely gating someone who IS signed in.
+        isSignedIn: isLoaded ? !!isSignedIn : true,
         firstName: user?.firstName ?? null,
         openSignUp,
       }}
