@@ -3,6 +3,7 @@ import { generatePolicyAnswer, generateDebateAnswer } from "@/lib/policyEngine";
 import { classifyQuery } from "@/lib/omni-classifier";
 import { matchKnownSummary } from "@/lib/known-summaries";
 import { searchWeb } from "@/lib/web-search";
+import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
 import { prisma, withRetry } from "@/lib/db";
 import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
@@ -278,22 +279,45 @@ export async function POST(req: NextRequest) {
     const classified = classifyQuery(query);
     const useDebate = debateMode || classified.needsDebate;
 
-    // Fetch real-time web context (skipped for known summaries)
+    // Fast path: known curated summaries (human-verified, skip all fetching)
     const knownAnswer = !useDebate ? knownSummaryToAnswer(query, zip ?? null) : null;
+    if (knownAnswer) {
+      const data = mapPolicyAnswerToOmni(knownAnswer, persona, classified.intent);
+      const conversationId = await saveConversation(query, knownAnswer, zip).catch(() => null);
+      return NextResponse.json({ success: true, data, conversationId });
+    }
+
+    // ── Gov Data First pipeline ──
+    // Step 1 & 2: Fetch gov data AND web search in parallel (they're independent)
     const isNews = classified.intent === "news_update";
-    const webSearchResults = knownAnswer
-      ? null
-      : await searchWeb(query, { isNews }).catch((e) => {
-          console.error("[omni] web search failed (non-fatal):", e);
-          return null;
-        });
+    const [govData, webSearchResults] = await Promise.all([
+      fetchGovData({
+        query,
+        billId: classified.billId,
+        zip,
+        state: classified.state,
+        intent: classified.intent,
+        topics: classified.topics,
+      }).catch((e) => {
+        console.error("[omni] gov data fetch failed (non-fatal):", e);
+        return { bills: [] as any[], representatives: [] as any[], hadDirectBillLookup: false };
+      }),
+      searchWeb(query, { isNews }).catch((e) => {
+        console.error("[omni] web search failed (non-fatal):", e);
+        return null;
+      }),
+    ]);
+
+    const govContextStr = formatGovContext(govData);
+    const govSources = govBillsToSources(govData.bills);
     const webResults = webSearchResults?.results ?? [];
 
+    // Step 3: Generate answer with all context injected
     let data: OmniResponse;
     let answer: Answer;
 
     if (useDebate) {
-      const result = await generateDebateAnswer(query, zip ?? null, webResults);
+      const result = await generateDebateAnswer(query, zip ?? null, webResults, govContextStr || undefined);
       answer = result.answer;
       const perspectives: PerspectiveView[] = result.perspectives.map(p => ({
         label: p.label,
@@ -303,8 +327,38 @@ export async function POST(req: NextRequest) {
       }));
       data = mapPolicyAnswerToOmni(answer, persona, "debate_prep", perspectives);
     } else {
-      answer = knownAnswer ?? (await generatePolicyAnswer(query, zip ?? null, webResults));
+      answer = await generatePolicyAnswer(query, zip ?? null, webResults, govContextStr || undefined);
       data = mapPolicyAnswerToOmni(answer, persona, classified.intent);
+    }
+
+    // Step 4: Merge gov sources into the response
+    // Direct bill lookups → prepend only the most relevant version(s)
+    // Topic searches → the AI already has the data in its prompt; let it cite what's relevant
+    if (govSources.length > 0 && govData.hadDirectBillLookup) {
+      let toMerge = govSources;
+      // When multiple versions exist (multi-session), pick the one matching the AI's answer
+      if (govSources.length > 1) {
+        const answerLower = (answer.policyName || "").toLowerCase();
+        const titleMatches = govSources.filter((s) => {
+          const descPart = s.title.replace(/^[A-Z]{1,4}\s*\d+:\s*/i, "").toLowerCase().trim();
+          return descPart.length > 5 && answerLower.includes(descPart.slice(0, 25));
+        });
+        toMerge = titleMatches;
+      }
+      if (toMerge.length === 0) toMerge = govSources.length === 1 ? govSources : [];
+      const govOmniSources: Source[] = toMerge.map((s, i) => ({
+        id: `gov-${i}`,
+        type: s.type === "Federal" ? "federal_bill" : "state_bill",
+        title: s.title,
+        url: s.url,
+        snippet: s.title,
+        publisher: s.domain,
+        relevance: 1,
+        jurisdiction: s.type.toLowerCase() as "federal" | "state",
+      }));
+      data.sources = [...govOmniSources, ...data.sources.filter(
+        (existing) => !govOmniSources.some((g) => g.url === existing.url)
+      )];
     }
 
     // Save conversation in the background (never blocks the response)

@@ -61,11 +61,14 @@ async function generateGeneralAnswer(
   client: OpenAI,
   query: string,
   webResults?: WebSearchResult[],
+  govContext?: string,
 ): Promise<Answer> {
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
+  const govBlock = govContext ? `\n\n${govContext}\n` : "";
+  const hasVerifiedData = !!(govContext || webResults?.length);
 
   const prompt = `The user asked: "${query}"
-${webContext}
+${govBlock}${webContext}
 This is a general knowledge question. Provide a thorough, insightful, and well-structured answer that a curious, intelligent person would find genuinely useful. Go beyond surface-level — include context, nuance, relevant history, and "why it matters."
 
 Return ONLY valid JSON (no markdown):
@@ -83,7 +86,7 @@ Rules:
 - Be thorough and insightful, not generic. The user chose this app over Google — reward that choice.
 - Each key fact should be a complete, informative sentence (not just a fragment).
 - Include 5 key facts that give the reader a real understanding of the topic.
-- Provide 2-4 real, reputable sources (government sites, major publications, academic sources preferred).${webContext ? "\n- IMPORTANT: Use the web search results provided above as your primary factual basis. Cite them and use their URLs in your sources array. Do NOT invent URLs." : ""}
+- Provide 2-4 real, reputable sources (government sites, major publications, academic sources preferred).${hasVerifiedData ? "\n- CRITICAL: Government data and web search results are provided above. Use them as your PRIMARY factual basis. Use their URLs in your sources array. Do NOT invent or hallucinate URLs — only use URLs from the provided data." : ""}
 - If the query is about a person, include their significance, major achievements, and current relevance.
 - If the query is about an event, include the timeline, causes, effects, and why it matters today.
 - Write as if explaining to an intelligent adult who deserves a complete picture, not a simplified blurb.`;
@@ -146,14 +149,15 @@ export async function generatePolicyAnswer(
   query: string,
   zipCode?: string | null,
   webResults?: WebSearchResult[],
+  govContext?: string,
 ): Promise<Answer> {
   const client = getOpenAI();
   if (!client) return stubAnswer(query, zipCode);
 
   // Route general-knowledge queries to a flexible prompt
-  if (!isPolicyQuery(query)) {
+  if (!isPolicyQuery(query) && !govContext) {
     try {
-      return await generateGeneralAnswer(client, query, webResults);
+      return await generateGeneralAnswer(client, query, webResults, govContext);
     } catch (error) {
       console.error("General answer AI failed, falling back to policy prompt:", error);
     }
@@ -161,10 +165,12 @@ export async function generatePolicyAnswer(
 
   const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include specific local relevance — how this policy or legislation concretely affects people in their area.` : "";
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
+  const govBlock = govContext ? `\n\n${govContext}\n` : "";
+  const hasGovData = !!govContext;
+  const hasVerifiedData = hasGovData || !!webResults?.length;
 
   const prompt = `You are a world-class non-partisan civic education assistant. The user asked: "${query}".${zipHint}
-${webContext}
-
+${govBlock}${webContext}
 Your job is to provide the most helpful, insightful, and thorough policy analysis possible — the kind of briefing a journalist, researcher, or engaged citizen would find genuinely valuable. Go beyond surface-level descriptions.
 
 Return ONLY valid JSON with this exact structure (no markdown, no code fence):
@@ -186,8 +192,10 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fence):
 }
 
 Critical rules:
-- Be NEUTRAL and FACTUAL, but also substantive. Shallow answers are worse than no answer.
-- Use your knowledge of real laws and policies. When referencing specific legislation (e.g. SECURE Act, AB 1482, Prop 36), include the actual year, sponsor, and current status.${webContext ? "\n- IMPORTANT: Use the web search results provided above as your primary factual basis. Cite them and use their URLs in your sources array. Do NOT invent or hallucinate URLs — only use URLs from the search results." : ""}
+- Be NEUTRAL and FACTUAL, but also substantive. Shallow answers are worse than no answer.${hasGovData ? `\n- CRITICAL: Official government data from Congress.gov and/or Open States is provided above. This is VERIFIED, AUTHORITATIVE data.
+  • If the user asked about a SPECIFIC BILL (e.g. "HR 1", "SB 1047"), focus your answer on that bill using the government data. If multiple versions appear across sessions, use the web search context to determine which the user likely means.
+  • If the user asked a TOPIC question (e.g. "education policy", "gun control"), use the government bills to illustrate your answer with REAL legislation — but only cite bills that are genuinely relevant to the topic. Skip bills that merely contain the keyword but aren't substantively about the topic.
+  • Use the bill titles, status, sponsors, and summaries from the government data. Do NOT contradict or fabricate details beyond what the data states.` : ""}${hasVerifiedData ? "\n- Use the provided data sources (government records and web search results) as your PRIMARY factual basis. Use their URLs in your sources array. Do NOT invent or hallucinate URLs." : "\n- Use your knowledge of real laws and policies. When referencing specific legislation, include the actual year, sponsor, and current status."}
 - Each key provision should be a complete, informative sentence that helps someone understand what will actually change.
 - Arguments for and against should be steel-manned — represent each side's BEST case, not a caricature.
 - Include 3-5 real, reputable sources. Prefer .gov, major news outlets (NYT, AP, Reuters, Politico), and research institutions.
@@ -266,6 +274,7 @@ export async function generateDebateAnswer(
   query: string,
   zipCode?: string | null,
   webResults?: WebSearchResult[],
+  govContext?: string,
 ): Promise<{ answer: Answer; perspectives: { label: string; summary: string; thinktank?: string }[] }> {
   const client = getOpenAI();
   if (!client) {
@@ -277,9 +286,10 @@ export async function generateDebateAnswer(
 
   const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}.` : "";
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
+  const govBlock = govContext ? `\n\n${govContext}\n` : "";
 
   const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}
-${webContext}
+${govBlock}${webContext}
 
 Provide a thorough, multi-perspective analysis that would prepare someone for an informed discussion or debate. Present the STRONGEST version of each side's argument (steel-man, not strawman).
 
@@ -394,6 +404,7 @@ export async function generateFollowUpAnswer(
   history: { role: "user" | "assistant"; content: string }[],
   persona?: string | null,
   webResults?: WebSearchResult[],
+  govContext?: string,
 ): Promise<{ answer: Answer; suggestions: string[] }> {
   const client = getOpenAI();
   const lastAssistant = history.filter((h) => h.role === "assistant").pop();
@@ -423,12 +434,14 @@ export async function generateFollowUpAnswer(
     .join("\n");
   const personaHint = persona && persona !== "general" ? ` Tailor the answer specifically for a ${persona}'s perspective — focus on aspects that directly affect them.` : "";
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
+  const govBlock = govContext ? `\n\n${govContext}\n` : "";
+  const hasVerifiedData = !!(govContext || webResults?.length);
 
   const prompt = `You are a world-class non-partisan civic education assistant. The user is asking a follow-up question in the context of an existing policy conversation. Your job is to provide a thorough, insightful answer that genuinely advances their understanding.
 
 Previous context (recent messages):
 ${historyBlock}
-${webContext}
+${govBlock}${webContext}
 Follow-up question: "${message}"${personaHint}
 
 Return ONLY valid JSON (no markdown):
@@ -446,7 +459,7 @@ Return ONLY valid JSON (no markdown):
 
 Rules:
 - Don't repeat content from previous messages. Build on what's already been discussed.
-- Be specific — use real numbers, dates, affected populations, and concrete examples.${webContext ? "\n- IMPORTANT: Use the web search results provided above as your primary factual basis. Do NOT invent URLs." : ""}
+- Be specific — use real numbers, dates, affected populations, and concrete examples.${hasVerifiedData ? "\n- CRITICAL: Government data and/or web search results are provided above. Use them as your PRIMARY factual basis. Do NOT invent URLs or fabricate facts beyond what the data states." : ""}
 - The follow-up suggestions should be genuinely interesting questions that a curious person would want to ask next.
 - If the question is about impact on a specific group, explain the mechanisms — not just "it affects them" but HOW and WHY.`;
 
