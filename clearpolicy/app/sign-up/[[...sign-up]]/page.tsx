@@ -9,29 +9,24 @@ const hasClerkKey =
 
 const pageAppearance = {
   ...clerkAppearance,
-  variables: {
-    ...clerkAppearance.variables,
-    colorBackground: "transparent",
-  },
   elements: {
     ...clerkAppearance.elements,
     rootBox: "w-full",
-    card: "shadow-none !bg-transparent border-none p-0 m-0 w-full gap-0",
+    card: "glass-card rounded-2xl overflow-hidden py-8 px-6 sm:py-10 sm:px-8 w-full",
     header: "hidden",
-    main: "gap-4",
     footer: "hidden",
+    main: "gap-4",
     socialButtons: "gap-2",
+    socialButtonsBlockButton:
+      "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] hover:bg-[var(--cp-hover)] text-[var(--cp-text)] font-medium transition-all",
     formFieldRow: "gap-3",
     formFieldInput:
       "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:ring-2 focus:ring-[var(--cp-accent)]/15 focus:border-[var(--cp-accent)]/30 transition-all",
     formFieldLabel: "text-[var(--cp-text)] font-medium text-sm",
     formButtonPrimary:
       "bg-[var(--cp-accent)] hover:brightness-110 active:scale-[0.98] rounded-xl text-sm font-semibold shadow-none transition-all mt-2",
-    socialButtonsBlockButton:
-      "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] hover:bg-[var(--cp-hover)] text-[var(--cp-text)] font-medium transition-all",
     dividerLine: "bg-[var(--cp-border)]",
     dividerText: "text-[var(--cp-tertiary)] text-xs uppercase tracking-wider",
-    footerActionLink: "text-[var(--cp-accent)] hover:underline font-medium",
   },
 };
 
@@ -76,13 +71,10 @@ export default function SignUpPage({
           </p>
         </div>
 
-        {/* Glass card with Clerk form */}
-        <div className="w-full max-w-[420px]">
+        {/* Clerk form — card element styled as glass-card directly */}
+        <div className="w-full max-w-[440px]">
           {hasClerkKey ? (
-            <div
-              className="glass-card rounded-2xl px-7 py-8 sm:px-9 sm:py-10 animate-fade-up"
-              style={{ animationDelay: "80ms" }}
-            >
+            <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
               <SignUp
                 appearance={pageAppearance}
                 signInUrl="/sign-in"
