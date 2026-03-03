@@ -87,7 +87,13 @@ async function saveConversation(
     );
 
     const validSources = (answer.sources || []).filter(
-      (s) => s.url && s.url !== "https://example.com"
+      (s) => {
+        if (!s.url || !s.url.startsWith("http")) return false;
+        try {
+          const host = new URL(s.url).hostname.replace("www.", "");
+          return !["example.com", "example.org", "example.net", "placeholder.com", "domain.com"].includes(host);
+        } catch { return false; }
+      }
     );
     for (let i = 0; i < validSources.length; i++) {
       const s = validSources[i];

@@ -195,20 +195,18 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fence):
     "argumentsFor": ["Substantive argument with supporting reasoning - explain WHY supporters believe this, not just WHAT they believe", "Another detailed argument - include specific data points, expert opinions, or real-world examples where possible", "A third argument - consider economic, social, or practical benefits"],
     "argumentsAgainst": ["Substantive counterargument with reasoning - explain the genuine concern, not a strawman", "Another detailed objection - include specific risks, costs, or unintended consequences", "A third argument - consider who bears the costs or downsides"]
   },
-  "sources": [
-    { "title": "Source name (prefer official government sites, major news outlets, and research institutions)", "url": "https://...", "domain": "domain.com", "type": "Federal" or "State" or "Local" or "Web" }
-  ]
+  "sources": []
 }
 
 Critical rules:
 - Be NEUTRAL and FACTUAL, but also substantive and ANALYTICAL. Don't just describe - explain mechanisms, trade-offs, and real-world consequences.
-- Include QUANTITATIVE DATA: budget numbers, cost estimates, number of people affected, percentages, timelines, and statistical projections wherever available. Users need hard data, not vague summaries.${hasGovData ? `\n- CRITICAL: Official government data from Congress.gov and/or Open States is provided above. This is VERIFIED, AUTHORITATIVE data.
+- Include QUANTITATIVE DATA: budget numbers, cost estimates, number of people affected, percentages, timelines, and statistical projections wherever available. Users need hard data, not vague summaries.
+- IMPORTANT: Always return an empty sources array []. Sources are handled separately by the system. Do NOT generate any source URLs.${hasGovData ? `\n- CRITICAL: Official government data from Congress.gov and/or Open States is provided above. This is VERIFIED, AUTHORITATIVE data.
   • If the user asked about a SPECIFIC BILL (e.g. "HR 1", "SB 1047"), focus your answer on that bill using the government data. If multiple versions appear across sessions, use the web search context to determine which the user likely means.
   • If the user asked a TOPIC question (e.g. "education policy", "gun control"), use the government bills to illustrate your answer with REAL legislation - but only cite bills that are genuinely relevant to the topic. Skip bills that merely contain the keyword but aren't substantively about the topic.
-  • Use the bill titles, status, sponsors, and summaries from the government data. Do NOT contradict or fabricate details beyond what the data states.` : ""}${hasVerifiedData ? "\n- CRITICAL SOURCE RULE: Government data and web search results are provided above WITH THEIR URLs. ONLY use URLs that appear in the provided data. Do NOT invent, guess, or fabricate any URLs. If a source does not have a URL in the provided data, do not include it." : "\n- CRITICAL SOURCE RULE: If you are not 100% certain a URL is real, do NOT include it. Return an empty sources array rather than risk fabricating URLs. Only cite URLs you are completely confident exist."}
+  • Use the bill titles, status, sponsors, and summaries from the government data. Do NOT contradict or fabricate details beyond what the data states.` : ""}${hasVerifiedData ? "\n- Government data and web search results are provided above. Use them as your PRIMARY factual basis." : ""}
 - Each key provision should be a complete, informative sentence that helps someone understand what will actually change.
 - Arguments for and against should be steel-manned - represent each side's BEST case, not a caricature. Include specific data points or expert opinions.
-- Include 3-5 real, reputable sources. Prefer .gov, major news outlets (NYT, AP, Reuters, Politico), and research institutions.
 - If the query references a specific bill number or proposition, be precise about what it does - don't generalize.
 - The user chose this app to understand policy better than they could from a Google search. Deliver on that promise.`;
 
@@ -324,10 +322,10 @@ Return ONLY valid JSON:
   ],
   "commonGround": ["Area of agreement 1 - something most sides actually agree on", "Area of agreement 2"],
   "keyDisagreements": ["Core disagreement 1 - the fundamental value tension", "Core disagreement 2 - the empirical dispute"],
-  "sources": [
-    { "title": "Source", "url": "https://...", "domain": "domain.com", "type": "Web" }
-  ]
-}`;
+  "sources": []
+}
+
+IMPORTANT: Always return an empty sources array []. Sources are handled separately by the system. Do NOT generate any source URLs.`;
 
   try {
     const completion = await client.chat.completions.create({
