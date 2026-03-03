@@ -21,7 +21,7 @@ export const clerkAppearance: Appearance = {
     fontSize: "md",
   },
   elements: {
-    card: "shadow-none bg-transparent border-none",
+    card: "rounded-2xl border border-[rgba(26,26,26,0.08)] dark:border-[rgba(248,248,240,0.1)] shadow-lg bg-[#FAF9F6] dark:bg-[#1E1E1C]",
     headerTitle:
       'font-bold tracking-tight [font-family:"Libre_Baskerville",Georgia,serif] dark:text-[#FDFCF7]',
     headerSubtitle: "text-[#5A5A5A] dark:text-[#B8B6AD]",

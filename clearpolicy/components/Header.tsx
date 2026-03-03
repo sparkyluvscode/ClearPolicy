@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  SignUpButton,
   SignedIn,
   SignedOut,
   UserButton,
@@ -131,14 +130,12 @@ export default function Header() {
               {hasClerkKey && (
                 <>
                   <SignedOut>
-                    <SignUpButton mode="modal">
-                      <button
-                        type="button"
-                        className="rounded-full px-5 py-2 text-[13px] font-semibold bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring shadow-sm"
-                      >
-                        Get Started
-                      </button>
-                    </SignUpButton>
+                    <Link
+                      href="/sign-up"
+                      className="rounded-full px-5 py-2 text-[13px] font-semibold bg-[var(--cp-accent)] text-white hover:brightness-110 transition-all focus-ring shadow-sm no-underline"
+                    >
+                      Get Started
+                    </Link>
                   </SignedOut>
                   <SignedIn>
                     <div className="ml-0.5">
@@ -208,15 +205,13 @@ export default function Header() {
                   {hasClerkKey && (
                     <li className="pt-2 border-t border-[var(--cp-border)]">
                       <SignedOut>
-                        <SignUpButton mode="modal">
-                          <button
-                            type="button"
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="block w-full text-left rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-accent)] hover:bg-[var(--cp-hover)] transition-colors"
-                          >
-                            Get Started
-                          </button>
-                        </SignUpButton>
+                        <Link
+                          href="/sign-up"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block w-full rounded-lg px-4 py-3 text-[15px] font-medium text-[var(--cp-accent)] hover:bg-[var(--cp-hover)] transition-colors no-underline"
+                        >
+                          Get Started
+                        </Link>
                       </SignedOut>
                       <SignedIn>
                         {authNavLinks.map((link) => (
