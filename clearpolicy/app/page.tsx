@@ -77,15 +77,11 @@ function HomeContent() {
 
   const handleFile = useCallback(async (file: File) => {
     setUploadError(null); setUploading(true);
-    const allowed = [".pdf", ".txt", ".md", ".csv", ".docx"];
-    const imageExts = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"];
+    const allowed = [".pdf", ".txt", ".md", ".csv", ".docx", ".json", ".xml", ".html", ".htm", ".log", ".rtf",
+      ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".tif", ".svg"];
     const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
     if (!allowed.some(a => ext.endsWith(a))) {
-      if (imageExts.some(a => ext.endsWith(a))) {
-        setUploadError(`Image files (${ext}) are not supported yet. Please convert to PDF with selectable text, or paste the text directly.`);
-      } else {
-        setUploadError(`Unsupported format (${ext}). Supported: PDF, TXT, DOCX, CSV, and MD files.`);
-      }
+      setUploadError(`Unsupported format (${ext}). Supported: images, PDF, DOCX, TXT, CSV, and more.`);
       setUploading(false);
       return;
     }
@@ -314,7 +310,7 @@ function HomeContent() {
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                 Attach
               </button>
-              <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.csv,.docx,.png,.jpg,.jpeg" onChange={handleFileInput} className="hidden" />
+              <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.csv,.docx,.png,.jpg,.jpeg,.gif,.webp,.bmp,.tiff,.tif,.svg,.json,.xml,.html,.htm" onChange={handleFileInput} className="hidden" />
             </div>
             <button onClick={() => handleSubmit()} disabled={(!query.trim() && !uploadedFile) || loading || uploading} className="flex items-center gap-2 bg-[var(--cp-accent)] text-white px-5 py-2 rounded-xl text-sm font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-all">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -331,7 +327,7 @@ function HomeContent() {
               </button>
             </span>
           ) : (
-            <>Drop any PDF or document to analyze &middot; Powered by Omni-Search</>
+            <>Drop any file to analyze &mdash; PDFs, images, documents &middot; Powered by Omni-Search</>
           )}
         </p>
       </div>
