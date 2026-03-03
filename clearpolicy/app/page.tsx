@@ -10,11 +10,8 @@ export const dynamic = "force-dynamic";
 
 const EXAMPLE_QUERIES = [
   "How does the SECURE Act affect retirement savings?",
-  "What's on my ballot in 95746?",
   "Explain California's AB 1482 rent control law",
-  "Latest federal crypto regulation updates",
-  "How does Prop 36 change sentencing in California?",
-  "What are local zoning laws in Sacramento?",
+  "Latest executive orders and their impact",
 ];
 
 function getGreeting(name: string): string {
@@ -81,8 +78,17 @@ function HomeContent() {
   const handleFile = useCallback(async (file: File) => {
     setUploadError(null); setUploading(true);
     const allowed = [".pdf", ".txt", ".md", ".csv", ".docx"];
+    const imageExts = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"];
     const ext = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
-    if (!allowed.some(a => ext.endsWith(a))) { setUploadError(`Unsupported format (${ext}).`); setUploading(false); return; }
+    if (!allowed.some(a => ext.endsWith(a))) {
+      if (imageExts.some(a => ext.endsWith(a))) {
+        setUploadError(`Image files (${ext}) are not supported yet. Please convert to PDF with selectable text, or paste the text directly.`);
+      } else {
+        setUploadError(`Unsupported format (${ext}). Supported: PDF, TXT, DOCX, CSV, and MD files.`);
+      }
+      setUploading(false);
+      return;
+    }
     if (file.size > 10 * 1024 * 1024) { setUploadError("File too large (max 10MB)."); setUploading(false); return; }
     try {
       const fd = new FormData(); fd.append("file", file);
@@ -147,7 +153,7 @@ function HomeContent() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   }
 
-  /* ── Clarification ── */
+  /* -- Clarification -- */
   if (clarifying) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 animate-fade-in">
@@ -190,7 +196,7 @@ function HomeContent() {
     );
   }
 
-  /* ── Free search gate — shown when free searches are exhausted ── */
+  /* -- Free search gate - shown when free searches are exhausted -- */
   if (showFreeGate) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 animate-fade-in">
@@ -199,7 +205,7 @@ function HomeContent() {
     );
   }
 
-  /* ── Loading — fade everything out, show a simple centered indicator ── */
+  /* -- Loading - fade everything out, show a simple centered indicator -- */
   if (loading) {
     return (
       <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--cp-bg)] animate-fade-in">
@@ -216,7 +222,7 @@ function HomeContent() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 animate-fade-in">
 
-      {/* Hero — personalized when signed in, marketing when signed out */}
+      {/* Hero - personalized when signed in, marketing when signed out */}
       {isSignedIn && firstName ? (
         <div className="text-center mb-10 max-w-3xl mx-auto animate-fade-up" style={{ paddingTop: "5rem" }}>
           <h1 className="font-heading text-4xl sm:text-5xl font-bold text-[var(--cp-text)] tracking-tight mb-3 leading-[1.15]">
@@ -234,7 +240,7 @@ function HomeContent() {
             <span className="text-[var(--cp-accent)]">actually explains things</span>
           </h1>
           <p className="text-lg sm:text-xl text-[var(--cp-muted)] max-w-xl mx-auto leading-relaxed">
-            Ask about any law or bill and get plain-English answers with sources — plus what it means for your ZIP code.
+            Ask about any law or bill and get plain-English answers with sources - plus what it means for your ZIP code.
           </p>
           <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--cp-tertiary)]">
             Non-partisan &middot; Every claim cited &middot; Used by students, journalists, and voters
@@ -242,7 +248,7 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Search Box — liquid glass */}
+      {/* Search Box - liquid glass */}
       <div className="w-full max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: "100ms" }}>
         <div
           className={`glass-card rounded-2xl overflow-hidden transition-all focus-within:shadow-[0_0_0_2px_var(--cp-accent)/12,var(--cp-shadow-card)] relative ${
@@ -289,26 +295,26 @@ function HomeContent() {
             onKeyDown={handleKeyDown}
             placeholder={uploadedFile ? `Ask a question about ${uploadedFile.name}, or press Search to analyze...` : "Ask anything about policy, law, or government... (⌘K)"}
             rows={uploadedFile ? 2 : 3}
-            className="w-full resize-none bg-transparent px-5 pt-5 pb-2 text-[var(--cp-text)] text-base placeholder:text-[var(--cp-tertiary)]/60 focus:outline-none"
+            className="font-user-input w-full resize-none bg-transparent px-5 pt-5 pb-2 text-[var(--cp-text)] text-base placeholder:text-[var(--cp-tertiary)]/60 focus:outline-none"
           />
 
           <div className="flex items-center justify-between px-4 pb-3.5 pt-1">
             <div className="flex items-center gap-3">
-              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--cp-border)] text-[var(--cp-muted)] hover:border-[var(--cp-accent)]/20 hover:text-[var(--cp-text)] transition-all" title="Upload document">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-                Attach
-              </button>
-              <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.csv,.docx" onChange={handleFileInput} className="hidden" />
-
               <div className="flex items-center gap-1.5 text-sm">
                 <svg className="w-3.5 h-3.5 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                <input type="text" value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="ZIP" className="w-14 bg-transparent text-xs text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:outline-none border-b border-[var(--cp-border)] focus:border-[var(--cp-accent)]/40 transition-colors pb-0.5" maxLength={5} />
+                <input type="text" value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="ZIP" className="font-user-input w-14 bg-transparent text-xs text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:outline-none border-b border-[var(--cp-border)] focus:border-[var(--cp-accent)]/40 transition-colors pb-0.5" maxLength={5} />
               </div>
 
               <button onClick={() => setDebateMode(!debateMode)} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${debateMode ? "bg-[var(--cp-accent-soft)] border-[var(--cp-accent)]/25 text-[var(--cp-accent)]" : "border-[var(--cp-border)] text-[var(--cp-muted)] hover:border-[var(--cp-accent)]/20"}`}>
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 Debate
               </button>
+
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--cp-border)] text-[var(--cp-muted)] hover:border-[var(--cp-accent)]/20 hover:text-[var(--cp-text)] transition-all" title="Upload document">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                Attach
+              </button>
+              <input ref={fileInputRef} type="file" accept=".pdf,.txt,.md,.csv,.docx,.png,.jpg,.jpeg" onChange={handleFileInput} className="hidden" />
             </div>
             <button onClick={() => handleSubmit()} disabled={(!query.trim() && !uploadedFile) || loading || uploading} className="flex items-center gap-2 bg-[var(--cp-accent)] text-white px-5 py-2 rounded-xl text-sm font-medium hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-all">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -330,7 +336,7 @@ function HomeContent() {
         </p>
       </div>
 
-      {/* Example queries — no emojis, simple text chips */}
+      {/* Example queries - no emojis, simple text chips */}
       <div className="w-full max-w-2xl mx-auto mb-12 animate-fade-up" style={{ animationDelay: "200ms" }}>
         <p className="section-label text-center mb-3">Try asking</p>
         <div className="flex flex-wrap justify-center gap-2 stagger">
@@ -344,7 +350,7 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* Topics — clean text, no emojis */}
+      {/* Topics - clean text, no emojis */}
       <div className="w-full max-w-2xl mx-auto animate-fade-up" style={{ animationDelay: "300ms" }}>
         <p className="section-label text-center mb-3">Or explore a topic</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 stagger">
@@ -358,7 +364,7 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* Trust line — minimal */}
+      {/* Trust line - minimal */}
       <div className="mt-14 flex flex-wrap items-center justify-center gap-8 text-xs text-[var(--cp-muted)] animate-fade-up pb-16" style={{ animationDelay: "400ms" }}>
         <span className="flex items-center gap-2">
           <svg className="w-3.5 h-3.5 text-[var(--cp-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>

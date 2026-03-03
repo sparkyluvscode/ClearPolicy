@@ -20,7 +20,7 @@ async function saveConversation(
     const { auth, currentUser } = await import("@clerk/nextjs/server");
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
-      // User not signed in — expected for anonymous searches
+      // User not signed in - expected for anonymous searches
       return null;
     }
 
@@ -138,22 +138,24 @@ function knownSummaryToAnswer(query: string, zipCode: string | null): Answer | n
 
   const level = known.levels["8"];
   const policyName =
-    known.citations[0]?.sourceName?.replace(/^[^—]+—\s*/, "").trim() ||
+    known.citations[0]?.sourceName?.replace(/^[^-]+-\s*/, "").trim() ||
     query.slice(0, 80);
-  const sources: PolicySource[] = known.citations.map((c, i) => ({
-    id: i + 1,
-    title: c.sourceName || "Source",
-    url: c.url || "",
-    domain: (() => {
-      try {
-        return c.url ? new URL(c.url).hostname : "example.com";
-      } catch {
-        return "example.com";
-      }
-    })(),
-    type: "State" as const,
-    verified: !!c.url,
-  }));
+  const sources: PolicySource[] = known.citations
+    .filter((c) => c.url && c.url.startsWith("http"))
+    .map((c, i) => ({
+      id: i + 1,
+      title: c.sourceName || "Source",
+      url: c.url!,
+      domain: (() => {
+        try {
+          return new URL(c.url!).hostname.replace("www.", "");
+        } catch {
+          return "source";
+        }
+      })(),
+      type: "State" as const,
+      verified: true,
+    }));
 
   const keyProvisions = level.whatItDoes
     .split(/\n\n+/)

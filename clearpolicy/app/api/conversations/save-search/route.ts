@@ -59,20 +59,25 @@ export async function POST(req: NextRequest) {
     const aaSec = sections.find((s) => s.heading.toLowerCase().includes("against"));
     if (aaSec) answerSections.argumentsAgainst = aaSec.content.split("\n").filter(Boolean);
 
-    const policySources = sources.map((s, i) => ({
-      id: i + 1,
-      title: s.title,
-      url: s.url,
-      domain: s.publisher || (() => {
+    const policySources = sources
+      .filter((s) => {
+        if (!s.url || !s.url.startsWith("http")) return false;
         try {
-          return s.url ? new URL(s.url).hostname : "example.com";
-        } catch {
-          return "example.com";
-        }
-      })(),
-      type: (s.type === "federal_bill" ? "Federal" : s.type === "state_bill" ? "State" : "Web") as "Federal" | "State" | "Local" | "Web",
-      verified: !!s.url,
-    }));
+          const host = new URL(s.url).hostname.replace("www.", "");
+          return !["example.com", "example.org", "example.net", "placeholder.com", "domain.com"].includes(host);
+        } catch { return false; }
+      })
+      .map((s, i) => ({
+        id: i + 1,
+        title: s.title,
+        url: s.url,
+        domain: s.publisher || (() => {
+          try { return new URL(s.url).hostname.replace("www.", ""); }
+          catch { return "source"; }
+        })(),
+        type: (s.type === "federal_bill" ? "Federal" : s.type === "state_bill" ? "State" : "Web") as "Federal" | "State" | "Local" | "Web",
+        verified: true,
+      }));
 
     let user = await withRetry(() =>
       prisma.user.findUnique({ where: { clerkUserId } })
@@ -135,7 +140,7 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    const validSources = policySources.filter((s) => s.url && s.url !== "https://example.com");
+    const validSources = policySources;
     for (let i = 0; i < validSources.length; i++) {
       const s = validSources[i];
       try {

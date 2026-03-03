@@ -51,7 +51,7 @@ export async function searchWeb(
 
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey) {
-    console.warn("[web-search] TAVILY_API_KEY not set — skipping web search");
+    console.warn("[web-search] TAVILY_API_KEY not set, skipping web search");
     return { results: [], query };
   }
 
@@ -110,8 +110,8 @@ export function formatWebContext(results: WebSearchResult[]): string {
     try { domain = new URL(r.url).hostname.replace("www.", ""); } catch {}
     const snippet = r.content.slice(0, 400);
     const date = r.publishedDate ? ` (${r.publishedDate})` : "";
-    return `[${i + 1}] "${r.title}" (${domain}${date})\n${snippet}`;
+    return `[${i + 1}] "${r.title}" (${domain}${date})\nURL: ${r.url}\n${snippet}`;
   });
 
-  return `Here are real-time web search results — use these as your PRIMARY source of facts and cite them by number [1], [2], etc. Do NOT invent or hallucinate URLs. Only use the URLs provided below.\n\n${lines.join("\n\n")}`;
+  return `Here are real-time web search results with their verified URLs. Use these as your PRIMARY source of facts. When citing sources in your response, use ONLY the URLs listed here. Do NOT invent or hallucinate any URLs.\n\n${lines.join("\n\n")}`;
 }

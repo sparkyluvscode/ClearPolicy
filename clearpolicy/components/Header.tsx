@@ -75,13 +75,13 @@ export default function Header() {
           <nav className="flex items-center gap-4 h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 focus-ring rounded-lg">
-              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={30} height={30} className="flex-shrink-0 object-contain" />
+              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={30} height={30} className="flex-shrink-0 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] dark:drop-shadow-none" />
               <span className="font-heading text-[17px] font-bold tracking-tight text-[var(--cp-text)] hidden sm:inline">
                 ClearPolicy
               </span>
             </Link>
 
-            {/* Nav links — desktop (centered) */}
+            {/* Nav links - desktop (centered) */}
             <div className="hidden md:flex items-center gap-0.5 ml-auto">
               {navLinks.map((link) => (
                 <Link
@@ -109,7 +109,7 @@ export default function Header() {
               )}
             </div>
 
-            {/* Right side — actions */}
+            {/* Right side - actions */}
             <div className="hidden md:flex items-center gap-2 ml-4">
               <button
                 onClick={toggleDark}
@@ -189,7 +189,7 @@ export default function Header() {
                 <form role="search" onSubmit={(e) => { e.preventDefault(); if (!q.trim()) return; if (!canSearch()) { openSignUp(); return; } router.push(`/search?q=${encodeURIComponent(q.trim())}`); setMobileMenuOpen(false); }}>
                   <div className="relative">
                     <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--cp-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search policies..." className="w-full pl-10 pr-4 py-3 text-sm rounded-xl bg-[var(--cp-surface-2)] border-2 border-[var(--cp-border)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:border-[var(--cp-accent)] transition-all" />
+                    <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search policies..." className="font-user-input w-full pl-10 pr-4 py-3 text-sm rounded-xl bg-[var(--cp-surface-2)] border-2 border-[var(--cp-border)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:border-[var(--cp-accent)] transition-all" />
                   </div>
                 </form>
               </div>

@@ -14,28 +14,28 @@ interface ExplainThisProps {
 
 /**
  * Floating "Explain this" tooltip that appears when the user selects text
- * within the container. The actual query is hidden from the user — it just
+ * within the container. The actual query is hidden from the user; it just
  * shows as a new answer card with the heading derived from the selection.
  */
 export default function ExplainThis({ onExplain, containerRef }: ExplainThisProps) {
   const [selection, setSelection] = useState<{ text: string; x: number; y: number } | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<NodeJS.Timeout | null>(null);
+  const processingRef = useRef(false);
 
   const handleMouseUp = useCallback(() => {
-    // Small delay so the browser finalizes the selection
+    if (processingRef.current) return;
     clearTimeout(hideTimer.current!);
     setTimeout(() => {
+      if (processingRef.current) return;
       const sel = window.getSelection();
       const text = sel?.toString().trim();
 
       if (!text || text.length < 3 || text.length > 500) {
-        // Too short or too long — don't show
         setSelection(null);
         return;
       }
 
-      // Make sure the selection is inside our container
       if (containerRef.current && sel?.rangeCount) {
         const range = sel.getRangeAt(0);
         if (!containerRef.current.contains(range.commonAncestorContainer)) {
@@ -50,21 +50,23 @@ export default function ExplainThis({ onExplain, containerRef }: ExplainThisProp
         setSelection({
           text,
           x: rect.left + rect.width / 2,
-          y: rect.top - 8, // above the selection
+          y: rect.top - 8,
         });
       }
-    }, 10);
+    }, 50);
   }, [containerRef]);
 
   const handleMouseDown = useCallback((e: MouseEvent) => {
-    // If clicking inside the tooltip, don't dismiss
+    if (processingRef.current) return;
     if (tooltipRef.current?.contains(e.target as Node)) return;
     setSelection(null);
   }, []);
 
-  // Dismiss on scroll or Escape
   const handleDismiss = useCallback(() => {
-    hideTimer.current = setTimeout(() => setSelection(null), 150);
+    if (processingRef.current) return;
+    hideTimer.current = setTimeout(() => {
+      if (!processingRef.current) setSelection(null);
+    }, 200);
   }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -75,7 +77,6 @@ export default function ExplainThis({ onExplain, containerRef }: ExplainThisProp
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("keydown", handleKeyDown);
-    // Dismiss on scroll inside the scroll container
     const container = containerRef.current?.closest("[data-scroll-container]");
     container?.addEventListener("scroll", handleDismiss, { passive: true });
 
@@ -90,10 +91,12 @@ export default function ExplainThis({ onExplain, containerRef }: ExplainThisProp
 
   function handleClick() {
     if (!selection) return;
-    onExplain(selection.text);
+    processingRef.current = true;
+    const text = selection.text;
     setSelection(null);
-    // Clear the text selection
     window.getSelection()?.removeAllRanges();
+    onExplain(text);
+    setTimeout(() => { processingRef.current = false; }, 500);
   }
 
   if (!selection) return null;

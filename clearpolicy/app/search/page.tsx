@@ -85,7 +85,7 @@ function SearchResultsContent() {
   // Portal needs client-side mount check
   useEffect(() => { setMounted(true); }, []);
 
-  // Entrance animation — slight delay so portal renders first
+  // Entrance animation: slight delay so portal renders first
   useEffect(() => {
     if (mounted) {
       requestAnimationFrame(() => {
@@ -105,7 +105,7 @@ function SearchResultsContent() {
   }, []);
 
   // Save to My Research: try whenever we have results and no conversationId yet.
-  // Don't gate on isSignedIn — server will 401 if not signed in. This handles Clerk hydration delay.
+  // Don't gate on isSignedIn - server will 401 if not signed in. This handles Clerk hydration delay.
   const runSaveSearch = useCallback((attempt = 1) => {
     const q = searchParams?.get("q");
     const zip = searchParams?.get("zip");
@@ -157,7 +157,7 @@ function SearchResultsContent() {
     }
   }, [cards, conversationId, loading, runSaveSearch, saveRetried]);
 
-  // Initial search — gated for free users
+  // Initial search: gated for free users
   useEffect(() => {
     const q = searchParams?.get("q");
     const zip = searchParams?.get("zip");
@@ -510,10 +510,10 @@ function SearchResultsContent() {
       <div ref={scrollRef} data-scroll-container className="flex-1 overflow-y-auto">
         <div ref={contentRef} className={`max-w-3xl mx-auto px-5 sm:px-8 py-8 transition-all duration-500 ease-out delay-100 ${entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
 
-          {/* Loading state — ALWAYS shown during search */}
+          {/* Loading state: ALWAYS shown during search */}
           {loading && (
             <div className="animate-fade-in pt-8">
-              <p className="text-sm text-[var(--cp-tertiary)] mb-8">{searchParams?.get("q")}</p>
+              <p className="font-user-input text-sm text-[var(--cp-tertiary)] mb-8">{searchParams?.get("q")}</p>
               <div className="space-y-8">
                 <div className="space-y-3">
                   <div className="h-7 w-3/4 rounded-lg bg-[var(--cp-surface-2)] animate-pulse" />
@@ -556,7 +556,7 @@ function SearchResultsContent() {
                 <span>{allVerified}/{totalSections} cited</span>
                 <span className="text-[var(--cp-border-medium)]">&middot;</span>
                 <span>{sources.length} sources</span>
-                {!conversationId && (
+                {!conversationId ? (
                   <>
                     <span className="text-[var(--cp-border-medium)]">&middot;</span>
                     <button
@@ -566,6 +566,14 @@ function SearchResultsContent() {
                     >
                       {saveInProgress ? "Saving…" : "Save to My Research"}
                     </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[var(--cp-border-medium)]">&middot;</span>
+                    <span className="flex items-center gap-1 text-[var(--cp-green)]">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                      Saved to My Research
+                    </span>
                   </>
                 )}
               </div>
@@ -625,8 +633,8 @@ function SearchResultsContent() {
               </div>
             )}
 
-            {/* Follow-up suggestions */}
-            {!loading && latestCard && latestCard.followUpSuggestions.length > 0 && !followUpLoading && (
+            {/* Follow-up suggestions + Debate shortcut */}
+            {!loading && latestCard && !followUpLoading && (
               <div className="mt-8 flex flex-wrap gap-2 animate-fade-up">
                 {latestCard.followUpSuggestions.map((s, i) => (
                   <button
@@ -638,6 +646,23 @@ function SearchResultsContent() {
                     {s}
                   </button>
                 ))}
+                {latestCard.cardType !== "debate" && cards.length === 1 && (
+                  <button
+                    onClick={() => {
+                      const q = searchParams?.get("q");
+                      const zip = searchParams?.get("zip");
+                      if (q) {
+                        const p = new URLSearchParams({ q, debate: "1" });
+                        if (zip) p.set("zip", zip);
+                        router.push(`/search?${p.toString()}`);
+                      }
+                    }}
+                    className="text-[13px] px-3.5 py-2 rounded-xl border border-[var(--cp-coral)]/25 text-[var(--cp-coral)] hover:bg-[var(--cp-coral)]/5 hover:border-[var(--cp-coral)]/40 transition-all active:scale-[0.97] flex items-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    Debate this
+                  </button>
+                )}
               </div>
             )}
 
@@ -659,7 +684,7 @@ function SearchResultsContent() {
                 disabled={followUpLoading}
                 placeholder={`Ask a follow-up about ${policyName || "this policy"}...`}
                 aria-label="Ask a follow-up question"
-                className="w-full pl-4 pr-12 py-3 rounded-xl glass-input text-[var(--cp-text)] text-[15px] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all disabled:opacity-50"
+                className="font-user-input w-full pl-4 pr-12 py-3 rounded-xl glass-input text-[var(--cp-text)] text-[15px] placeholder:text-[var(--cp-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--cp-accent)]/15 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"

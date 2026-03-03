@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 type ClerkUser = {
   id: string;
@@ -37,7 +37,13 @@ export function SettingsForm({
   const [preferredViewAs, setPreferredViewAs] = useState(
     dbUser?.preferredViewAs ?? "everyone"
   );
-  const [theme, setTheme] = useState(dbUser?.theme ?? "light");
+  const [theme, setThemeState] = useState(dbUser?.theme ?? "light");
+  const setTheme = useCallback((value: string) => {
+    setThemeState(value);
+    const isDark = value === "dark";
+    document.documentElement.classList.toggle("dark", isDark);
+    try { localStorage.setItem("cp_theme", value); } catch {}
+  }, []);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -138,7 +144,7 @@ export function SettingsForm({
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
                 placeholder="e.g. 95746"
-                className="w-full rounded-lg border border-[var(--border-light)] bg-[var(--bg-secondary)] px-4 py-2.5 text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)]/20"
+                className="font-user-input w-full rounded-lg border border-[var(--border-light)] bg-[var(--bg-secondary)] px-4 py-2.5 text-[var(--text-primary)] focus:border-[var(--accent-blue)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)]/20"
               />
             </div>
             <div>
