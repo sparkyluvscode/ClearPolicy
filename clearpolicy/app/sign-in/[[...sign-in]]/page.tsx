@@ -16,9 +16,22 @@ const pageAppearance = {
   elements: {
     ...clerkAppearance.elements,
     rootBox: "w-full",
-    card: "shadow-none bg-transparent border-none p-0 w-full",
+    card: "shadow-none !bg-transparent border-none p-0 m-0 w-full gap-0",
     header: "hidden",
-    footer: "justify-center",
+    main: "gap-4",
+    footer: "hidden",
+    socialButtons: "gap-2",
+    formFieldRow: "gap-3",
+    formFieldInput:
+      "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] text-[var(--cp-text)] placeholder:text-[var(--cp-tertiary)] focus:ring-2 focus:ring-[var(--cp-accent)]/15 focus:border-[var(--cp-accent)]/30 transition-all",
+    formFieldLabel: "text-[var(--cp-text)] font-medium text-sm",
+    formButtonPrimary:
+      "bg-[var(--cp-accent)] hover:brightness-110 active:scale-[0.98] rounded-xl text-sm font-semibold shadow-none transition-all mt-2",
+    socialButtonsBlockButton:
+      "rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)] dark:bg-[rgba(42,42,39,0.7)] hover:bg-[var(--cp-hover)] text-[var(--cp-text)] font-medium transition-all",
+    dividerLine: "bg-[var(--cp-border)]",
+    dividerText: "text-[var(--cp-tertiary)] text-xs uppercase tracking-wider",
+    footerActionLink: "text-[var(--cp-accent)] hover:underline font-medium",
   },
 };
 
@@ -30,7 +43,7 @@ export default function SignInPage({
   const afterUrl = searchParams?.redirect_url || "/";
 
   return (
-    <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[var(--cp-bg)] overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] bg-[var(--cp-bg)] overflow-y-auto">
       {/* Atmospheric glows */}
       <div
         className="pointer-events-none fixed inset-0"
@@ -41,55 +54,58 @@ export default function SignInPage({
         }}
       />
 
-      <div className="relative z-10 w-full max-w-md mx-auto px-5 py-12">
+      <div className="relative z-10 flex flex-col items-center min-h-full px-5 pt-20 pb-12">
         {/* Back link */}
-        <div className="text-center mb-8 animate-fade-up">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors mb-8 text-sm no-underline"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to ClearPolicy
-          </Link>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-[var(--cp-muted)] hover:text-[var(--cp-text)] transition-colors mb-10 text-sm no-underline animate-fade-up"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to ClearPolicy
+        </Link>
 
-          <h1 className="font-heading text-3xl font-bold text-[var(--cp-text)] tracking-tight mb-2">
+        {/* Heading */}
+        <div className="text-center mb-8 animate-fade-up max-w-sm">
+          <h1 className="font-heading text-3xl font-bold text-[var(--cp-text)] tracking-tight mb-3">
             Welcome back
           </h1>
-          <p className="text-sm text-[var(--cp-muted)] leading-relaxed max-w-xs mx-auto">
+          <p className="text-sm text-[var(--cp-muted)] leading-relaxed">
             Sign in to access your research and saved history.
           </p>
         </div>
 
         {/* Glass card with Clerk form */}
-        {hasClerkKey ? (
-          <div
-            className="glass-card rounded-2xl p-6 sm:p-8 animate-fade-up"
-            style={{ animationDelay: "80ms" }}
-          >
-            <SignIn
-              appearance={pageAppearance}
-              signUpUrl="/sign-up"
-              afterSignInUrl={afterUrl}
-            />
-          </div>
-        ) : (
-          <div className="glass-card rounded-2xl p-8 text-center animate-fade-up">
-            <p className="text-sm text-[var(--cp-muted)] mb-2">
-              Sign-in is not configured for this environment.
-            </p>
-            <p className="text-xs text-[var(--cp-tertiary)] mb-4">
-              If you added Clerk keys in Vercel, trigger a new deployment so the app can use them.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--cp-accent)] hover:underline"
+        <div className="w-full max-w-[420px]">
+          {hasClerkKey ? (
+            <div
+              className="glass-card rounded-2xl px-7 py-8 sm:px-9 sm:py-10 animate-fade-up"
+              style={{ animationDelay: "80ms" }}
             >
-              Return home
-            </Link>
-          </div>
-        )}
+              <SignIn
+                appearance={pageAppearance}
+                signUpUrl="/sign-up"
+                afterSignInUrl={afterUrl}
+              />
+            </div>
+          ) : (
+            <div className="glass-card rounded-2xl p-8 text-center animate-fade-up">
+              <p className="text-sm text-[var(--cp-muted)] mb-2">
+                Sign-in is not configured for this environment.
+              </p>
+              <p className="text-xs text-[var(--cp-tertiary)] mb-4">
+                If you added Clerk keys in Vercel, trigger a new deployment so the app can use them.
+              </p>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--cp-accent)] hover:underline"
+              >
+                Return home
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* Sign-up link */}
         <p
