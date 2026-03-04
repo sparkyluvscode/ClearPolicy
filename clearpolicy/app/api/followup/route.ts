@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateFollowUpAnswer } from "@/lib/policyEngine";
-import { searchWeb } from "@/lib/web-search";
-import { fetchGovData, formatGovContext } from "@/lib/gov-data";
+import { searchWeb, filterValidResults, formatWebContext } from "@/lib/web-search";
+import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
 import { classifyQuery } from "@/lib/omni-classifier";
 import type { AnswerSection as OmniAnswerSection, Source } from "@/lib/omni-types";
+import type { AnswerSource as PolicySource } from "@/lib/policy-types";
 
 export const dynamic = "force-dynamic";
 
@@ -73,10 +74,41 @@ export async function POST(req: NextRequest) {
       }).catch(() => ({ bills: [] as any[], representatives: [] as any[], hadDirectBillLookup: false })),
       searchWeb(query, { maxResults: 4 }).catch(() => null),
     ]);
-    const govContextStr = formatGovContext(govData) || undefined;
-    const webResults = webSearchResults?.results ?? [];
+    const govSources = govBillsToSources(govData.bills);
+    const rawWebResults = webSearchResults?.results ?? [];
+    const validWebResults = filterValidResults(rawWebResults);
 
-    const { answer, suggestions } = await generateFollowUpAnswer(query, history, persona, webResults, govContextStr);
+    // Unified sources: gov first, then web
+    const unifiedSources: PolicySource[] = [];
+    for (let i = 0; i < govSources.length; i++) {
+      unifiedSources.push({ ...govSources[i], id: i + 1 });
+    }
+    const govCount = govSources.length;
+    for (let i = 0; i < validWebResults.length; i++) {
+      const r = validWebResults[i];
+      let domain = "";
+      try { domain = new URL(r.url).hostname.replace("www.", ""); } catch { domain = "source"; }
+      unifiedSources.push({
+        id: govCount + i + 1,
+        title: r.title,
+        url: r.url,
+        domain,
+        type: domain.endsWith(".gov") ? "Federal" : "Web",
+        verified: true,
+        excerpt: r.content?.slice(0, 300) || "",
+      });
+    }
+
+    // Unified context string with consistent numbering
+    const { text: govContextText, numberedCount: govNumberedCount } = formatGovContext(govData, 1);
+    const webContextStr = formatWebContext(validWebResults, govNumberedCount + 1);
+    const combinedContext = [govContextText, webContextStr].filter(Boolean).join("\n\n");
+
+    const { answer, suggestions } = await generateFollowUpAnswer(
+      query, history, persona,
+      combinedContext || undefined,
+      unifiedSources,
+    );
     const sections = mapFollowUpToSections(answer);
 
     const sources: Source[] = answer.sources.map((s, i) => ({
