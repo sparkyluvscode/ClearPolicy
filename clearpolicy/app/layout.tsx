@@ -1,7 +1,7 @@
 import "./globals.css";
 import { ReactNode } from "react";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Inter, Libre_Baskerville, DM_Serif_Text } from "next/font/google";
+import { Inter, Libre_Baskerville, Source_Serif_4 } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthGateProvider } from "@/components/AuthGateProvider";
@@ -25,8 +25,8 @@ const libreBaskerville = Libre_Baskerville({
   display: "swap",
 });
 
-const dmSerifText = DM_Serif_Text({
-  weight: "400",
+const sourceSerif = Source_Serif_4({
+  weight: ["300", "400"],
   subsets: ["latin"],
   variable: "--font-user-input",
   display: "swap",
@@ -89,7 +89,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   );
 
   const content = (
-    <html lang="en" className={`h-full ${inter.variable} ${libreBaskerville.variable} ${dmSerifText.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`h-full ${inter.variable} ${libreBaskerville.variable} ${sourceSerif.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh font-sans">
         <Script id="cp-theme-init" strategy="beforeInteractive">
           {`(function(){try{var s=localStorage.getItem('cp_theme');var el=document.documentElement;if(s){var dark=s==='dark';if(dark){el.classList.add('dark');}else{el.classList.remove('dark');}}else{var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(prefersDark){el.classList.add('dark');}else{el.classList.remove('dark');}}}catch(e){}})();`}
