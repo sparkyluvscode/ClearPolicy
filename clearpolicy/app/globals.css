@@ -136,6 +136,7 @@ a { color: var(--cp-accent); }
 /* User input font: prompts, follow-ups, search boxes */
 .font-user-input {
   font-family: var(--font-user-input);
+  font-weight: 300;
 }
 
 /* ═══════════════════════════════════════
