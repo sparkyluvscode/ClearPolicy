@@ -220,27 +220,33 @@ function HomeContent() {
 
       {/* Hero - personalized when signed in, marketing when signed out */}
       {isSignedIn && firstName ? (
-        <div className="text-center mb-10 max-w-3xl mx-auto animate-fade-up" style={{ paddingTop: "5rem" }}>
-          <h1 className="font-heading text-4xl sm:text-5xl font-bold text-[var(--cp-text)] tracking-tight mb-3 leading-[1.15]">
-            {getGreeting(firstName)}
-          </h1>
-          <p className="text-lg text-[var(--cp-muted)] max-w-md mx-auto leading-relaxed">
-            What policy would you like to explore today?
-          </p>
+        <div className="relative text-center mb-10 max-w-3xl mx-auto animate-fade-up overflow-hidden rounded-3xl" style={{ paddingTop: "5rem" }}>
+          <div className="absolute inset-0 -top-12 pointer-events-none bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,var(--cp-glow-1),_transparent_65%)] opacity-50" aria-hidden />
+          <div className="relative">
+            <h1 className="font-heading text-4xl sm:text-5xl font-bold text-[var(--cp-text)] tracking-tight mb-3 leading-[1.15]">
+              {getGreeting(firstName)}
+            </h1>
+            <p className="text-lg text-[var(--cp-muted)] max-w-md mx-auto leading-relaxed">
+              What policy would you like to explore today?
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="text-center mb-10 max-w-3xl mx-auto animate-fade-up" style={{ paddingTop: "5rem" }}>
-          <h1 className="font-heading text-5xl sm:text-[64px] font-extrabold text-[var(--cp-text)] tracking-tight mb-5 leading-[1.1]">
-            Policy research that
-            <br />
-            <span className="text-[var(--cp-accent)]">actually explains things</span>
-          </h1>
-          <p className="text-lg sm:text-xl text-[var(--cp-muted)] max-w-xl mx-auto leading-relaxed">
-            Ask about any law or bill and get plain-English answers with sources - plus what it means for your ZIP code.
-          </p>
-          <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--cp-tertiary)]">
-            Non-partisan &middot; Every claim cited &middot; Used by students, journalists, and voters
-          </p>
+        <div className="relative text-center mb-10 max-w-3xl mx-auto animate-fade-up overflow-hidden rounded-3xl" style={{ paddingTop: "5rem" }}>
+          <div className="absolute inset-0 -top-20 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,var(--cp-glow-1),_transparent_70%)] opacity-60" aria-hidden />
+          <div className="relative">
+            <h1 className="font-heading text-5xl sm:text-[64px] font-extrabold text-[var(--cp-text)] tracking-tight mb-5 leading-[1.1]">
+              Policy research that
+              <br />
+              <span className="text-[var(--cp-accent)]">actually explains things</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-[var(--cp-muted)] max-w-xl mx-auto leading-relaxed">
+              Ask about any law or bill and get plain-English answers with sources - plus what it means for your ZIP code.
+            </p>
+            <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--cp-tertiary)]">
+              Non-partisan &middot; Every claim cited &middot; Used by students, journalists, and voters
+            </p>
+          </div>
         </div>
       )}
 
@@ -333,7 +339,7 @@ function HomeContent() {
       </div>
 
       {/* Example queries - no emojis, simple text chips */}
-      <div className="w-full max-w-2xl mx-auto mb-12 animate-fade-up" style={{ animationDelay: "200ms" }}>
+      <div className="w-full max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: "200ms" }}>
         <p className="section-label text-center mb-3">Try asking</p>
         <div className="flex flex-wrap justify-center gap-2 stagger">
           {EXAMPLE_QUERIES.map((label) => (
@@ -346,8 +352,15 @@ function HomeContent() {
         </div>
       </div>
 
+      {/* Section divider */}
+      <div className="flex items-center gap-4 w-full max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: "220ms" }} aria-hidden>
+        <div className="flex-1 h-px bg-[var(--cp-border)]" />
+        <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--cp-tertiary)]/70">or</span>
+        <div className="flex-1 h-px bg-[var(--cp-border)]" />
+      </div>
+
       {/* Topics - clean text, no emojis */}
-      <div className="w-full max-w-2xl mx-auto animate-fade-up" style={{ animationDelay: "300ms" }}>
+      <div className="w-full max-w-2xl mx-auto mb-12 animate-fade-up" style={{ animationDelay: "300ms" }}>
         <p className="section-label text-center mb-3">Or explore a topic</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 stagger">
           {TOPICS.map((topic) => (
@@ -360,20 +373,22 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* Trust line - minimal */}
-      <div className="mt-14 flex flex-wrap items-center justify-center gap-8 text-xs text-[var(--cp-muted)] animate-fade-up pb-16" style={{ animationDelay: "400ms" }}>
-        <span className="flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-[var(--cp-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-          Every claim cited
-        </span>
-        <span className="flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-[var(--cp-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" /></svg>
-          Non-partisan
-        </span>
-        <span className="flex items-center gap-2">
-          <svg className="w-3.5 h-3.5 text-[var(--cp-coral)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
-          Local context
-        </span>
+      {/* Trust line - glass pill */}
+      <div className="mt-12 animate-fade-up pb-16" style={{ animationDelay: "400ms" }}>
+        <div className="glass-card inline-flex flex-wrap items-center justify-center gap-6 sm:gap-8 px-6 py-3.5 rounded-2xl border border-[var(--cp-border)]">
+          <span className="flex items-center gap-2 text-xs text-[var(--cp-muted)]">
+            <svg className="w-3.5 h-3.5 text-[var(--cp-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            Every claim cited
+          </span>
+          <span className="flex items-center gap-2 text-xs text-[var(--cp-muted)]">
+            <svg className="w-3.5 h-3.5 text-[var(--cp-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" /></svg>
+            Non-partisan
+          </span>
+          <span className="flex items-center gap-2 text-xs text-[var(--cp-muted)]">
+            <svg className="w-3.5 h-3.5 text-[var(--cp-coral)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+            Local context
+          </span>
+        </div>
       </div>
     </div>
   );
