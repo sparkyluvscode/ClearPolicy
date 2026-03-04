@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import type { Answer, AnswerSection, AnswerSource } from "./policy-types";
 import type { WebSearchResult } from "./web-search";
-import { formatWebContext } from "./web-search";
 
 let openai: OpenAI | null = null;
 
@@ -11,43 +10,6 @@ function getOpenAI(): OpenAI | null {
     openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
   return openai;
-}
-
-const PLACEHOLDER_DOMAINS = new Set([
-  "example.com", "example.org", "example.net",
-  "placeholder.com", "test.com", "fake.com",
-  "source.com", "website.com", "domain.com",
-]);
-
-function isValidSourceUrl(url: string | undefined | null): boolean {
-  if (!url || typeof url !== "string") return false;
-  try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) return false;
-    const host = parsed.hostname.replace("www.", "");
-    if (PLACEHOLDER_DOMAINS.has(host)) return false;
-    if (!host.includes(".")) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function webResultsToSources(results: WebSearchResult[]): AnswerSource[] {
-  return results.slice(0, 6).map((r, i) => {
-    let domain = "";
-    try { domain = new URL(r.url).hostname.replace("www.", ""); } catch { domain = "source"; }
-    const isGov = domain.endsWith(".gov");
-    return {
-      id: i + 1,
-      title: r.title,
-      url: r.url,
-      domain,
-      type: isGov ? ("Federal" as const) : ("Web" as const),
-      verified: true,
-      excerpt: r.content?.slice(0, 300) || "",
-    };
-  }).filter(s => isValidSourceUrl(s.url));
 }
 
 function stubAnswer(query: string, zipCode?: string | null): Answer {
@@ -74,48 +36,52 @@ function isPolicyQuery(query: string): boolean {
 }
 
 const CITATION_RULES = `
-CITATION RULES (CRITICAL):
+CITATION RULES (CRITICAL - this is what makes our tool better than ChatGPT):
 - You MUST embed inline citations as [1], [2], [3] etc. throughout your answer text, referencing the numbered sources provided above.
 - Place citations immediately after the specific claim or fact they support, not at the end of paragraphs.
-- Every factual claim, statistic, date, or specific detail MUST have a citation. If a fact cannot be cited, explicitly note it as (General Knowledge).
+- Every factual claim, statistic, date, or specific detail MUST have a citation. Uncited claims should be marked (General Knowledge).
 - Multiple citations can support one claim: "The bill passed with bipartisan support [1][3]."
-- Do NOT fabricate citation numbers. Only use numbers that correspond to the provided sources.
-- If no sources are provided, mark claims with (General Knowledge).`;
+- Do NOT fabricate citation numbers. Only use numbers that correspond to the provided numbered sources.
+- If no numbered sources are provided, mark all claims with (General Knowledge).`;
+
+/**
+ * All generate* functions now receive pre-built `sourcesContext` (the numbered
+ * text block the AI sees) and `sources` (the matching AnswerSource array for the UI).
+ * The omni route builds both to guarantee consistent numbering.
+ */
 
 async function generateGeneralAnswer(
   client: OpenAI,
   query: string,
-  webResults?: WebSearchResult[],
-  govContext?: string,
+  sourcesContext: string,
+  sources: AnswerSource[],
 ): Promise<Answer> {
-  const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
-  const govBlock = govContext ? `\n\n${govContext}\n` : "";
-  const hasVerifiedData = !!(govContext || webResults?.length);
+  const hasContext = sourcesContext.length > 0;
 
   const prompt = `The user asked: "${query}"
-${govBlock}${webContext}
+${hasContext ? `\n${sourcesContext}\n` : ""}
 This is a general knowledge question. Provide a thorough, insightful, and well-structured answer.
-${hasVerifiedData ? CITATION_RULES : ""}
+${hasContext ? CITATION_RULES : ""}
 Return ONLY valid JSON (no markdown):
 {
   "title": "Short, compelling descriptive title",
   "category": "One short category",
-  "answer": "A detailed 4-8 sentence answer${hasVerifiedData ? " with inline citations [1], [2] after each claim" : ""}. Include context, significance, and specific numbers/dates/statistics.",
-  "keyFacts": ["Fact 1${hasVerifiedData ? " [citation]" : ""}", "Fact 2", "Fact 3", "Fact 4", "Fact 5"],
+  "answer": "A detailed 4-8 sentence answer${hasContext ? " with inline citations [N] after each claim" : ""}. Include context, significance, and specific numbers/dates/statistics.",
+  "keyFacts": ["Fact 1${hasContext ? " [N]" : ""}", "Fact 2", "Fact 3", "Fact 4", "Fact 5"],
   "sources": []
 }
 
 Rules:
 - Be thorough and insightful. Include specific numbers, statistics, dollar amounts, dates, and percentages.
 - Each key fact should be a complete, informative sentence with a citation if sources are available.
-- Always return an empty sources array []. Sources are handled separately.${hasVerifiedData ? "\n- Use the provided search results and government data as your PRIMARY factual basis. Cite them with [1], [2] etc." : ""}`;
+- Always return an empty sources array []. Sources are handled separately.${hasContext ? "\n- Use the provided numbered sources as your PRIMARY factual basis. Cite them with [N]." : ""}`;
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: "You are an expert research assistant. You provide thorough, citation-backed answers. Every factual claim must be traced to a source. Return only valid JSON.",
+        content: "You are an expert research assistant. You provide thorough, citation-backed answers. Every factual claim must be traced to a numbered source. Return only valid JSON.",
       },
       { role: "user", content: prompt },
     ],
@@ -128,10 +94,6 @@ Rules:
 
   const parsed = JSON.parse(content);
   const keyFacts: string[] = Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [];
-
-  const sources: AnswerSource[] = webResults?.length
-    ? webResultsToSources(webResults)
-    : [];
 
   return {
     policyId: `general-${Date.now()}`,
@@ -150,63 +112,60 @@ Rules:
 export async function generatePolicyAnswer(
   query: string,
   zipCode?: string | null,
-  webResults?: WebSearchResult[],
-  govContext?: string,
+  sourcesContext?: string,
+  sources?: AnswerSource[],
   documentContext?: string,
 ): Promise<Answer> {
   const client = getOpenAI();
   if (!client) return stubAnswer(query, zipCode);
 
-  if (!isPolicyQuery(query) && !govContext && !documentContext) {
+  const ctx = sourcesContext || "";
+  const srcs = sources || [];
+
+  if (!isPolicyQuery(query) && !ctx && !documentContext) {
     try {
-      return await generateGeneralAnswer(client, query, webResults, govContext);
+      return await generateGeneralAnswer(client, query, ctx, srcs);
     } catch (error) {
       console.error("General answer AI failed, falling back to policy prompt:", error);
     }
   }
 
   const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include specific local relevance.` : "";
-  const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
-  const govBlock = govContext ? `\n\n${govContext}\n` : "";
   const docBlock = documentContext ? `\n\n--- UPLOADED DOCUMENT ---\n${documentContext}\n--- END DOCUMENT ---\n` : "";
-  const hasGovData = !!govContext;
-  const hasVerifiedData = hasGovData || !!webResults?.length;
+  const hasContext = ctx.length > 0;
   const hasDocument = !!documentContext;
 
   const prompt = `You are a world-class non-partisan civic education assistant. The user asked: "${query}".${zipHint}
-${govBlock}${webContext}${docBlock}
+${hasContext ? `\n${ctx}\n` : ""}${docBlock}
 Your job is to provide the most helpful, insightful, and thorough policy analysis possible - the kind of briefing a journalist, researcher, or debater would find genuinely valuable.
-${hasVerifiedData || hasDocument ? CITATION_RULES : ""}${hasDocument ? `
+${hasContext || hasDocument ? CITATION_RULES : ""}${hasDocument ? `
 DOCUMENT CITATION RULES:
 - When citing the uploaded document, use [Doc] followed by the section or paragraph reference, e.g. [Doc, Section 3(a)] or [Doc, p.12] or [Doc, paragraph 4].
-- Quote the specific text from the document that supports your claim using "quoted text" [Doc, location].
-- Be precise about where in the document each claim comes from. Debaters need to verify your citations.` : ""}
+- Quote the specific text from the document that supports your claim.
+- Be precise about where in the document each claim comes from.` : ""}
 
 Return ONLY valid JSON with this exact structure (no markdown, no code fence):
 {
   "policyName": "Clear, descriptive title",
   "level": "Federal" or "State" or "Local",
   "category": "One short category",
-  "fullTextSummary": "A substantive 4-6 sentence overview${hasVerifiedData || hasDocument ? " with inline citations [1], [2], [Doc] after each claim" : ""}. Be specific - include dates, numbers, affected populations, and current status.",
+  "fullTextSummary": "A substantive 4-6 sentence overview${hasContext || hasDocument ? " with inline citations [N] after each claim" : ""}.",
   "sections": {
-    "summary": "A thorough 4-6 sentence summary with inline citations after each factual claim. Don't just describe - explain significance, context, and real-world impact.",
-    "keyProvisions": ["Provision 1 with citation [N]", "Provision 2 with citation [N]", "Provision 3", "Provision 4", "Provision 5"],
+    "summary": "A thorough 4-6 sentence summary with inline citations after each factual claim.",
+    "keyProvisions": ["Provision 1 with citation [N]", "Provision 2 [N]", "Provision 3", "Provision 4", "Provision 5"],
     "localImpact": { "zipCode": "${zipCode || ""}", "location": "City/region name", "content": "2-3 specific sentences with citations." } or null if no ZIP,
-    "argumentsFor": ["Argument with evidence and citation [N]", "Another argument with data [N]", "Third argument"],
-    "argumentsAgainst": ["Counterargument with evidence and citation [N]", "Another objection with data [N]", "Third argument"]
+    "argumentsFor": ["Argument with evidence [N]", "Another argument [N]", "Third argument"],
+    "argumentsAgainst": ["Counterargument with evidence [N]", "Another objection [N]", "Third argument"]
   },
   "sources": []
 }
 
 Critical rules:
-- Be NEUTRAL and FACTUAL, but substantive and ANALYTICAL. Explain mechanisms, trade-offs, and real-world consequences.
-- Include QUANTITATIVE DATA: budget numbers, cost estimates, number of people affected, percentages, timelines.
-- Always return an empty sources array []. Sources are handled separately by the system.${hasGovData ? `\n- Official government data from Congress.gov and/or Open States is provided above. This is VERIFIED data.
-  • Use the bill titles, status, sponsors, and summaries from the government data.
-  • Do NOT contradict or fabricate details beyond what the data states.` : ""}${hasVerifiedData ? "\n- Use the provided search results and government data as your PRIMARY factual basis. Cite them with [1], [2] etc." : ""}
-- Each key provision should be a complete, informative sentence.
-- Arguments for and against should be steel-manned with specific data points or expert opinions.
-- The user chose this app to understand policy better than ChatGPT or Gemini. Deliver citation-backed analysis, not vague summaries.`;
+- Be NEUTRAL and FACTUAL, but substantive and ANALYTICAL.
+- Include QUANTITATIVE DATA: budget numbers, cost estimates, percentages, timelines.
+- Always return an empty sources array []. Sources are handled separately.${hasContext ? "\n- Use the provided numbered sources as your PRIMARY factual basis. Cite them with [N]." : ""}
+- Arguments for and against should be steel-manned with specific data points.
+- The user chose this app over ChatGPT/Gemini. Deliver citation-backed analysis, not vague summaries.`;
 
   try {
     const completion = await client.chat.completions.create({
@@ -214,7 +173,7 @@ Critical rules:
       messages: [
         {
           role: "system",
-          content: "You are a world-class non-partisan policy analyst. Every factual claim must be backed by an inline citation [1], [2] referencing the provided sources. You never make unsourced claims without marking them (General Knowledge). Return only valid JSON.",
+          content: "You are a world-class non-partisan policy analyst. Every factual claim must be backed by an inline citation [N] referencing the provided numbered sources. Return only valid JSON.",
         },
         { role: "user", content: prompt },
       ],
@@ -243,23 +202,6 @@ Critical rules:
       argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? sec.argumentsAgainst : [],
     };
 
-    const sources: AnswerSource[] = webResults?.length
-      ? webResultsToSources(webResults)
-      : [];
-
-    // For uploaded documents, add a document source entry
-    if (hasDocument) {
-      sources.unshift({
-        id: 0,
-        title: "Uploaded Document",
-        url: "",
-        domain: "uploaded",
-        type: "Web" as const,
-        verified: true,
-        excerpt: documentContext!.slice(0, 200) + "...",
-      });
-    }
-
     return {
       policyId: `policy-${Date.now()}`,
       policyName: parsed.policyName || query.slice(0, 100),
@@ -267,7 +209,7 @@ Critical rules:
       category: parsed.category || "General",
       fullTextSummary: parsed.fullTextSummary || sections.summary || "",
       sections,
-      sources,
+      sources: srcs,
     };
   } catch (error) {
     console.error("Policy engine AI failed:", error);
@@ -278,52 +220,33 @@ Critical rules:
 export async function generateDebateAnswer(
   query: string,
   zipCode?: string | null,
-  webResults?: WebSearchResult[],
-  govContext?: string,
+  sourcesContext?: string,
+  sources?: AnswerSource[],
 ): Promise<{ answer: Answer; perspectives: { label: string; summary: string; thinktank?: string }[] }> {
   const client = getOpenAI();
-  if (!client) {
-    return { answer: stubAnswer(query, zipCode), perspectives: [] };
-  }
+  if (!client) return { answer: stubAnswer(query, zipCode), perspectives: [] };
 
+  const ctx = sourcesContext || "";
+  const srcs = sources || [];
   const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}.` : "";
-  const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
-  const govBlock = govContext ? `\n\n${govContext}\n` : "";
-  const hasVerifiedData = !!(govContext || webResults?.length);
+  const hasContext = ctx.length > 0;
 
   const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}
-${govBlock}${webContext}
-
+${hasContext ? `\n${ctx}\n` : ""}
 Provide a thorough, multi-perspective analysis for informed debate preparation.
-${hasVerifiedData ? CITATION_RULES : ""}
+${hasContext ? CITATION_RULES : ""}
 Return ONLY valid JSON:
 {
   "policyName": "Clear title framing the debate",
   "level": "Federal" or "State" or "Local",
   "category": "Short category",
-  "fullTextSummary": "3-4 sentence overview${hasVerifiedData ? " with inline citations [1], [2]" : ""}.",
+  "fullTextSummary": "3-4 sentence overview${hasContext ? " with inline citations [N]" : ""}.",
   "thesis": "One clear sentence framing the central question.",
   "perspectives": [
-    {
-      "label": "Progressive",
-      "summary": "3-4 sentences with citations [N] presenting the progressive case with specific data.",
-      "thinktank": "Center for American Progress or similar"
-    },
-    {
-      "label": "Conservative",
-      "summary": "3-4 sentences with citations [N] presenting the conservative case with specific data.",
-      "thinktank": "Heritage Foundation or similar"
-    },
-    {
-      "label": "Libertarian",
-      "summary": "3-4 sentences with citations [N] presenting the libertarian case.",
-      "thinktank": "Cato Institute or similar"
-    },
-    {
-      "label": "Pragmatic Center",
-      "summary": "3-4 sentences with citations [N] presenting a centrist view.",
-      "thinktank": "Brookings Institution or similar"
-    }
+    { "label": "Progressive", "summary": "3-4 sentences with citations [N].", "thinktank": "CAP or similar" },
+    { "label": "Conservative", "summary": "3-4 sentences with citations [N].", "thinktank": "Heritage or similar" },
+    { "label": "Libertarian", "summary": "3-4 sentences with citations [N].", "thinktank": "Cato or similar" },
+    { "label": "Pragmatic Center", "summary": "3-4 sentences with citations [N].", "thinktank": "Brookings or similar" }
   ],
   "commonGround": ["Area of agreement 1 [N]", "Area of agreement 2"],
   "keyDisagreements": ["Core disagreement 1 [N]", "Core disagreement 2"],
@@ -336,7 +259,7 @@ Always return an empty sources array []. Sources are handled separately.`;
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class debate coach and policy analyst. Every factual claim must be backed by inline citations [1], [2] referencing the provided sources. Present every perspective at its strongest. Return only valid JSON." },
+        { role: "system", content: "You are a world-class debate coach. Every factual claim must have inline citations [N]. Present every perspective at its strongest. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -367,10 +290,6 @@ Always return an empty sources array []. Sources are handled separately.`;
       argumentsAgainst: undefined,
     };
 
-    const sources: AnswerSource[] = webResults?.length
-      ? webResultsToSources(webResults)
-      : [];
-
     return {
       answer: {
         policyId: `debate-${Date.now()}`,
@@ -379,7 +298,7 @@ Always return an empty sources array []. Sources are handled separately.`;
         category: parsed.category || "Debate",
         fullTextSummary: parsed.fullTextSummary || "",
         sections,
-        sources,
+        sources: srcs,
       },
       perspectives,
     };
@@ -393,8 +312,8 @@ export async function generateFollowUpAnswer(
   message: string,
   history: { role: "user" | "assistant"; content: string }[],
   persona?: string | null,
-  webResults?: WebSearchResult[],
-  govContext?: string,
+  sourcesContext?: string,
+  sources?: AnswerSource[],
 ): Promise<{ answer: Answer; suggestions: string[] }> {
   const client = getOpenAI();
   if (!client) {
@@ -410,28 +329,28 @@ export async function generateFollowUpAnswer(
     };
   }
 
+  const ctx = sourcesContext || "";
+  const srcs = sources || [];
   const historyBlock = history.slice(-8).map((h) => `${h.role}: ${h.content.slice(0, 400)}`).join("\n");
   const personaHint = persona && persona !== "general" ? ` Tailor for a ${persona}'s perspective.` : "";
-  const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
-  const govBlock = govContext ? `\n\n${govContext}\n` : "";
-  const hasVerifiedData = !!(govContext || webResults?.length);
+  const hasContext = ctx.length > 0;
 
   const prompt = `You are a world-class non-partisan civic education assistant answering a follow-up question.
 
 Previous context:
 ${historyBlock}
-${govBlock}${webContext}
+${hasContext ? `\n${ctx}\n` : ""}
 Follow-up question: "${message}"${personaHint}
-${hasVerifiedData ? CITATION_RULES : ""}
+${hasContext ? CITATION_RULES : ""}
 Return ONLY valid JSON:
 {
   "policyName": "Clear heading for this follow-up",
-  "fullTextSummary": "4-6 sentence answer${hasVerifiedData ? " with inline citations [1], [2]" : ""}.",
+  "fullTextSummary": "4-6 sentence answer${hasContext ? " with inline citations [N]" : ""}.",
   "sections": {
-    "summary": "Thorough answer with inline citations after each factual claim.",
+    "summary": "Thorough answer with inline citations.",
     "keyProvisions": ["Point 1 [N]", "Point 2 [N]", "Point 3", "Point 4"],
-    "argumentsFor": ["Supporting argument with citation [N]", "Another point [N]"],
-    "argumentsAgainst": ["Counterargument with citation [N]", "Another concern [N]"]
+    "argumentsFor": ["Supporting argument [N]", "Another point [N]"],
+    "argumentsAgainst": ["Counterargument [N]", "Another concern [N]"]
   },
   "suggestions": ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3"]
 }
@@ -439,13 +358,13 @@ Return ONLY valid JSON:
 Rules:
 - Build on previous context, don't repeat.
 - Be specific: real numbers, dollar amounts, statistics, dates.
-- Be ANALYTICAL: identify trade-offs, unintended consequences, loopholes.${hasVerifiedData ? "\n- Use the provided data as your PRIMARY factual basis. Cite with [1], [2] etc." : ""}`;
+- Be ANALYTICAL: identify trade-offs, unintended consequences, loopholes.${hasContext ? "\n- Use the provided numbered sources as your PRIMARY factual basis." : ""}`;
 
   try {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class policy analyst. Every factual claim must have an inline citation [1], [2] referencing provided sources. Return only valid JSON." },
+        { role: "system", content: "You are a world-class policy analyst. Every factual claim must have an inline citation [N] referencing provided numbered sources. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -468,7 +387,6 @@ Rules:
       "What are the main criticisms?",
       "Compare to similar policies",
     ];
-    const sources: AnswerSource[] = webResults?.length ? webResultsToSources(webResults) : [];
 
     return {
       answer: {
@@ -477,7 +395,7 @@ Rules:
         level: "State", category: "General",
         fullTextSummary: parsed.fullTextSummary || sections.summary || "",
         sections,
-        sources,
+        sources: srcs,
       },
       suggestions,
     };

@@ -382,20 +382,34 @@ export async function fetchGovData(options: FetchGovDataOptions): Promise<GovCon
   return context;
 }
 
-/* --- Format gov data into prompt context --- */
+/* --- Format gov data into prompt context with citation numbers --- */
 
-export function formatGovContext(ctx: GovContext): string {
-  if (ctx.bills.length === 0 && ctx.representatives.length === 0) return "";
+/**
+ * Format gov context for AI prompt injection.
+ * Bills are numbered starting from `startIndex` so citation [N] matches the sources array.
+ * Returns the formatted string and the count of numbered sources.
+ */
+export function formatGovContext(
+  ctx: GovContext,
+  startIndex: number = 1,
+): { text: string; numberedCount: number } {
+  if (ctx.bills.length === 0 && ctx.representatives.length === 0) {
+    return { text: "", numberedCount: 0 };
+  }
 
   const parts: string[] = [];
+  const billsToNumber = ctx.bills.slice(0, 6);
+  const numberedCount = billsToNumber.length;
 
-  if (ctx.bills.length > 0) {
-    parts.push("=== OFFICIAL GOVERNMENT DATA (use as PRIMARY factual basis) ===");
+  if (billsToNumber.length > 0) {
+    parts.push(`VERIFIED GOVERNMENT SOURCES (cite as [${startIndex}]${numberedCount > 1 ? `..[${startIndex + numberedCount - 1}]` : ""}):`);
 
-    for (const bill of ctx.bills) {
+    billsToNumber.forEach((bill, i) => {
+      const num = startIndex + i;
       const lines: string[] = [];
-      lines.push(`Bill: ${bill.identifier} - ${bill.title}`);
-      lines.push(`Source: ${bill.sourceName} (${bill.sourceUrl})`);
+      lines.push(`[${num}] Bill: ${bill.identifier} - ${bill.title}`);
+      lines.push(`URL: ${bill.sourceUrl}`);
+      lines.push(`Source: ${bill.sourceName}`);
       lines.push(`Level: ${bill.level}${bill.state ? ` (${bill.state})` : ""}`);
       if (bill.status) lines.push(`Status: ${bill.status}`);
       if (bill.latestAction) lines.push(`Latest Action: ${bill.latestAction}`);
@@ -412,7 +426,7 @@ export function formatGovContext(ctx: GovContext): string {
         lines.push(`Official Summary: ${cleanSummary}`);
       }
       parts.push(lines.join("\n"));
-    }
+    });
   }
 
   if (ctx.representatives.length > 0) {
@@ -431,7 +445,7 @@ export function formatGovContext(ctx: GovContext): string {
     }
   }
 
-  return parts.join("\n\n");
+  return { text: parts.join("\n\n"), numberedCount };
 }
 
 /* --- Convert gov bills to AnswerSource for the UI --- */

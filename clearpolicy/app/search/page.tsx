@@ -34,6 +34,8 @@ interface ConversationCard {
   followUpSuggestions: string[];
   perspectives?: PerspectiveView[];
   rhetoricCheck?: RhetoricCheck;
+  /** Per-card sources so each card's [N] citations map to its own source list */
+  cardSources?: Source[];
 }
 
 interface ConversationMessage {
@@ -237,6 +239,7 @@ function SearchResultsContent() {
           followUpSuggestions: followUps.slice(0, 3),
           perspectives: result.perspectives,
           rhetoricCheck: result.rhetoricCheck,
+          cardSources: result.sources,
         };
         setRawCards([newCard]);
         setCards([newCard]);
@@ -276,7 +279,7 @@ function SearchResultsContent() {
       const fd = data.data;
       if (!fd) throw new Error("No data returned");
 
-      // Merge follow-up sources into the sources panel (deduplicate by URL)
+      // Merge follow-up sources into the global sources panel for reference
       if (fd.sources?.length) {
         setSources(prev => {
           const existingUrls = new Set(prev.map(s => s.url));
@@ -296,6 +299,7 @@ function SearchResultsContent() {
         heading: fd.heading, cardType,
         sections: fd.sections,
         followUpSuggestions: fd.followUpSuggestions || [],
+        cardSources: fd.sources || [],
       };
       setRawCards(prev => [...prev, newFollowUp]);
       setLevelCache({});
@@ -625,7 +629,7 @@ function SearchResultsContent() {
                   cardType={card.cardType}
                   sections={card.sections}
                   onSourceClick={setActiveSource}
-                  sources={sources}
+                  sources={card.cardSources || sources}
                 />
               ))}
             </div>

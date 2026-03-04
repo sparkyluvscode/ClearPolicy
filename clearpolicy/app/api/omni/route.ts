@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generatePolicyAnswer, generateDebateAnswer } from "@/lib/policyEngine";
 import { classifyQuery } from "@/lib/omni-classifier";
 import { matchKnownSummary } from "@/lib/known-summaries";
-import { searchWeb } from "@/lib/web-search";
+import { searchWeb, filterValidResults, formatWebContext } from "@/lib/web-search";
 import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
 import { prisma, withRetry } from "@/lib/db";
 import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView } from "@/lib/omni-types";
@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Gov Data First pipeline ──
-    // Step 1 & 2: Fetch gov data AND web search in parallel (they're independent)
+    // Step 1: Fetch gov data AND web search in parallel
     const isNews = classified.intent === "news_update";
     const [govData, webSearchResults] = await Promise.all([
       fetchGovData({
@@ -318,16 +318,51 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    const govContextStr = formatGovContext(govData);
+    // Step 2: Build UNIFIED sources array with consistent numbering.
+    // Gov sources occupy [1]..[govCount], web sources occupy [govCount+1]..[total].
+    // The AI sees this same numbering in its prompt and the UI gets the same array.
     const govSources = govBillsToSources(govData.bills);
-    const webResults = webSearchResults?.results ?? [];
+    const rawWebResults = webSearchResults?.results ?? [];
+    const validWebResults = filterValidResults(rawWebResults);
 
-    // Step 3: Generate answer with all context injected
+    // Build the unified sources array: gov first, then web (order = citation number)
+    const unifiedSources: PolicySource[] = [];
+
+    // Gov sources get positions [1]..[govCount]
+    for (let i = 0; i < govSources.length; i++) {
+      unifiedSources.push({ ...govSources[i], id: i + 1 });
+    }
+    const govCount = govSources.length;
+
+    // Web sources get positions [govCount+1]..[total]
+    const webSourceEntries = validWebResults.slice(0, 6);
+    for (let i = 0; i < webSourceEntries.length; i++) {
+      const r = webSourceEntries[i];
+      let domain = "";
+      try { domain = new URL(r.url).hostname.replace("www.", ""); } catch { domain = "source"; }
+      const isGov = domain.endsWith(".gov");
+      unifiedSources.push({
+        id: govCount + i + 1,
+        title: r.title,
+        url: r.url,
+        domain,
+        type: isGov ? "Federal" : "Web",
+        verified: true,
+        excerpt: r.content?.slice(0, 300) || "",
+      });
+    }
+
+    // Build the unified context string the AI sees (same numbering)
+    const { text: govContextStr, numberedCount: govNumberedCount } = formatGovContext(govData, 1);
+    const webContextStr = formatWebContext(webSourceEntries, govNumberedCount + 1);
+    const combinedContext = [govContextStr, webContextStr].filter(Boolean).join("\n\n");
+
+    // Step 3: Generate answer with unified sources
     let data: OmniResponse;
     let answer: Answer;
 
     if (useDebate) {
-      const result = await generateDebateAnswer(query, zip ?? null, webResults, govContextStr || undefined);
+      const result = await generateDebateAnswer(query, zip ?? null, combinedContext || undefined, unifiedSources);
       answer = result.answer;
       const perspectives: PerspectiveView[] = result.perspectives.map(p => ({
         label: p.label,
@@ -340,39 +375,11 @@ export async function POST(req: NextRequest) {
       const docContext = documentText
         ? `[Uploaded: ${documentFilename || "document"}]\n\n${documentText}`
         : undefined;
-      answer = await generatePolicyAnswer(query, zip ?? null, webResults, govContextStr || undefined, docContext);
+      answer = await generatePolicyAnswer(query, zip ?? null, combinedContext || undefined, unifiedSources, docContext);
       data = mapPolicyAnswerToOmni(answer, persona, documentText ? "document_analysis" : classified.intent);
     }
 
-    // Step 4: Merge gov sources into the response
-    // Direct bill lookups → prepend only the most relevant version(s)
-    // Topic searches → the AI already has the data in its prompt; let it cite what's relevant
-    if (govSources.length > 0 && govData.hadDirectBillLookup) {
-      let toMerge = govSources;
-      // When multiple versions exist (multi-session), pick the one matching the AI's answer
-      if (govSources.length > 1) {
-        const answerLower = (answer.policyName || "").toLowerCase();
-        const titleMatches = govSources.filter((s) => {
-          const descPart = s.title.replace(/^[A-Z]{1,4}\s*\d+:\s*/i, "").toLowerCase().trim();
-          return descPart.length > 5 && answerLower.includes(descPart.slice(0, 25));
-        });
-        toMerge = titleMatches;
-      }
-      if (toMerge.length === 0) toMerge = govSources.length === 1 ? govSources : [];
-      const govOmniSources: Source[] = toMerge.map((s, i) => ({
-        id: `gov-${i}`,
-        type: s.type === "Federal" ? "federal_bill" : "state_bill",
-        title: s.title,
-        url: s.url,
-        snippet: s.title,
-        publisher: s.domain,
-        relevance: 1,
-        jurisdiction: s.type.toLowerCase() as "federal" | "state",
-      }));
-      data.sources = [...govOmniSources, ...data.sources.filter(
-        (existing) => !govOmniSources.some((g) => g.url === existing.url)
-      )];
-    }
+    // Sources are already correct -- no prepending or shifting needed.
 
     // Save conversation in the background (never blocks the response)
     const conversationId = await saveConversation(query, answer, zip).catch(() => null);

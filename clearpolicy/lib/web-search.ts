@@ -13,30 +13,37 @@ export interface WebSearchResponse {
   query: string;
 }
 
-const POLICY_DOMAINS = [
-  "congress.gov",
-  "govinfo.gov",
-  "whitehouse.gov",
-  "supremecourt.gov",
-  "uscourts.gov",
-  "federalregister.gov",
-  "leginfo.legislature.ca.gov",
-  "reuters.com",
-  "apnews.com",
-  "politico.com",
-  "nytimes.com",
-  "washingtonpost.com",
-  "bbc.com",
-  "npr.org",
-  "brookings.edu",
-  "heritage.org",
-  "cato.org",
-  "ballotpedia.org",
-];
+const PLACEHOLDER_DOMAINS = new Set([
+  "example.com", "example.org", "example.net",
+  "placeholder.com", "test.com", "fake.com",
+  "source.com", "website.com", "domain.com",
+]);
+
+export function isValidSourceUrl(url: string | undefined | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return false;
+    const host = parsed.hostname.replace("www.", "");
+    if (PLACEHOLDER_DOMAINS.has(host)) return false;
+    if (!host.includes(".")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pre-filter web results to remove invalid/placeholder URLs.
+ * Call this BEFORE numbering to avoid index gaps.
+ */
+export function filterValidResults(results: WebSearchResult[]): WebSearchResult[] {
+  return results.filter(r => isValidSourceUrl(r.url));
+}
 
 // Simple in-memory cache: key -> { data, timestamp }
 const cache = new Map<string, { data: WebSearchResponse; ts: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getCacheKey(query: string, isNews: boolean): string {
   return `${isNews ? "news:" : "gen:"}${query.toLowerCase().trim()}`;
@@ -83,7 +90,6 @@ export async function searchWeb(
     const data: WebSearchResponse = { results, query };
     cache.set(key, { data, ts: Date.now() });
 
-    // Evict stale entries periodically
     if (cache.size > 200) {
       const now = Date.now();
       for (const [k, v] of cache) {
@@ -99,9 +105,11 @@ export async function searchWeb(
 }
 
 /**
- * Formats web search results into a context block for injection into AI prompts.
+ * Formats web search results into a numbered context block for AI prompts.
+ * @param startIndex - first citation number (default 1). Use this when gov sources
+ *   occupy [1]..[N] and web results should start at [N+1].
  */
-export function formatWebContext(results: WebSearchResult[]): string {
+export function formatWebContext(results: WebSearchResult[], startIndex: number = 1): string {
   if (results.length === 0) return "";
 
   const lines = results.map((r, i) => {
@@ -109,11 +117,11 @@ export function formatWebContext(results: WebSearchResult[]): string {
     try { domain = new URL(r.url).hostname.replace("www.", ""); } catch {}
     const snippet = r.content.slice(0, 400);
     const date = r.publishedDate ? ` (${r.publishedDate})` : "";
-    return `[${i + 1}] "${r.title}" (${domain}${date})\nURL: ${r.url}\n${snippet}`;
+    return `[${startIndex + i}] "${r.title}" (${domain}${date})\nURL: ${r.url}\n${snippet}`;
   });
 
-  return `VERIFIED WEB SOURCES (use [1], [2], etc. as inline citations in your response):
-Each source below has a number. When you make a claim backed by one of these sources, place the citation [N] immediately after the claim.
+  return `VERIFIED WEB SOURCES (cite as [${startIndex}], [${startIndex + 1}], etc.):
+Each source below has a number. Place the citation [N] immediately after the claim it supports.
 
 ${lines.join("\n\n")}`;
 }
