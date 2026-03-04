@@ -13,6 +13,8 @@ export type AnswerSource = {
   domain: string;
   type: "Federal" | "State" | "Local" | "Web";
   verified: boolean;
+  /** Evidence excerpt from the source that backs a specific claim */
+  excerpt?: string;
 };
 
 export type Answer = {

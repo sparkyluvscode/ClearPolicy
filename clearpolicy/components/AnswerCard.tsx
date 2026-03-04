@@ -30,26 +30,70 @@ export default function AnswerCard({
     cardType === "document" ? "var(--cp-gold)" : "var(--cp-accent)";
 
   function renderCited(content: string) {
-    const parts = content.split(/(\[\d+\]|\(General Knowledge\))/g);
+    const parts = content.split(/(\[\d+\](?:\[\d+\])*|\[Doc(?:,\s*[^\]]+)?\]|\(General Knowledge\))/g);
     return parts.map((part, i) => {
-      const cit = part.match(/^\[(\d+)\]$/);
-      if (cit) {
-        const idx = parseInt(cit[1], 10) - 1;
+      // Handle multiple consecutive citations like [1][3]
+      const multiCit = part.match(/^(\[\d+\])+$/);
+      if (multiCit) {
+        const nums = [...part.matchAll(/\[(\d+)\]/g)];
+        return (
+          <span key={i}>
+            {nums.map((m, j) => {
+              const idx = parseInt(m[1], 10) - 1;
+              const src = sources[idx];
+              if (!src) return <sup key={j} className="text-[10px] text-[var(--cp-tertiary)] mx-0.5">[{m[1]}]</sup>;
+              return (
+                <button
+                  key={j}
+                  onClick={() => onSourceClick(src)}
+                  className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 hover:scale-110 hover:shadow-sm"
+                  style={{ background: `color-mix(in srgb, ${accentColor} 15%, transparent)`, color: accentColor, border: `1px solid color-mix(in srgb, ${accentColor} 25%, transparent)` }}
+                  title={`[${m[1]}] ${src.title}`}
+                >
+                  {m[1]}
+                </button>
+              );
+            })}
+          </span>
+        );
+      }
+      const singleCit = part.match(/^\[(\d+)\]$/);
+      if (singleCit) {
+        const idx = parseInt(singleCit[1], 10) - 1;
         const src = sources[idx];
         if (src) return (
           <button
             key={i}
             onClick={() => onSourceClick(src)}
-            className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-semibold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 hover:opacity-70"
-            style={{ background: `color-mix(in srgb, ${accentColor} 12%, transparent)`, color: accentColor }}
-            title={src.title}
+            className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 hover:scale-110 hover:shadow-sm"
+            style={{ background: `color-mix(in srgb, ${accentColor} 15%, transparent)`, color: accentColor, border: `1px solid color-mix(in srgb, ${accentColor} 25%, transparent)` }}
+            title={`[${singleCit[1]}] ${src.title}`}
           >
-            {cit[1]}
+            {singleCit[1]}
+          </button>
+        );
+        return <sup key={i} className="text-[10px] text-[var(--cp-tertiary)] mx-0.5">[{singleCit[1]}]</sup>;
+      }
+      // [Doc] or [Doc, Section 3(a)] citations for uploaded documents
+      const docCit = part.match(/^\[Doc(?:,\s*([^\]]+))?\]$/);
+      if (docCit) {
+        const docSrc = sources.find(s => s.type === "uploaded_document");
+        const location = docCit[1];
+        return (
+          <button
+            key={i}
+            onClick={() => docSrc && onSourceClick(docSrc)}
+            className="inline-flex items-center gap-0.5 h-[18px] rounded-full text-[10px] font-bold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 px-1.5 hover:scale-105"
+            style={{ background: "color-mix(in srgb, var(--cp-gold) 15%, transparent)", color: "var(--cp-gold)", border: "1px solid color-mix(in srgb, var(--cp-gold) 25%, transparent)" }}
+            title={location ? `Document: ${location}` : "Uploaded Document"}
+          >
+            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            {location || "Doc"}
           </button>
         );
       }
       if (part === "(General Knowledge)") return (
-        <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded text-[var(--cp-tertiary)] bg-[var(--cp-surface-2)] mx-0.5">
+        <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded text-[var(--cp-tertiary)] bg-[var(--cp-surface-2)] mx-0.5 border border-[var(--cp-border)]">
           unverified
         </span>
       );

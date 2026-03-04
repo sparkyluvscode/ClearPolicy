@@ -112,5 +112,8 @@ export function formatWebContext(results: WebSearchResult[]): string {
     return `[${i + 1}] "${r.title}" (${domain}${date})\nURL: ${r.url}\n${snippet}`;
   });
 
-  return `Here are real-time web search results with their verified URLs. Use these as your PRIMARY source of facts. When citing sources in your response, use ONLY the URLs listed here. Do NOT invent or hallucinate any URLs.\n\n${lines.join("\n\n")}`;
+  return `VERIFIED WEB SOURCES (use [1], [2], etc. as inline citations in your response):
+Each source below has a number. When you make a claim backed by one of these sources, place the citation [N] immediately after the claim.
+
+${lines.join("\n\n")}`;
 }

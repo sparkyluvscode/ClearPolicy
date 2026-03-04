@@ -266,7 +266,7 @@ function SearchResultsContent() {
         }),
       });
       const text = await res.text();
-      let data: { success?: boolean; error?: string; data?: { heading: string; cardType?: string; sections: AnswerSection[]; followUpSuggestions?: string[] } };
+      let data: { success?: boolean; error?: string; data?: { heading: string; cardType?: string; sections: AnswerSection[]; followUpSuggestions?: string[]; sources?: Source[] } };
       try {
         data = JSON.parse(text);
       } catch {
@@ -275,6 +275,15 @@ function SearchResultsContent() {
       if (!data.success) throw new Error(data.error || "Follow-up failed");
       const fd = data.data;
       if (!fd) throw new Error("No data returned");
+
+      // Merge follow-up sources into the sources panel (deduplicate by URL)
+      if (fd.sources?.length) {
+        setSources(prev => {
+          const existingUrls = new Set(prev.map(s => s.url));
+          const newSources = fd.sources!.filter(s => s.url && !existingUrls.has(s.url));
+          return newSources.length > 0 ? [...prev, ...newSources] : prev;
+        });
+      }
 
       const isExplainThis = q.trim().startsWith('Explain this in more detail in plain English: "');
       const displayQuery = isExplainThis ? undefined : q.trim();
@@ -705,21 +714,35 @@ function SearchResultsContent() {
       )}
 
       </div>
-      {/* ── Right: Sources panel (always visible) ── */}
+      {/* ── Right: Evidence & Sources panel ── */}
       <aside className="hidden md:flex w-80 flex-shrink-0 flex-col border-l border-[var(--cp-border)] bg-[var(--cp-bg)]">
         <div className="flex-shrink-0 border-b border-[var(--cp-border)] px-4 py-3">
-          <h3 className="font-heading text-sm font-bold text-[var(--cp-text)]">Sources{sources.length > 0 ? ` (${sources.length})` : ""}</h3>
+          <h3 className="font-heading text-sm font-bold text-[var(--cp-text)]">
+            <svg className="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Verified Sources{sources.length > 0 ? ` (${sources.length})` : ""}
+          </h3>
+          {sources.length > 0 && (
+            <p className="text-[10px] text-[var(--cp-tertiary)] mt-1">Every [N] citation in the analysis links to one of these sources.</p>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto">
           {activeSource ? (
             <div className="border-b border-[var(--cp-border)] p-4 animate-fade-in bg-[var(--cp-surface)]/50">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--cp-tertiary)] mb-2">Preview</p>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--cp-muted)]">
-                  {activeSource.type === "federal_bill" ? "Federal" :
-                   activeSource.type === "state_bill" ? "State" :
-                   activeSource.type === "government_site" ? "Gov" :
-                   activeSource.type === "news_article" ? "News" : "Web"}
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  activeSource.type === "federal_bill" || activeSource.type === "state_bill"
+                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                    : activeSource.type === "uploaded_document"
+                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                    : activeSource.type === "government_site"
+                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                    : "bg-[var(--cp-accent)]/10 text-[var(--cp-accent)]"
+                }`}>
+                  {activeSource.type === "federal_bill" ? "Federal Bill" :
+                   activeSource.type === "state_bill" ? "State Bill" :
+                   activeSource.type === "government_site" ? "Gov Source" :
+                   activeSource.type === "uploaded_document" ? "Your Document" :
+                   activeSource.type === "news_article" ? "News" : "Web Source"}
                 </span>
                 <button onClick={() => setActiveSource(null)} className="p-1 rounded-lg hover:bg-[var(--cp-surface-2)] transition-colors text-[var(--cp-muted)]" aria-label="Close preview">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -731,51 +754,61 @@ function SearchResultsContent() {
                 let domain = "";
                 try { if (activeSource.url) domain = new URL(activeSource.url).hostname.replace("www.", ""); } catch {}
                 const shown = pub || domain;
-                return shown ? <p className="text-[10px] text-[var(--cp-tertiary)] mb-1.5">{shown}</p> : null;
+                return shown ? <p className="text-[10px] text-[var(--cp-tertiary)] mb-2">{shown}</p> : null;
               })()}
               {activeSource.snippet && activeSource.snippet !== activeSource.title && (
-                <p className="text-[12px] text-[var(--cp-muted)] leading-relaxed mb-2 line-clamp-3">{activeSource.snippet}</p>
+                <div className="mb-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--cp-tertiary)] mb-1">Evidence Excerpt</p>
+                  <div className="border-l-2 border-[var(--cp-accent)] pl-3 py-1">
+                    <p className="text-[12px] text-[var(--cp-text)] leading-relaxed italic">&ldquo;{activeSource.snippet}&rdquo;</p>
+                  </div>
+                </div>
               )}
               {activeSource.publishedDate && (
-                <p className="text-[10px] text-[var(--cp-tertiary)] mb-2">{activeSource.publishedDate}</p>
+                <p className="text-[10px] text-[var(--cp-tertiary)] mb-2">Published: {activeSource.publishedDate}</p>
               )}
               {activeSource.url && (
-                <a href={activeSource.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[var(--cp-accent)] hover:underline font-medium">
-                  View source
+                <a href={activeSource.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-white bg-[var(--cp-accent)] hover:brightness-110 px-3 py-1.5 rounded-lg font-medium transition-all">
+                  Open full source
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 </a>
               )}
             </div>
           ) : sources.length > 0 && (
             <div className="px-4 py-2 border-b border-[var(--cp-border)]">
-              <p className="text-[11px] text-[var(--cp-tertiary)]">Click a source below for a preview.</p>
+              <p className="text-[11px] text-[var(--cp-tertiary)]">Click any source to see the evidence excerpt used in the analysis.</p>
             </div>
           )}
           {sources.length > 0 ? (
-            <div className="p-3 space-y-0.5">
+            <div className="p-3 space-y-1">
               {sources.map((source, i) => {
                 let hostname = "";
                 try { if (source.url) hostname = new URL(source.url).hostname.replace("www.", ""); } catch {}
+                const hasExcerpt = source.snippet && source.snippet !== source.title;
                 return (
                   <button
                     key={source.id}
                     onClick={() => setActiveSource(source)}
                     className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
-                      activeSource?.id === source.id ? "bg-[var(--cp-accent-soft)]" : "hover:bg-[var(--cp-surface)]"
+                      activeSource?.id === source.id ? "bg-[var(--cp-accent-soft)] ring-1 ring-[var(--cp-accent)]/20" : "hover:bg-[var(--cp-surface)]"
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
-                      <span className="text-[11px] font-semibold text-[var(--cp-accent)] mt-0.5 w-4 text-right flex-shrink-0">{i + 1}</span>
-                      <div className="min-w-0">
-                        <p className="text-[13px] text-[var(--cp-text)] leading-snug">{source.title}</p>
+                      <span className="text-[11px] font-bold text-white bg-[var(--cp-accent)] w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5">{i + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] text-[var(--cp-text)] leading-snug font-medium">{source.title}</p>
                         <p className="text-[10px] text-[var(--cp-tertiary)] mt-0.5">
                           {source.publisher || hostname}
                           {" · "}
                           {source.type === "federal_bill" ? "Federal" :
                            source.type === "state_bill" ? "State" :
                            source.type === "government_site" ? "Gov" :
+                           source.type === "uploaded_document" ? "Document" :
                            source.type === "news_article" ? "News" : "Web"}
                         </p>
+                        {hasExcerpt && (
+                          <p className="text-[11px] text-[var(--cp-muted)] mt-1 line-clamp-2 leading-relaxed italic">&ldquo;{source.snippet!.slice(0, 120)}...&rdquo;</p>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -784,7 +817,8 @@ function SearchResultsContent() {
             </div>
           ) : (
             <div className="p-5 text-center">
-              <p className="text-[13px] text-[var(--cp-tertiary)]">Sources will appear here after your search.</p>
+              <svg className="w-8 h-8 mx-auto mb-2 text-[var(--cp-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <p className="text-[13px] text-[var(--cp-tertiary)]">Verified sources with evidence excerpts will appear here.</p>
             </div>
           )}
         </div>
@@ -810,24 +844,30 @@ function SearchResultsContent() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
+                <div className="flex-1 overflow-y-auto p-3 space-y-1">
                   {sources.map((source, i) => {
                     let hostname = "";
                     try { if (source.url) hostname = new URL(source.url).hostname.replace("www.", ""); } catch {}
+                    const hasExcerpt = source.snippet && source.snippet !== source.title;
                     return (
-                      <button
-                        key={source.id}
-                        onClick={() => { setActiveSource(source); setMobileSourcesOpen(false); }}
-                        className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-[var(--cp-surface)] transition-all"
-                      >
+                      <div key={source.id} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-[var(--cp-surface)] transition-all">
                         <div className="flex items-start gap-2.5">
-                          <span className="text-[11px] font-semibold text-[var(--cp-accent)] mt-0.5 w-4 text-right flex-shrink-0">{i + 1}</span>
-                          <div className="min-w-0">
-                            <p className="text-[13px] text-[var(--cp-text)] leading-snug">{source.title}</p>
+                          <span className="text-[11px] font-bold text-white bg-[var(--cp-accent)] w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5">{i + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] text-[var(--cp-text)] leading-snug font-medium">{source.title}</p>
                             <p className="text-[10px] text-[var(--cp-tertiary)] mt-0.5">{source.publisher || hostname}</p>
+                            {hasExcerpt && (
+                              <p className="text-[11px] text-[var(--cp-muted)] mt-1 line-clamp-2 leading-relaxed italic">&ldquo;{source.snippet!.slice(0, 120)}...&rdquo;</p>
+                            )}
+                            {source.url && (
+                              <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-[var(--cp-accent)] hover:underline mt-1 font-medium">
+                                Open source
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                              </a>
+                            )}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

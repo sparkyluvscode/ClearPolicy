@@ -3,7 +3,7 @@ import { generateFollowUpAnswer } from "@/lib/policyEngine";
 import { searchWeb } from "@/lib/web-search";
 import { fetchGovData, formatGovContext } from "@/lib/gov-data";
 import { classifyQuery } from "@/lib/omni-classifier";
-import type { AnswerSection as OmniAnswerSection } from "@/lib/omni-types";
+import type { AnswerSection as OmniAnswerSection, Source } from "@/lib/omni-types";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +79,16 @@ export async function POST(req: NextRequest) {
     const { answer, suggestions } = await generateFollowUpAnswer(query, history, persona, webResults, govContextStr);
     const sections = mapFollowUpToSections(answer);
 
+    const sources: Source[] = answer.sources.map((s, i) => ({
+      id: `fu-src-${i}`,
+      type: s.type === "Federal" ? "federal_bill" as const : s.type === "State" ? "state_bill" as const : "government_site" as const,
+      title: s.title,
+      url: s.url,
+      snippet: s.excerpt || s.title,
+      publisher: s.domain,
+      relevance: s.verified ? 1 : 0.8,
+    }));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -86,6 +96,7 @@ export async function POST(req: NextRequest) {
         cardType: "general",
         sections,
         followUpSuggestions: suggestions,
+        sources,
       },
     });
   } catch (e) {

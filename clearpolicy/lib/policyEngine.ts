@@ -45,11 +45,11 @@ function webResultsToSources(results: WebSearchResult[]): AnswerSource[] {
       domain,
       type: isGov ? ("Federal" as const) : ("Web" as const),
       verified: true,
+      excerpt: r.content?.slice(0, 300) || "",
     };
   }).filter(s => isValidSourceUrl(s.url));
 }
 
-/** Build a graceful fallback answer when AI is unavailable or fails */
 function stubAnswer(query: string, zipCode?: string | null): Answer {
   const title = query.slice(0, 100) || "Policy overview";
   const sections: AnswerSection = {
@@ -66,7 +66,6 @@ function stubAnswer(query: string, zipCode?: string | null): Answer {
   };
 }
 
-/* ── Query classification: policy vs general knowledge ── */
 const POLICY_SIGNALS =
   /\b(bill|act|law|legislation|statute|regulation|ordinance|amendment|proposition|prop|measure|ballot|vote|policy|policies|zoning|tax|tariff|healthcare|medicaid|medicare|social\s+security|immigration|housing|education|criminal\s+justice|gun\s+control|climate|environment|epa|fda|sec\s+|fcc|irs|congress|senate|representative|governor|mayor|scotus|supreme\s+court|executive\s+order|ab\s*\d|sb\s*\d|hr\s*\d|hb\s*\d|h\.?r\.?\s*\d)\b/i;
 
@@ -74,9 +73,15 @@ function isPolicyQuery(query: string): boolean {
   return POLICY_SIGNALS.test(query);
 }
 
-/**
- * Generate a general-knowledge answer (non-policy) using OpenAI.
- */
+const CITATION_RULES = `
+CITATION RULES (CRITICAL):
+- You MUST embed inline citations as [1], [2], [3] etc. throughout your answer text, referencing the numbered sources provided above.
+- Place citations immediately after the specific claim or fact they support, not at the end of paragraphs.
+- Every factual claim, statistic, date, or specific detail MUST have a citation. If a fact cannot be cited, explicitly note it as (General Knowledge).
+- Multiple citations can support one claim: "The bill passed with bipartisan support [1][3]."
+- Do NOT fabricate citation numbers. Only use numbers that correspond to the provided sources.
+- If no sources are provided, mark claims with (General Knowledge).`;
+
 async function generateGeneralAnswer(
   client: OpenAI,
   query: string,
@@ -89,33 +94,28 @@ async function generateGeneralAnswer(
 
   const prompt = `The user asked: "${query}"
 ${govBlock}${webContext}
-This is a general knowledge question. Provide a thorough, insightful, and well-structured answer that a curious, intelligent person would find genuinely useful. Go beyond surface-level - include context, nuance, relevant history, and "why it matters."
-
+This is a general knowledge question. Provide a thorough, insightful, and well-structured answer.
+${hasVerifiedData ? CITATION_RULES : ""}
 Return ONLY valid JSON (no markdown):
 {
   "title": "Short, compelling descriptive title",
-  "category": "One short category (e.g. 'People', 'Science', 'History', 'Technology')",
-  "answer": "A detailed, well-written 4-8 sentence answer. Don't just state facts - explain them. Include context, significance, and connections that make the answer genuinely interesting and useful. Write in clear, engaging prose.",
-  "keyFacts": ["Substantive fact with context 1", "Substantive fact with context 2", "Substantive fact with context 3", "Substantive fact with context 4", "Substantive fact with context 5"],
+  "category": "One short category",
+  "answer": "A detailed 4-8 sentence answer${hasVerifiedData ? " with inline citations [1], [2] after each claim" : ""}. Include context, significance, and specific numbers/dates/statistics.",
+  "keyFacts": ["Fact 1${hasVerifiedData ? " [citation]" : ""}", "Fact 2", "Fact 3", "Fact 4", "Fact 5"],
   "sources": []
 }
 
 Rules:
-- Be thorough and insightful, not generic. The user chose this app over Google - reward that choice.
-- Each key fact should be a complete, informative sentence (not just a fragment).
-- Include 5 key facts that give the reader a real understanding of the topic.
-- Include specific numbers, statistics, dollar amounts, dates, and percentages wherever possible. Quantitative data makes answers credible.
-- IMPORTANT: Always return an empty sources array []. Sources are handled separately by the system. Do NOT generate any source URLs.${hasVerifiedData ? "\n- Government data and web search results are provided above. Use them as your PRIMARY factual basis." : ""}
-- If the query is about a person, include their significance, major achievements, and current relevance.
-- If the query is about an event, include the timeline, causes, effects, and why it matters today.
-- Write as if explaining to an intelligent adult who deserves a complete picture, not a simplified blurb.`;
+- Be thorough and insightful. Include specific numbers, statistics, dollar amounts, dates, and percentages.
+- Each key fact should be a complete, informative sentence with a citation if sources are available.
+- Always return an empty sources array []. Sources are handled separately.${hasVerifiedData ? "\n- Use the provided search results and government data as your PRIMARY factual basis. Cite them with [1], [2] etc." : ""}`;
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: "You are an expert research assistant known for thorough, insightful answers. You explain topics with depth and clarity, always providing context that makes information genuinely useful. Return only valid JSON.",
+        content: "You are an expert research assistant. You provide thorough, citation-backed answers. Every factual claim must be traced to a source. Return only valid JSON.",
       },
       { role: "user", content: prompt },
     ],
@@ -129,7 +129,6 @@ Rules:
   const parsed = JSON.parse(content);
   const keyFacts: string[] = Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [];
 
-  // ONLY use verified sources from web search. Never use AI-generated URLs.
   const sources: AnswerSource[] = webResults?.length
     ? webResultsToSources(webResults)
     : [];
@@ -148,23 +147,17 @@ Rules:
   };
 }
 
-/**
- * Generate a policy answer from a user query using OpenAI when available.
- * Detects whether the query is policy-related or general knowledge and
- * uses the appropriate prompt.
- * Falls back to stub content if no API key or on error.
- */
 export async function generatePolicyAnswer(
   query: string,
   zipCode?: string | null,
   webResults?: WebSearchResult[],
   govContext?: string,
+  documentContext?: string,
 ): Promise<Answer> {
   const client = getOpenAI();
   if (!client) return stubAnswer(query, zipCode);
 
-  // Route general-knowledge queries to a flexible prompt
-  if (!isPolicyQuery(query) && !govContext) {
+  if (!isPolicyQuery(query) && !govContext && !documentContext) {
     try {
       return await generateGeneralAnswer(client, query, webResults, govContext);
     } catch (error) {
@@ -172,43 +165,48 @@ export async function generatePolicyAnswer(
     }
   }
 
-  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include specific local relevance - how this policy or legislation concretely affects people in their area.` : "";
+  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include specific local relevance.` : "";
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
   const govBlock = govContext ? `\n\n${govContext}\n` : "";
+  const docBlock = documentContext ? `\n\n--- UPLOADED DOCUMENT ---\n${documentContext}\n--- END DOCUMENT ---\n` : "";
   const hasGovData = !!govContext;
   const hasVerifiedData = hasGovData || !!webResults?.length;
+  const hasDocument = !!documentContext;
 
   const prompt = `You are a world-class non-partisan civic education assistant. The user asked: "${query}".${zipHint}
-${govBlock}${webContext}
-Your job is to provide the most helpful, insightful, and thorough policy analysis possible - the kind of briefing a journalist, researcher, or engaged citizen would find genuinely valuable. Go beyond surface-level descriptions.
+${govBlock}${webContext}${docBlock}
+Your job is to provide the most helpful, insightful, and thorough policy analysis possible - the kind of briefing a journalist, researcher, or debater would find genuinely valuable.
+${hasVerifiedData || hasDocument ? CITATION_RULES : ""}${hasDocument ? `
+DOCUMENT CITATION RULES:
+- When citing the uploaded document, use [Doc] followed by the section or paragraph reference, e.g. [Doc, Section 3(a)] or [Doc, p.12] or [Doc, paragraph 4].
+- Quote the specific text from the document that supports your claim using "quoted text" [Doc, location].
+- Be precise about where in the document each claim comes from. Debaters need to verify your citations.` : ""}
 
 Return ONLY valid JSON with this exact structure (no markdown, no code fence):
 {
-  "policyName": "Clear, descriptive title (e.g. 'California Proposition 36 (2024): Tougher Penalties for Drug and Theft Crimes')",
+  "policyName": "Clear, descriptive title",
   "level": "Federal" or "State" or "Local",
-  "category": "One short category (e.g. 'Criminal Justice', 'Healthcare', 'Education')",
-  "fullTextSummary": "A substantive 4-6 sentence overview that captures what this is, why it matters, and what the real-world implications are. Be specific - include dates, numbers, affected populations, and current status where relevant.",
+  "category": "One short category",
+  "fullTextSummary": "A substantive 4-6 sentence overview${hasVerifiedData || hasDocument ? " with inline citations [1], [2], [Doc] after each claim" : ""}. Be specific - include dates, numbers, affected populations, and current status.",
   "sections": {
-    "summary": "A thorough 4-6 sentence summary. Don't just describe - explain significance, context, and real-world impact. If this is a specific bill or proposition, include its current status (passed/pending/failed), when it was introduced, and its key sponsor(s) if notable.",
-    "keyProvisions": ["Detailed provision 1 - explain what it actually does in practice, not just legal language", "Detailed provision 2 - include specific numbers, thresholds, or requirements where applicable", "Detailed provision 3 - explain who is directly affected and how", "Provision 4 - implementation timeline or effective date if known", "Provision 5 - any exceptions or notable carve-outs"],
-    "localImpact": { "zipCode": "${zipCode || ""}", "location": "City/region name based on ZIP", "content": "2-3 specific sentences about how this affects residents in this area - reference local conditions, demographics, or existing local policies that interact with this." } or null if no ZIP,
-    "argumentsFor": ["Substantive argument with supporting reasoning - explain WHY supporters believe this, not just WHAT they believe", "Another detailed argument - include specific data points, expert opinions, or real-world examples where possible", "A third argument - consider economic, social, or practical benefits"],
-    "argumentsAgainst": ["Substantive counterargument with reasoning - explain the genuine concern, not a strawman", "Another detailed objection - include specific risks, costs, or unintended consequences", "A third argument - consider who bears the costs or downsides"]
+    "summary": "A thorough 4-6 sentence summary with inline citations after each factual claim. Don't just describe - explain significance, context, and real-world impact.",
+    "keyProvisions": ["Provision 1 with citation [N]", "Provision 2 with citation [N]", "Provision 3", "Provision 4", "Provision 5"],
+    "localImpact": { "zipCode": "${zipCode || ""}", "location": "City/region name", "content": "2-3 specific sentences with citations." } or null if no ZIP,
+    "argumentsFor": ["Argument with evidence and citation [N]", "Another argument with data [N]", "Third argument"],
+    "argumentsAgainst": ["Counterargument with evidence and citation [N]", "Another objection with data [N]", "Third argument"]
   },
   "sources": []
 }
 
 Critical rules:
-- Be NEUTRAL and FACTUAL, but also substantive and ANALYTICAL. Don't just describe - explain mechanisms, trade-offs, and real-world consequences.
-- Include QUANTITATIVE DATA: budget numbers, cost estimates, number of people affected, percentages, timelines, and statistical projections wherever available. Users need hard data, not vague summaries.
-- IMPORTANT: Always return an empty sources array []. Sources are handled separately by the system. Do NOT generate any source URLs.${hasGovData ? `\n- CRITICAL: Official government data from Congress.gov and/or Open States is provided above. This is VERIFIED, AUTHORITATIVE data.
-  • If the user asked about a SPECIFIC BILL (e.g. "HR 1", "SB 1047"), focus your answer on that bill using the government data. If multiple versions appear across sessions, use the web search context to determine which the user likely means.
-  • If the user asked a TOPIC question (e.g. "education policy", "gun control"), use the government bills to illustrate your answer with REAL legislation - but only cite bills that are genuinely relevant to the topic. Skip bills that merely contain the keyword but aren't substantively about the topic.
-  • Use the bill titles, status, sponsors, and summaries from the government data. Do NOT contradict or fabricate details beyond what the data states.` : ""}${hasVerifiedData ? "\n- Government data and web search results are provided above. Use them as your PRIMARY factual basis." : ""}
-- Each key provision should be a complete, informative sentence that helps someone understand what will actually change.
-- Arguments for and against should be steel-manned - represent each side's BEST case, not a caricature. Include specific data points or expert opinions.
-- If the query references a specific bill number or proposition, be precise about what it does - don't generalize.
-- The user chose this app to understand policy better than they could from a Google search. Deliver on that promise.`;
+- Be NEUTRAL and FACTUAL, but substantive and ANALYTICAL. Explain mechanisms, trade-offs, and real-world consequences.
+- Include QUANTITATIVE DATA: budget numbers, cost estimates, number of people affected, percentages, timelines.
+- Always return an empty sources array []. Sources are handled separately by the system.${hasGovData ? `\n- Official government data from Congress.gov and/or Open States is provided above. This is VERIFIED data.
+  • Use the bill titles, status, sponsors, and summaries from the government data.
+  • Do NOT contradict or fabricate details beyond what the data states.` : ""}${hasVerifiedData ? "\n- Use the provided search results and government data as your PRIMARY factual basis. Cite them with [1], [2] etc." : ""}
+- Each key provision should be a complete, informative sentence.
+- Arguments for and against should be steel-manned with specific data points or expert opinions.
+- The user chose this app to understand policy better than ChatGPT or Gemini. Deliver citation-backed analysis, not vague summaries.`;
 
   try {
     const completion = await client.chat.completions.create({
@@ -216,7 +214,7 @@ Critical rules:
       messages: [
         {
           role: "system",
-          content: "You are a world-class non-partisan policy analyst who provides thorough, insightful briefings. You explain complex policy in clear language while preserving important nuance. You always include specific details - dates, numbers, affected populations - rather than vague generalities. Return only valid JSON with the exact keys requested. No markdown or extra text.",
+          content: "You are a world-class non-partisan policy analyst. Every factual claim must be backed by an inline citation [1], [2] referencing the provided sources. You never make unsourced claims without marking them (General Knowledge). Return only valid JSON.",
         },
         { role: "user", content: prompt },
       ],
@@ -245,10 +243,22 @@ Critical rules:
       argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? sec.argumentsAgainst : [],
     };
 
-    // ONLY use verified sources from web search. Never use AI-generated URLs.
     const sources: AnswerSource[] = webResults?.length
       ? webResultsToSources(webResults)
       : [];
+
+    // For uploaded documents, add a document source entry
+    if (hasDocument) {
+      sources.unshift({
+        id: 0,
+        title: "Uploaded Document",
+        url: "",
+        domain: "uploaded",
+        type: "Web" as const,
+        verified: true,
+        excerpt: documentContext!.slice(0, 200) + "...",
+      });
+    }
 
     return {
       policyId: `policy-${Date.now()}`,
@@ -265,9 +275,6 @@ Critical rules:
   }
 }
 
-/**
- * Generate a structured debate brief with multiple named perspectives.
- */
 export async function generateDebateAnswer(
   query: string,
   zipCode?: string | null,
@@ -276,62 +283,60 @@ export async function generateDebateAnswer(
 ): Promise<{ answer: Answer; perspectives: { label: string; summary: string; thinktank?: string }[] }> {
   const client = getOpenAI();
   if (!client) {
-    return {
-      answer: stubAnswer(query, zipCode),
-      perspectives: [],
-    };
+    return { answer: stubAnswer(query, zipCode), perspectives: [] };
   }
 
   const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}.` : "";
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
   const govBlock = govContext ? `\n\n${govContext}\n` : "";
+  const hasVerifiedData = !!(govContext || webResults?.length);
 
   const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}
 ${govBlock}${webContext}
 
-Provide a thorough, multi-perspective analysis that would prepare someone for an informed discussion or debate. Present the STRONGEST version of each side's argument (steel-man, not strawman).
-
+Provide a thorough, multi-perspective analysis for informed debate preparation.
+${hasVerifiedData ? CITATION_RULES : ""}
 Return ONLY valid JSON:
 {
-  "policyName": "Clear title framing the debate (e.g. 'Should the US Adopt Universal Healthcare?')",
+  "policyName": "Clear title framing the debate",
   "level": "Federal" or "State" or "Local",
   "category": "Short category",
-  "fullTextSummary": "3-4 sentence overview of the debate - what is at stake, why reasonable people disagree, and what the key fault lines are.",
+  "fullTextSummary": "3-4 sentence overview${hasVerifiedData ? " with inline citations [1], [2]" : ""}.",
   "thesis": "One clear sentence framing the central question.",
   "perspectives": [
     {
       "label": "Progressive",
-      "summary": "3-4 sentences presenting the progressive case. Include specific policy proposals, data points, or examples. Explain the underlying values and reasoning.",
+      "summary": "3-4 sentences with citations [N] presenting the progressive case with specific data.",
       "thinktank": "Center for American Progress or similar"
     },
     {
       "label": "Conservative",
-      "summary": "3-4 sentences presenting the conservative case. Include specific concerns, data, or historical examples. Explain the underlying values and reasoning.",
+      "summary": "3-4 sentences with citations [N] presenting the conservative case with specific data.",
       "thinktank": "Heritage Foundation or similar"
     },
     {
       "label": "Libertarian",
-      "summary": "3-4 sentences presenting the libertarian/free-market case. Focus on individual liberty, market solutions, and government overreach concerns.",
+      "summary": "3-4 sentences with citations [N] presenting the libertarian case.",
       "thinktank": "Cato Institute or similar"
     },
     {
       "label": "Pragmatic Center",
-      "summary": "3-4 sentences presenting a centrist or pragmatic view. Focus on compromise positions, evidence-based approaches, and practical trade-offs.",
+      "summary": "3-4 sentences with citations [N] presenting a centrist view.",
       "thinktank": "Brookings Institution or similar"
     }
   ],
-  "commonGround": ["Area of agreement 1 - something most sides actually agree on", "Area of agreement 2"],
-  "keyDisagreements": ["Core disagreement 1 - the fundamental value tension", "Core disagreement 2 - the empirical dispute"],
+  "commonGround": ["Area of agreement 1 [N]", "Area of agreement 2"],
+  "keyDisagreements": ["Core disagreement 1 [N]", "Core disagreement 2"],
   "sources": []
 }
 
-IMPORTANT: Always return an empty sources array []. Sources are handled separately by the system. Do NOT generate any source URLs.`;
+Always return an empty sources array []. Sources are handled separately.`;
 
   try {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class debate coach and policy analyst. You present every perspective at its strongest. You never take sides but help the user understand ALL viewpoints deeply. Return only valid JSON." },
+        { role: "system", content: "You are a world-class debate coach and policy analyst. Every factual claim must be backed by inline citations [1], [2] referencing the provided sources. Present every perspective at its strongest. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -362,7 +367,6 @@ IMPORTANT: Always return an empty sources array []. Sources are handled separate
       argumentsAgainst: undefined,
     };
 
-    // ONLY use verified sources from web search. Never use AI-generated URLs.
     const sources: AnswerSource[] = webResults?.length
       ? webResultsToSources(webResults)
       : [];
@@ -385,9 +389,6 @@ IMPORTANT: Always return an empty sources array []. Sources are handled separate
   }
 }
 
-/**
- * Generate a follow-up answer using OpenAI when available.
- */
 export async function generateFollowUpAnswer(
   message: string,
   history: { role: "user" | "assistant"; content: string }[],
@@ -396,68 +397,55 @@ export async function generateFollowUpAnswer(
   govContext?: string,
 ): Promise<{ answer: Answer; suggestions: string[] }> {
   const client = getOpenAI();
-  const lastAssistant = history.filter((h) => h.role === "assistant").pop();
-  const context = lastAssistant?.content ?? "the previous answer";
-
   if (!client) {
-    const sections: AnswerSection = {
-      summary: `We're currently unable to generate a follow-up answer. Our AI service may be temporarily unavailable. Please try again in a moment.`,
-    };
     return {
       answer: {
-        policyId: "fallback-followup",
-        policyName: "Follow-up unavailable",
-        level: "State",
-        category: "General",
-        fullTextSummary: sections.summary || "",
-        sections,
+        policyId: "fallback-followup", policyName: "Follow-up unavailable",
+        level: "State", category: "General",
+        fullTextSummary: "Our AI service may be temporarily unavailable. Please try again.",
+        sections: { summary: "Our AI service may be temporarily unavailable. Please try again." },
         sources: [],
       },
       suggestions: ["Try again", "Ask a different question"],
     };
   }
 
-  const historyBlock = history
-    .slice(-8)
-    .map((h) => `${h.role}: ${h.content.slice(0, 400)}`)
-    .join("\n");
-  const personaHint = persona && persona !== "general" ? ` Tailor the answer specifically for a ${persona}'s perspective - focus on aspects that directly affect them.` : "";
+  const historyBlock = history.slice(-8).map((h) => `${h.role}: ${h.content.slice(0, 400)}`).join("\n");
+  const personaHint = persona && persona !== "general" ? ` Tailor for a ${persona}'s perspective.` : "";
   const webContext = webResults?.length ? `\n\n${formatWebContext(webResults)}\n` : "";
   const govBlock = govContext ? `\n\n${govContext}\n` : "";
   const hasVerifiedData = !!(govContext || webResults?.length);
 
-  const prompt = `You are a world-class non-partisan civic education assistant. The user is asking a follow-up question in the context of an existing policy conversation. Your job is to provide a thorough, insightful answer that genuinely advances their understanding.
+  const prompt = `You are a world-class non-partisan civic education assistant answering a follow-up question.
 
-Previous context (recent messages):
+Previous context:
 ${historyBlock}
 ${govBlock}${webContext}
 Follow-up question: "${message}"${personaHint}
-
-Return ONLY valid JSON (no markdown):
+${hasVerifiedData ? CITATION_RULES : ""}
+Return ONLY valid JSON:
 {
-  "policyName": "Clear, descriptive heading for this follow-up (e.g. 'How Proposition 36 Affects Renters in California')",
-  "fullTextSummary": "A substantive 4-6 sentence answer that directly addresses the follow-up question. Include specific details, examples, data points, or expert perspectives. Don't repeat what was already said - build on it with new information and deeper analysis.",
+  "policyName": "Clear heading for this follow-up",
+  "fullTextSummary": "4-6 sentence answer${hasVerifiedData ? " with inline citations [1], [2]" : ""}.",
   "sections": {
-    "summary": "A thorough 4-6 sentence answer. Be specific and actionable. If the user asks about impact, give concrete examples. If they ask about arguments, steel-man both sides. If they ask for comparison, highlight specific differences.",
-    "keyProvisions": ["Detailed point 1 - substantive and specific", "Detailed point 2 - with context or data", "Detailed point 3 - with real-world implications", "Point 4 if relevant"],
-    "argumentsFor": ["Substantive supporting argument with reasoning", "Another well-reasoned point with evidence"],
-    "argumentsAgainst": ["Substantive counterargument with reasoning", "Another genuine concern with specifics"]
+    "summary": "Thorough answer with inline citations after each factual claim.",
+    "keyProvisions": ["Point 1 [N]", "Point 2 [N]", "Point 3", "Point 4"],
+    "argumentsFor": ["Supporting argument with citation [N]", "Another point [N]"],
+    "argumentsAgainst": ["Counterargument with citation [N]", "Another concern [N]"]
   },
-  "suggestions": ["Thoughtful follow-up question that goes deeper into an interesting aspect", "A question that explores a different angle or affected group", "A practical question about implementation or timeline"]
+  "suggestions": ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3"]
 }
 
 Rules:
-- Don't repeat content from previous messages. Build on what's already been discussed.
-- Be specific - use real numbers, dollar amounts, statistics, dates, affected populations, and concrete examples. Quantitative data is essential.
-- Be ANALYTICAL, not just descriptive. Identify trade-offs, unintended consequences, legal loopholes, and implementation challenges.${hasVerifiedData ? "\n- CRITICAL: Government data and/or web search results are provided above WITH THEIR URLs. Use them as your PRIMARY factual basis. Do NOT invent URLs or fabricate facts beyond what the data states." : ""}
-- The follow-up suggestions should be genuinely interesting questions that a curious person would want to ask next.
-- If the question is about impact on a specific group, explain the mechanisms - not just "it affects them" but HOW and WHY.`;
+- Build on previous context, don't repeat.
+- Be specific: real numbers, dollar amounts, statistics, dates.
+- Be ANALYTICAL: identify trade-offs, unintended consequences, loopholes.${hasVerifiedData ? "\n- Use the provided data as your PRIMARY factual basis. Cite with [1], [2] etc." : ""}`;
 
   try {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class non-partisan policy analyst. You provide thorough, specific, and genuinely insightful answers. You never give vague or generic responses. Return only valid JSON." },
+        { role: "system", content: "You are a world-class policy analyst. Every factual claim must have an inline citation [1], [2] referencing provided sources. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -486,8 +474,7 @@ Rules:
       answer: {
         policyId: `followup-${Date.now()}`,
         policyName: parsed.policyName || "Follow-up",
-        level: "State",
-        category: "General",
+        level: "State", category: "General",
         fullTextSummary: parsed.fullTextSummary || sections.summary || "",
         sections,
         sources,
@@ -498,14 +485,10 @@ Rules:
     console.error("Follow-up AI failed:", error);
     return {
       answer: {
-        policyId: "fallback-followup",
-        policyName: "Follow-up",
-        level: "State",
-        category: "General",
+        policyId: "fallback-followup", policyName: "Follow-up",
+        level: "State", category: "General",
         fullTextSummary: "We encountered an issue generating your follow-up answer. Please try again.",
-        sections: {
-          summary: "We encountered an issue generating your follow-up answer. Please try again.",
-        },
+        sections: { summary: "We encountered an issue generating your follow-up answer. Please try again." },
         sources: [],
       },
       suggestions: ["Try again", "Ask a different question"],

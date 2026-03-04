@@ -244,11 +244,11 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
 
   const sources: Source[] = answer.sources.map((s: PolicySource, i: number) => ({
     id: `src-${i}`,
-    type: s.type === "Federal" ? "federal_bill" : s.type === "State" ? "state_bill" : "government_site",
+    type: s.type === "Federal" ? "federal_bill" : s.type === "State" ? "state_bill" : s.domain === "uploaded" ? "uploaded_document" : "government_site",
     title: s.title,
     url: s.url,
-    snippet: s.title,
-    publisher: s.domain,
+    snippet: s.excerpt || s.title,
+    publisher: s.domain === "uploaded" ? "Uploaded Document" : s.domain,
     relevance: s.verified ? 1 : 0.8,
     jurisdiction: (s.type.toLowerCase() as "federal" | "state" | "local") || undefined,
   }));
@@ -283,6 +283,8 @@ export async function POST(req: NextRequest) {
     const zip = typeof body?.zip === "string" ? body.zip : undefined;
     const persona = typeof body?.persona === "string" ? body.persona : "general";
     const debateMode = body?.debateMode === true;
+    const documentText = typeof body?.documentText === "string" ? body.documentText.slice(0, 50000) : undefined;
+    const documentFilename = typeof body?.documentFilename === "string" ? body.documentFilename : undefined;
 
     const classified = classifyQuery(query);
     const useDebate = debateMode || classified.needsDebate;
@@ -335,8 +337,11 @@ export async function POST(req: NextRequest) {
       }));
       data = mapPolicyAnswerToOmni(answer, persona, "debate_prep", perspectives);
     } else {
-      answer = await generatePolicyAnswer(query, zip ?? null, webResults, govContextStr || undefined);
-      data = mapPolicyAnswerToOmni(answer, persona, classified.intent);
+      const docContext = documentText
+        ? `[Uploaded: ${documentFilename || "document"}]\n\n${documentText}`
+        : undefined;
+      answer = await generatePolicyAnswer(query, zip ?? null, webResults, govContextStr || undefined, docContext);
+      data = mapPolicyAnswerToOmni(answer, persona, documentText ? "document_analysis" : classified.intent);
     }
 
     // Step 4: Merge gov sources into the response

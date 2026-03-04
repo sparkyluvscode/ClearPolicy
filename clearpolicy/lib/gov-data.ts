@@ -440,6 +440,12 @@ export function govBillsToSources(bills: GovBill[]): AnswerSource[] {
   return bills.slice(0, 6).map((b, i) => {
     let domain = "";
     try { domain = new URL(b.sourceUrl).hostname.replace("www.", ""); } catch { domain = "source"; }
+    const excerptParts = [
+      b.summary,
+      b.latestAction ? `Latest action: ${b.latestAction}` : null,
+      b.sponsors?.length ? `Sponsor(s): ${b.sponsors.join(", ")}` : null,
+      b.status ? `Status: ${b.status}` : null,
+    ].filter(Boolean);
     return {
       id: i + 1,
       title: `${b.identifier}: ${b.title}`.slice(0, 120),
@@ -447,6 +453,7 @@ export function govBillsToSources(bills: GovBill[]): AnswerSource[] {
       domain,
       type: b.level,
       verified: true,
+      excerpt: excerptParts.join(" | ").slice(0, 400) || undefined,
     };
   });
 }
