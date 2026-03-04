@@ -1,5 +1,3 @@
-@import url("https://db.onlinewebfonts.com/c/325e5a9e7148fe15f4c18fb53d28243e?family=Quadranta");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,7 +51,7 @@
   /* Fonts (--font-heading overridden by next/font Libre Baskerville when loaded) */
   --font-heading: "Libre Baskerville", Georgia, serif;
   --font-sans: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-user-input: "Quadranta", var(--font-heading), Georgia, serif;
+  /* --font-user-input set by next/font (DM Serif Text) on html */
 }
 
 /* ─── Dark Mode ─── */
