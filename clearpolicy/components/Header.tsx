@@ -57,10 +57,8 @@ export default function Header() {
     { href: "/about", label: "About" },
   ];
 
-  // Links only shown to signed-in users
   const authNavLinks = [
     { href: "/history", label: "My Research" },
-    { href: "/settings", label: "Settings" },
   ];
 
   return (

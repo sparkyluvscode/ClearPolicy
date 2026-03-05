@@ -160,6 +160,15 @@ export interface LocalContext {
   citations: number[];
 }
 
+export interface PolicyMeta {
+  level: "Federal" | "State" | "Local" | "";
+  category: string;
+  sourceCount: number;
+  govSourceCount: number;
+  hasCitations: boolean;
+  intent: QueryIntent;
+}
+
 export interface OmniResponse {
   /** Unique response ID */
   id: string;
@@ -173,6 +182,8 @@ export interface OmniResponse {
   sections: AnswerSection[];
   /** All sources referenced */
   sources: Source[];
+  /** Structured metadata for the summary card */
+  policyMeta?: PolicyMeta;
   /** Optional: multi-perspective comparison for debate mode */
   perspectives?: PerspectiveView[];
   /** Optional: local context breakdown (federal → state → local) */

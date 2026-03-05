@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthGate } from "@/components/AuthGateProvider";
 import { FREE_SEARCH_LIMIT, useFreeSearchGate } from "@/lib/free-search-gate";
 import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
+import ProductTour from "@/components/ProductTour";
 
 interface ConversationItem {
   id: string;
@@ -244,6 +245,7 @@ function HomeContent() {
 
   return (
     <div className={`flex flex-col items-center px-4 animate-fade-in ${isSignedIn && firstName ? "pt-[6vh] min-h-[calc(100vh-200px)]" : "justify-center min-h-[calc(100vh-200px)]"}`}>
+      <ProductTour />
 
       {/* Hero - personalized when signed in, marketing when signed out */}
       {isSignedIn && firstName ? (
@@ -363,6 +365,26 @@ function HomeContent() {
             <>Drop any file to analyze &mdash; PDFs, images, documents &middot; Powered by Omni-Search</>
           )}
         </p>
+      </div>
+
+      {/* Feature hints - compact capability indicators */}
+      <div className="w-full max-w-2xl mx-auto mb-6 animate-fade-up" style={{ animationDelay: "150ms" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            { icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>, label: "Cited sources", color: "var(--cp-green)" },
+            { icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, label: "Debate mode", color: "var(--cp-coral)" },
+            { icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>, label: "Upload docs", color: "var(--cp-accent)" },
+            { icon: <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>, label: "Local impact", color: "var(--cp-gold, var(--cp-accent))" },
+          ].map((hint, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--cp-border)] text-[11px] text-[var(--cp-muted)]"
+            >
+              <span style={{ color: hint.color }}>{hint.icon}</span>
+              <span>{hint.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Signed-in: Recent research or Quick starters. Signed-out: full marketing layout */}

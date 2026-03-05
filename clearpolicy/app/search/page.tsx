@@ -10,7 +10,7 @@ import { useAuthGate } from "@/components/AuthGateProvider";
 import { useFreeSearchGate } from "@/lib/free-search-gate";
 import FreeSearchGateOverlay from "@/components/FreeSearchGateOverlay";
 import type {
-  OmniResponse, Source, AnswerSection, PerspectiveView, RhetoricCheck, Persona,
+  OmniResponse, Source, AnswerSection, PerspectiveView, RhetoricCheck, Persona, PolicyMeta,
 } from "@/lib/omni-types";
 import { PERSONA_LABELS } from "@/lib/omni-types";
 
@@ -34,8 +34,8 @@ interface ConversationCard {
   followUpSuggestions: string[];
   perspectives?: PerspectiveView[];
   rhetoricCheck?: RhetoricCheck;
-  /** Per-card sources so each card's [N] citations map to its own source list */
   cardSources?: Source[];
+  policyMeta?: PolicyMeta;
 }
 
 interface ConversationMessage {
@@ -240,6 +240,7 @@ function SearchResultsContent() {
           perspectives: result.perspectives,
           rhetoricCheck: result.rhetoricCheck,
           cardSources: result.sources,
+          policyMeta: result.policyMeta,
         };
         setRawCards([newCard]);
         setCards([newCard]);
@@ -592,6 +593,58 @@ function SearchResultsContent() {
               </div>
             )}
 
+            {/* Policy Summary Card */}
+            {!loading && cards[0]?.policyMeta && (
+              <div className="mb-6 animate-fade-up">
+                <div className="rounded-xl border border-[var(--cp-border)] bg-[var(--cp-surface)]/40 overflow-hidden">
+                  <div className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {cards[0].policyMeta.level && (
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                        cards[0].policyMeta.level === "Federal"
+                          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          : cards[0].policyMeta.level === "State"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      }`}>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        {cards[0].policyMeta.level}
+                      </span>
+                    )}
+                    {cards[0].policyMeta.category && (
+                      <span className="text-[11px] text-[var(--cp-muted)] flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                        {cards[0].policyMeta.category}
+                      </span>
+                    )}
+                    {cards[0].policyMeta.govSourceCount > 0 && (
+                      <span className="text-[11px] text-[var(--cp-green)] font-medium flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        {cards[0].policyMeta.govSourceCount} gov source{cards[0].policyMeta.govSourceCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {cards[0].policyMeta.hasCitations && (
+                      <span className="text-[11px] text-[var(--cp-green)] font-medium flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Inline citations
+                      </span>
+                    )}
+                    {cards[0].policyMeta.intent === "debate_prep" && (
+                      <span className="text-[11px] text-[var(--cp-coral)] font-semibold flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        Debate Mode
+                      </span>
+                    )}
+                    {cards[0].policyMeta.intent === "document_analysis" && (
+                      <span className="text-[11px] text-[var(--cp-gold)] font-semibold flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Document Analysis
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Rhetoric check */}
             {cards[0]?.rhetoricCheck?.severity !== "none" && cards[0]?.rhetoricCheck?.deltaAnalysis && !loading && (
               <div className="mb-8 pb-6 border-b border-[var(--cp-border)] animate-fade-up">
@@ -602,18 +655,38 @@ function SearchResultsContent() {
               </div>
             )}
 
-            {/* Perspectives */}
+            {/* Perspectives Grid */}
             {cards[0]?.perspectives && cards[0].perspectives.length > 0 && !loading && (
               <div className="mb-8 pb-6 border-b border-[var(--cp-border)] animate-fade-up">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--cp-muted)] mb-3">Compare Perspectives</p>
-                <div className="grid gap-4 md:grid-cols-3">
-                  {cards[0].perspectives.map((p, i) => (
-                    <div key={i}>
-                      <p className="text-sm font-semibold text-[var(--cp-text)] mb-1">{p.label}</p>
-                      <p className="text-[13px] text-[var(--cp-muted)] leading-relaxed">{p.summary}</p>
-                      {p.thinktank && <p className="text-[10px] text-[var(--cp-tertiary)] mt-1">via {p.thinktank}</p>}
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2 mb-4">
+                  <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--cp-muted)]">Stakeholder Perspectives</p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {cards[0].perspectives.map((p, i) => {
+                    const perspColors = [
+                      { bg: "color-mix(in srgb, var(--cp-accent) 6%, transparent)", border: "color-mix(in srgb, var(--cp-accent) 15%, transparent)", text: "var(--cp-accent)" },
+                      { bg: "color-mix(in srgb, var(--cp-coral) 6%, transparent)", border: "color-mix(in srgb, var(--cp-coral) 15%, transparent)", text: "var(--cp-coral)" },
+                      { bg: "color-mix(in srgb, var(--cp-green) 6%, transparent)", border: "color-mix(in srgb, var(--cp-green) 15%, transparent)", text: "var(--cp-green)" },
+                    ];
+                    const c = perspColors[i % perspColors.length];
+                    return (
+                      <div
+                        key={i}
+                        className="rounded-xl p-4 border transition-all hover:shadow-sm"
+                        style={{ background: c.bg, borderColor: c.border }}
+                      >
+                        <p className="text-[12px] font-bold uppercase tracking-wider mb-2" style={{ color: c.text }}>{p.label}</p>
+                        <p className="text-[13px] text-[var(--cp-text)] leading-relaxed">{p.summary}</p>
+                        {p.thinktank && (
+                          <p className="text-[10px] mt-2 flex items-center gap-1" style={{ color: c.text }}>
+                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            {p.thinktank}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

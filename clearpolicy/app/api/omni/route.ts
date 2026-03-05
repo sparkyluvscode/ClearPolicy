@@ -5,7 +5,7 @@ import { matchKnownSummary } from "@/lib/known-summaries";
 import { searchWeb, filterValidResults, formatWebContext } from "@/lib/web-search";
 import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
 import { prisma, withRetry } from "@/lib/db";
-import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView } from "@/lib/omni-types";
+import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView, PolicyMeta } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
 
 export const dynamic = "force-dynamic";
@@ -191,7 +191,7 @@ function knownSummaryToAnswer(query: string, zipCode: string | null): Answer | n
   };
 }
 
-function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string = "general_policy", perspectives?: PerspectiveView[]): OmniResponse {
+function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string = "general_policy", perspectives?: PerspectiveView[], meta?: Partial<PolicyMeta>): OmniResponse {
   const sections: OmniAnswerSection[] = [];
   if (answer.sections.summary) {
     sections.push({
@@ -253,6 +253,19 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
     jurisdiction: (s.type.toLowerCase() as "federal" | "state" | "local") || undefined,
   }));
 
+  const govSourceCount = sources.filter(s => s.type === "federal_bill" || s.type === "state_bill" || s.type === "government_site").length;
+  const hasCitations = sections.some(sec => /\[\d+\]/.test(sec.content));
+
+  const policyMeta: PolicyMeta = {
+    level: answer.level || "",
+    category: answer.category || "",
+    sourceCount: sources.length,
+    govSourceCount,
+    hasCitations,
+    intent: (intent as PolicyMeta["intent"]) || "general_policy",
+    ...meta,
+  };
+
   return {
     id: answer.policyId,
     intent: intent as OmniResponse["intent"],
@@ -260,6 +273,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
     tldr: answer.fullTextSummary.slice(0, 200),
     sections,
     sources,
+    policyMeta,
     perspectives,
     persona: (persona as "general") || "general",
     followUps: [
