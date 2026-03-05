@@ -1,7 +1,37 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useAuthGate } from "@/components/AuthGateProvider";
+
+const LINKEDIN_URL = "https://www.linkedin.com/company/clearpolicy";
 
 export default function Footer() {
+  const { isSignedIn } = useAuthGate();
+
+  if (isSignedIn) {
+    return (
+      <footer className="cp-site-footer mt-12 pb-6">
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 border-t border-[var(--cp-border)]">
+            <div className="flex items-center gap-2">
+              <Image src="/clearpolicy-logo.png" alt="ClearPolicy" width={20} height={20} className="object-contain opacity-80" />
+              <span className="text-xs text-[var(--cp-tertiary)]">
+                Powered by <span className="font-semibold text-[var(--cp-accent)]">Omni-Search</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-[var(--cp-tertiary)]">
+              <Link href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--cp-text)] transition-colors">
+                LinkedIn
+              </Link>
+              <span>&copy; {new Date().getFullYear()} ClearPolicy &middot; Made for Informed Citizens</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="cp-site-footer mt-20 pb-10">
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12">
