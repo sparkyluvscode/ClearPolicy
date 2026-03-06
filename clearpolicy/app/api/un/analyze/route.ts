@@ -3,6 +3,7 @@ import { extractDocument, extractFromText, extractFromUrl } from "@/lib/document
 import { analyzeUNDocument, estimateTokens } from "@/lib/un-ai";
 import { computeDocumentHash, isValidDocumentHash } from "@/lib/document-hash";
 import { prisma } from "@/lib/prisma";
+import { fetchIntlData, formatIntlContext } from "@/lib/intl-data";
 import type { DocumentInputMethod, UNDocumentRequest, UNAnalysisResponse, UNDocumentAnalysis } from "@/lib/un-types";
 
 /**
@@ -284,10 +285,22 @@ export async function POST(req: NextRequest): Promise<NextResponse<CachedUNAnaly
       }
     }
 
-    // Build analysis request
+    // Fetch real international data to enrich the analysis
+    const intlData = await fetchIntlData(
+      title || content.slice(0, 500),
+      ["un", "global"],
+    ).catch(() => ({ sources: [], region: "global" as const }));
+
+    const { text: intlContext } = formatIntlContext(intlData, 1);
+
+    // Build analysis request with enriched context
+    const enrichedContent = intlContext
+      ? `${content}\n\n--- VERIFIED REFERENCE DATA ---\n${intlContext}`
+      : content;
+
     const analysisRequest: UNDocumentRequest = {
       inputMethod,
-      content,
+      content: enrichedContent,
       title,
       url: sourceUrl,
       filename: sourceFilename,

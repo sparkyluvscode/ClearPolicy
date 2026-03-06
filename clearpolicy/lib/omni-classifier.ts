@@ -50,6 +50,25 @@ const LEGAL_EXPLAINER_KEYWORDS = [
   "rights", "legal", "law says",
 ];
 
+const INTERNATIONAL_KEYWORDS = [
+  "united nations", "un resolution", "un general assembly", "un security council",
+  "unga", "unsc", "sdg", "sustainable development", "paris agreement",
+  "kyoto protocol", "un treaty", "unhcr", "unicef", "who policy",
+  "world health organization", "geneva convention", "international court",
+  "international law", "multilateral", "un charter", "peacekeeping",
+  "european union", "eu regulation", "eu directive", "eu policy",
+  "european commission", "european parliament", "gdpr", "eu law",
+  "eu ai act", "eu taxonomy", "green deal",
+  "united kingdom", "uk law", "uk policy", "british parliament",
+  "house of commons", "house of lords", "uk act",
+  "world bank", "imf", "nato", "g7", "g20",
+  "international policy", "global policy", "treaty", "geopolitical",
+  "sanctions", "trade agreement", "diplomacy", "bilateral",
+  "wto", "world trade", "international relations",
+  "cop27", "cop28", "cop29", "cop30",
+  "a/res/", "s/res/",
+];
+
 function extractBillId(query: string): string | undefined {
   for (const pattern of BILL_PATTERNS) {
     const match = query.match(pattern);
@@ -147,6 +166,7 @@ export function classifyQuery(query: string, hasDocument?: boolean): ClassifiedQ
     general_policy: 0,
     document_analysis: 0,
     news_update: 0,
+    international_policy: 0,
   };
 
   // Bill lookup: strong if bill ID found
@@ -173,6 +193,11 @@ export function classifyQuery(query: string, hasDocument?: boolean): ClassifiedQ
   if (/\b(visa|immigration|tax|regulation|cfr|usc)\b/i.test(lower)) {
     scores.legal_explainer += 0.3;
   }
+
+  // International policy: UN, EU, UK, or global policy queries
+  if (containsAny(lower, INTERNATIONAL_KEYWORDS)) scores.international_policy += 0.7;
+  if (/\ba\/res\/|s\/res\//i.test(lower)) scores.international_policy += 0.3;
+  if (/\b(eu|un|nato|wto|imf|who)\b/.test(lower)) scores.international_policy += 0.2;
 
   // General policy: default fallback, slight boost for policy terms
   scores.general_policy = 0.2; // base score

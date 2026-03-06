@@ -15,7 +15,8 @@ export type QueryIntent =
   | "debate_prep"        // "Arguments for/against universal healthcare"
   | "general_policy"     // "How does rent control work?"
   | "document_analysis"  // User uploaded a document
-  | "news_update";       // "Latest on the crypto bill"
+  | "news_update"        // "Latest on the crypto bill"
+  | "international_policy"; // "UN resolution on climate" / "EU AI Act"
 
 export interface ClassifiedQuery {
   intent: QueryIntent;

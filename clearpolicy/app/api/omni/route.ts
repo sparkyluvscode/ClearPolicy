@@ -4,6 +4,7 @@ import { classifyQuery } from "@/lib/omni-classifier";
 import { matchKnownSummary } from "@/lib/known-summaries";
 import { searchWeb, filterValidResults, formatWebContext } from "@/lib/web-search";
 import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
+import { detectInternationalQuery, fetchIntlData, formatIntlContext, intlSourcesToAnswerSources } from "@/lib/intl-data";
 import { prisma, withRetry } from "@/lib/db";
 import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView, PolicyMeta } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
@@ -312,43 +313,60 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Gov Data First pipeline ──
-    // Step 1: Fetch gov data AND web search in parallel
+    // Step 1: Detect if query is international and fetch all data in parallel
     const isNews = classified.intent === "news_update";
-    const [govData, webSearchResults] = await Promise.all([
-      fetchGovData({
+    const intlDetection = detectInternationalQuery(query);
+    const isIntl = intlDetection.isInternational;
+
+    const [govData, webSearchResults, intlData] = await Promise.all([
+      // US gov data (skip heavy fetching for clearly international queries)
+      (!isIntl ? fetchGovData({
         query,
         billId: classified.billId,
         zip,
         state: classified.state,
         intent: classified.intent,
         topics: classified.topics,
-      }).catch((e) => {
-        console.error("[omni] gov data fetch failed (non-fatal):", e);
-        return { bills: [] as any[], representatives: [] as any[], hadDirectBillLookup: false };
-      }),
+      }) : Promise.resolve({ bills: [], representatives: [], hadDirectBillLookup: false }))
+        .catch((e) => {
+          console.error("[omni] gov data fetch failed (non-fatal):", e);
+          return { bills: [] as any[], representatives: [] as any[], hadDirectBillLookup: false };
+        }),
       searchWeb(query, { isNews }).catch((e) => {
         console.error("[omni] web search failed (non-fatal):", e);
         return null;
       }),
+      // International data (World Bank, EU, UK legislation)
+      (isIntl ? fetchIntlData(query, intlDetection.regions) : Promise.resolve({ sources: [], region: "global" as const }))
+        .catch((e) => {
+          console.error("[omni] intl data fetch failed (non-fatal):", e);
+          return { sources: [] as any[], region: "global" as const };
+        }),
     ]);
 
     // Step 2: Build UNIFIED sources array with consistent numbering.
-    // Gov sources occupy [1]..[govCount], web sources occupy [govCount+1]..[total].
-    // The AI sees this same numbering in its prompt and the UI gets the same array.
+    // Order: intl sources -> gov sources -> web sources
+    const intlSources = intlSourcesToAnswerSources(intlData.sources);
     const govSources = govBillsToSources(govData.bills);
     const rawWebResults = webSearchResults?.results ?? [];
     const validWebResults = filterValidResults(rawWebResults);
 
-    // Build the unified sources array: gov first, then web (order = citation number)
     const unifiedSources: PolicySource[] = [];
 
-    // Gov sources get positions [1]..[govCount]
+    // International sources get first positions [1]..[intlCount]
+    for (let i = 0; i < intlSources.length; i++) {
+      unifiedSources.push({ ...intlSources[i], id: i + 1 });
+    }
+    const intlCount = intlSources.length;
+
+    // Gov sources get positions [intlCount+1]..[intlCount+govCount]
     for (let i = 0; i < govSources.length; i++) {
-      unifiedSources.push({ ...govSources[i], id: i + 1 });
+      unifiedSources.push({ ...govSources[i], id: intlCount + i + 1 });
     }
     const govCount = govSources.length;
+    const preWebCount = intlCount + govCount;
 
-    // Web sources get positions [govCount+1]..[total]
+    // Web sources get positions [preWebCount+1]..[total]
     const webSourceEntries = validWebResults.slice(0, 6);
     for (let i = 0; i < webSourceEntries.length; i++) {
       const r = webSourceEntries[i];
@@ -356,7 +374,7 @@ export async function POST(req: NextRequest) {
       try { domain = new URL(r.url).hostname.replace("www.", ""); } catch { domain = "source"; }
       const isGov = domain.endsWith(".gov");
       unifiedSources.push({
-        id: govCount + i + 1,
+        id: preWebCount + i + 1,
         title: r.title,
         url: r.url,
         domain,
@@ -367,9 +385,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Build the unified context string the AI sees (same numbering)
-    const { text: govContextStr, numberedCount: govNumberedCount } = formatGovContext(govData, 1);
-    const webContextStr = formatWebContext(webSourceEntries, govNumberedCount + 1);
-    const combinedContext = [govContextStr, webContextStr].filter(Boolean).join("\n\n");
+    const { text: intlContextStr, numberedCount: intlNumberedCount } = formatIntlContext(intlData, 1);
+    const { text: govContextStr, numberedCount: govNumberedCount } = formatGovContext(govData, intlNumberedCount + 1);
+    const webContextStr = formatWebContext(webSourceEntries, intlNumberedCount + govNumberedCount + 1);
+    const combinedContext = [intlContextStr, govContextStr, webContextStr].filter(Boolean).join("\n\n");
 
     // Step 3: Generate answer with unified sources
     let data: OmniResponse;
@@ -390,7 +409,8 @@ export async function POST(req: NextRequest) {
         ? `[Uploaded: ${documentFilename || "document"}]\n\n${documentText}`
         : undefined;
       answer = await generatePolicyAnswer(query, zip ?? null, combinedContext || undefined, unifiedSources, docContext);
-      data = mapPolicyAnswerToOmni(answer, persona, documentText ? "document_analysis" : classified.intent);
+      const resolvedIntent = documentText ? "document_analysis" : isIntl ? "international_policy" : classified.intent;
+      data = mapPolicyAnswerToOmni(answer, persona, resolvedIntent);
     }
 
     // Sources are already correct -- no prepending or shifting needed.
