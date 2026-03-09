@@ -419,6 +419,17 @@ function SearchResultsContent() {
                 <span className="text-[var(--cp-border-medium)]">|</span>
                 <span className="text-sm text-[var(--cp-text)] font-medium truncate">{policyName}</span>
                 {policyLevel && <span className="text-[11px] text-[var(--cp-tertiary)]">{policyLevel}</span>}
+                <button
+                  onClick={() => {
+                    const q = searchParams?.get("q") || "";
+                    router.push(`/?q=${encodeURIComponent(q)}&edit=1`);
+                  }}
+                  className="flex-shrink-0 p-1.5 rounded-lg text-[var(--cp-tertiary)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-surface)] transition-all"
+                  aria-label="Edit query"
+                  title="Refine your search"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
               </>
             )}
           </div>

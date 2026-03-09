@@ -39,10 +39,11 @@ const CITATION_RULES = `
 CITATION RULES (CRITICAL - this is what makes our tool better than ChatGPT):
 - You MUST embed inline citations as [1], [2], [3] etc. throughout your answer text, referencing the numbered sources provided above.
 - Place citations immediately after the specific claim or fact they support, not at the end of paragraphs.
-- Every factual claim, statistic, date, or specific detail MUST have a citation. Uncited claims should be marked (General Knowledge).
+- Every factual claim SHOULD have a citation. Reuse source numbers liberally -- if source [1] supports multiple points, cite [1] each time.
 - Multiple citations can support one claim: "The bill passed with bipartisan support [1][3]."
 - Do NOT fabricate citation numbers. Only use numbers that correspond to the provided numbered sources.
-- If no numbered sources are provided, mark all claims with (General Knowledge).`;
+- If a claim is common knowledge (e.g. "The US has three branches of government"), you do NOT need to mark it. Only truly speculative or uncertain claims should be marked (General Knowledge).
+- IMPORTANT: Avoid overusing (General Knowledge). Most of your answer should be cited. If you find yourself marking many claims as (General Knowledge), try harder to connect them to the provided sources.`;
 
 /**
  * All generate* functions now receive pre-built `sourcesContext` (the numbered
@@ -130,7 +131,7 @@ export async function generatePolicyAnswer(
     }
   }
 
-  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}; include specific local relevance.` : "";
+  const zipHint = zipCode ? ` The user is located in ZIP code ${zipCode}. You MUST include a localImpact section explaining how this policy specifically affects people in their area. Reference their state, local representatives, or regional context. Never return null for localImpact when a ZIP is provided.` : "";
   const docBlock = documentContext ? `\n\n--- UPLOADED DOCUMENT ---\n${documentContext}\n--- END DOCUMENT ---\n` : "";
   const hasContext = ctx.length > 0;
   const hasDocument = !!documentContext;
@@ -153,7 +154,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fence):
   "sections": {
     "summary": "A thorough 4-6 sentence summary with inline citations after each factual claim.",
     "keyProvisions": ["Provision 1 with citation [N]", "Provision 2 [N]", "Provision 3", "Provision 4", "Provision 5"],
-    "localImpact": { "zipCode": "${zipCode || ""}", "location": "City/region name", "content": "2-3 specific sentences with citations." } or null if no ZIP,
+    "localImpact": ${zipCode ? `{ "zipCode": "${zipCode}", "location": "City/region name for this ZIP", "content": "2-3 specific sentences about how this affects people in ZIP ${zipCode}, with citations." }` : "null"},
     "argumentsFor": ["Argument with evidence [N]", "Another argument [N]", "Third argument"],
     "argumentsAgainst": ["Counterargument with evidence [N]", "Another objection [N]", "Third argument"]
   },
@@ -228,7 +229,7 @@ export async function generateDebateAnswer(
 
   const ctx = sourcesContext || "";
   const srcs = sources || [];
-  const zipHint = zipCode ? ` The user is in ZIP code ${zipCode}.` : "";
+  const zipHint = zipCode ? ` The user is located in ZIP code ${zipCode}. Include how this debate topic specifically affects their area.` : "";
   const hasContext = ctx.length > 0;
 
   const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}

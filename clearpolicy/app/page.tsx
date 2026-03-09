@@ -99,7 +99,14 @@ function HomeContent() {
   }, []);
   useEffect(() => {
     const q = searchParams?.get("q");
-    if (q) { setQuery(q); handleSubmit(q); }
+    const isEdit = searchParams?.get("edit") === "1";
+    if (q && isEdit) {
+      setQuery(q);
+      inputRef.current?.focus();
+    } else if (q) {
+      setQuery(q);
+      handleSubmit(q);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

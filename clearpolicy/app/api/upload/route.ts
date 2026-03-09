@@ -203,8 +203,9 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     let text = "";
 
-    if (isImageFile(ext)) {
-      // Images: use OpenAI vision to extract text and analyze content
+    if (ext === ".svg") {
+      text = buffer.toString("utf-8");
+    } else if (isImageFile(ext)) {
       text = await extractWithVision(buffer, file.name, ext);
     } else if (ext === ".pdf") {
       // PDF: try text extraction first, fall back to vision for scanned docs
@@ -223,6 +224,16 @@ export async function POST(req: NextRequest) {
       }
     } else if (ext === ".docx") {
       text = await extractDocxText(buffer);
+    } else if (ext === ".json") {
+      const raw = buffer.toString("utf-8");
+      try {
+        const parsed = JSON.parse(raw);
+        text = typeof parsed === "string"
+          ? parsed
+          : JSON.stringify(parsed, null, 2).slice(0, 50000);
+      } catch {
+        text = raw;
+      }
     } else if (TEXT_EXTENSIONS.has(ext)) {
       text = buffer.toString("utf-8");
     } else {

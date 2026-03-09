@@ -87,8 +87,8 @@ export default function AnswerCard({
         );
       }
       if (part === "(General Knowledge)") return (
-        <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded text-[var(--cp-tertiary)] bg-[var(--cp-surface-2)] mx-0.5 border border-[var(--cp-border)]">
-          unverified
+        <span key={i} className="text-[9px] px-1 py-0.5 rounded text-[var(--cp-tertiary)] mx-0.5 opacity-60" title="This claim is based on general knowledge, not a specific source">
+          *
         </span>
       );
       return <span key={i}>{part}</span>;
@@ -208,9 +208,12 @@ export default function AnswerCard({
     <div className="animate-fade-up">
       {userQuery && (
         <div className="pt-8 pb-4 border-t border-[var(--cp-border)]">
-          <p className="text-[13px] text-[var(--cp-tertiary)]">
-            You asked: &ldquo;<span className="font-user-input">{userQuery}</span>&rdquo;
-          </p>
+          <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-[var(--cp-surface)] border border-[var(--cp-border)]">
+            <svg className="w-4 h-4 text-[var(--cp-accent)] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+            <p className="text-[14px] text-[var(--cp-text)] font-user-input leading-relaxed">
+              {userQuery}
+            </p>
+          </div>
         </div>
       )}
 
