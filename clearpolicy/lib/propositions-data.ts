@@ -558,3 +558,11 @@ export const federalBills: FederalBillData[] = [
 export const CATEGORIES = ["All", "Civil Rights", "Criminal Justice", "Economy/Business", "Education", "Environment", "Government/Process", "Healthcare", "Housing", "Labor", "Public Safety", "Taxes", "Technology/Privacy", "Transportation", "Voting Rights"];
 
 export const STATUSES = ["All", "Active", "Passed", "Rejected"];
+
+/** Find a proposition by number and year. Used by browse→detail flow for instant content. */
+export function findProposition(num: string, year: string | number): PropositionData | undefined {
+  const n = String(num).replace(/[^0-9A-Za-z]/g, "");
+  const y = typeof year === "string" ? parseInt(year, 10) : year;
+  if (!n || isNaN(y)) return undefined;
+  return propositions.find((p) => p.num === n && p.year === y);
+}

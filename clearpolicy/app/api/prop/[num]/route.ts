@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { openstates } from "@/lib/clients/openstates";
 import { generateSummary } from "@/lib/ai";
 import { matchKnownSummary } from "@/lib/known-summaries";
+import { findProposition } from "@/lib/propositions-data";
 
 async function fetchText(
   url: string,
@@ -212,13 +213,49 @@ function extractContent(html: string): { tldr: string; pros: string[]; cons: str
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { num: string } }) {
-  const n = String(params.num || "").replace(/[^0-9]/g, "");
+  const n = String(params.num || "").replace(/[^0-9A-Za-z]/g, "");
   if (!n) return NextResponse.json({ error: "missing" }, { status: 400 });
   const yearParam = String(_req.nextUrl.searchParams.get("year") || "").replace(/[^0-9]/g, "");
   const requestedYear = yearParam && yearParam.length === 4 ? yearParam : "";
   let yearMismatchInfo: { requestedYear: string; resolvedYear?: string; note: string } | null = null;
   const startAt = Date.now();
   const shouldContinue = () => Date.now() - startAt < 10000;
+
+  // PRIMARY: Use browse-page propositions data for instant, reliable content (no API calls)
+  const buildPropResponse = (p: { num: string; year: number; title: string; summary: string; tldr?: string; pros?: string[]; cons?: string[] }) => {
+    const levelContent = {
+      tldr: p.tldr || p.summary,
+      whatItDoes: p.summary,
+      whoAffected: "California voters, residents, and relevant state agencies.",
+      pros: p.pros && p.pros.length > 0 ? p.pros : ["See official sources for details."],
+      cons: p.cons && p.cons.length > 0 ? p.cons : ["See official sources for details."],
+    };
+    const levels = { "5": levelContent, "8": levelContent, "12": levelContent };
+    const laoUrl = "https://lao.ca.gov/BallotAnalysis/Propositions";
+    const bpUrl = `https://ballotpedia.org/California_Proposition_${p.num}_(${p.year})`;
+    const resolved = String(p.year);
+    return NextResponse.json({
+      number: p.num,
+      year: resolved,
+      requestedYear: requestedYear || undefined,
+      yearMismatch: requestedYear && requestedYear !== resolved ? { requestedYear, resolvedYear: resolved, note: `Showing Proposition ${p.num} (${resolved}).` } : undefined,
+      sources: { ballotpedia: bpUrl, lao: laoUrl },
+      tldr: levelContent.tldr,
+      whatItDoes: levelContent.whatItDoes,
+      pros: levelContent.pros,
+      cons: levelContent.cons,
+      levels,
+      citations: [{ quote: levelContent.tldr, sourceName: "Ballotpedia", url: bpUrl, location: "tldr" as const }],
+    });
+  };
+
+  let localProp = findProposition(n, requestedYear || new Date().getFullYear());
+  if (localProp) return buildPropResponse(localProp);
+  const yearsToTry = requestedYear ? [requestedYear] : ["2024", "2022", "2020", "2018", "2016", "2026", "2025", "2014", "2012", "2010"];
+  for (const y of yearsToTry) {
+    const p = findProposition(n, y);
+    if (p) return buildPropResponse(p);
+  }
 
   // When user requested a specific year, try known summary first so we don't show wrong-year content
   // (e.g. Prop 6 (2024) is incarcerated labor; Prop 6 (2018) is gas tax - OpenStates can return any year)

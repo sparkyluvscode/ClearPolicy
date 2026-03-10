@@ -3,6 +3,7 @@ import { congress } from "@/lib/clients/congress";
 import { openstates } from "@/lib/clients/openstates";
 import { generateSummary } from "@/lib/ai";
 import { z } from "zod";
+import { federalBills } from "@/lib/propositions-data";
 
 const Params = z.object({ id: z.string(), source: z.enum(["os", "congress"]) });
 
@@ -120,8 +121,34 @@ export async function GET(req: NextRequest) {
   }
   if (parsed.data.source === "congress") {
     const [congressNum, billType, billNumber] = parsed.data.id.split(":");
-    const data = await congress.billDetail(congressNum, billType, billNumber).catch(() => null);
+    let data = await congress.billDetail(congressNum, billType, billNumber).catch(() => null);
     if (!data) {
+      // Use browse-page federal bills data for instant, reliable content when Congress API fails
+      const localBill = federalBills.find((b) => b.id === parsed.data.id);
+      if (localBill) {
+        const levelContent = {
+          tldr: localBill.summary,
+          whatItDoes: localBill.summary,
+          whoAffected: "Federal agencies, Congress, and the American public.",
+          pros: ["See Congress.gov and official sources for detailed analysis."],
+          cons: ["See Congress.gov and official sources for detailed analysis."],
+        };
+        const levels = { "5": levelContent, "8": levelContent, "12": levelContent };
+        const chamber = billType.toLowerCase() === "hr" ? "house" : "senate";
+        const congressUrl = `https://www.congress.gov/bill/${congressNum}th-congress/${chamber}-bill/${billNumber}`;
+        const aiSummary = {
+          levels,
+          citations: [{ quote: localBill.summary, sourceName: "Congress.gov", url: congressUrl, location: "tldr" as const }],
+        };
+        const raw = {
+          bill: {
+            title: localBill.title,
+            number: `${billType.toUpperCase()} ${billNumber}`,
+            subjects: localBill.category ? [{ name: localBill.category }] : [],
+          },
+        };
+        return NextResponse.json({ kind: "bill", jurisdiction: "US", raw, aiSummary });
+      }
       const ident = [billType, billNumber].filter(Boolean).join(" ").toUpperCase() || parsed.data.id;
       const aiSummary = await generateSummary({
         title: `Federal bill ${ident}`,
