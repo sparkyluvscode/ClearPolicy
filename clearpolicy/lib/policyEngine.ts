@@ -45,6 +45,14 @@ CITATION RULES (CRITICAL - this is what makes our tool better than ChatGPT):
 - If a claim is common knowledge (e.g. "The US has three branches of government"), you do NOT need to mark it. Only truly speculative or uncertain claims should be marked (General Knowledge).
 - IMPORTANT: Avoid overusing (General Knowledge). Most of your answer should be cited. If you find yourself marking many claims as (General Knowledge), try harder to connect them to the provided sources.`;
 
+const NO_SOURCES_RULES = `
+NO SOURCES AVAILABLE - CRITICAL:
+- We have NO verified sources for this query. Do NOT use any citation numbers [1], [2], [3], etc.
+- Do NOT invent specific statistics, percentages, dates, or numbers (e.g. "3.41%", "Class of 2027", "SAT 1480-1570"). These would be hallucinations.
+- Be general and qualitative. Use phrases like "typically", "generally", "admissions are highly competitive" instead of specific figures.
+- If you cannot verify a claim, do not state it as fact. Mark uncertain claims with (General Knowledge).
+- Your answer will be shown as uncited. Do not pretend to have sources.`;
+
 /**
  * All generate* functions now receive pre-built `sourcesContext` (the numbered
  * text block the AI sees) and `sources` (the matching AnswerSource array for the UI).
@@ -59,23 +67,22 @@ async function generateGeneralAnswer(
 ): Promise<Answer> {
   const hasContext = sourcesContext.length > 0;
 
+  const hasSources = sources.length > 0;
   const prompt = `The user asked: "${query}"
 ${hasContext ? `\n${sourcesContext}\n` : ""}
 This is a general knowledge question. Provide a thorough, insightful, and well-structured answer.
-${hasContext ? CITATION_RULES : ""}
+${hasSources && hasContext ? CITATION_RULES : !hasSources ? NO_SOURCES_RULES : ""}
 Return ONLY valid JSON (no markdown):
 {
   "title": "Short, compelling descriptive title",
   "category": "One short category",
-  "answer": "A detailed 4-8 sentence answer${hasContext ? " with inline citations [N] after each claim" : ""}. Include context, significance, and specific numbers/dates/statistics.",
-  "keyFacts": ["Fact 1${hasContext ? " [N]" : ""}", "Fact 2", "Fact 3", "Fact 4", "Fact 5"],
+  "answer": "A detailed 4-8 sentence answer${hasSources && hasContext ? " with inline citations [N] after each claim" : ""}. ${hasSources ? "Include context, significance, and specific numbers/dates/statistics from the sources." : "Be general and qualitative. Do NOT invent specific statistics, percentages, or dates."}",
+  "keyFacts": ["Fact 1${hasSources && hasContext ? " [N]" : ""}", "Fact 2", "Fact 3", "Fact 4", "Fact 5"],
   "sources": []
 }
 
 Rules:
-- Be thorough and insightful. Include specific numbers, statistics, dollar amounts, dates, and percentages.
-- Each key fact should be a complete, informative sentence with a citation if sources are available.
-- Always return an empty sources array []. Sources are handled separately.${hasContext ? "\n- Use the provided numbered sources as your PRIMARY factual basis. Cite them with [N]." : ""}`;
+${hasSources ? "- Be thorough and insightful. Include specific numbers, statistics, dollar amounts, dates, and percentages from the provided sources.\n- Each key fact should be a complete, informative sentence with a citation.\n- Always return an empty sources array []. Sources are handled separately.\n- Use the provided numbered sources as your PRIMARY factual basis. Cite them with [N]." : "- Be thorough but general. Do NOT invent specific statistics (e.g. '3.41%', 'Class of 2027'). Use qualitative language like 'highly competitive', 'typically requires'.\n- Always return an empty sources array []. Sources are handled separately."}`;
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
@@ -122,6 +129,7 @@ export async function generatePolicyAnswer(
 
   const ctx = sourcesContext || "";
   const srcs = sources || [];
+  const hasSources = srcs.length > 0;
 
   if (!isPolicyQuery(query) && !ctx && !documentContext) {
     try {
@@ -139,7 +147,7 @@ export async function generatePolicyAnswer(
   const prompt = `You are a world-class non-partisan civic education assistant. The user asked: "${query}".${zipHint}
 ${hasContext ? `\n${ctx}\n` : ""}${docBlock}
 Your job is to provide the most helpful, insightful, and thorough policy analysis possible - the kind of briefing a journalist, researcher, or debater would find genuinely valuable.
-${hasContext || hasDocument ? CITATION_RULES : ""}${hasDocument ? `
+${!hasSources ? NO_SOURCES_RULES : (hasContext || hasDocument ? CITATION_RULES : "")}${hasDocument ? `
 DOCUMENT CITATION RULES:
 - When citing the uploaded document, use [Doc] followed by the section or paragraph reference, e.g. [Doc, Section 3(a)] or [Doc, p.12] or [Doc, paragraph 4].
 - Quote the specific text from the document that supports your claim.
@@ -150,10 +158,10 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fence):
   "policyName": "Clear, descriptive title",
   "level": "Federal" or "State" or "Local",
   "category": "One short category",
-  "fullTextSummary": "A substantive 4-6 sentence overview${hasContext || hasDocument ? " with inline citations [N] after each claim" : ""}.",
+  "fullTextSummary": "A substantive 4-6 sentence overview${hasSources && (hasContext || hasDocument) ? " with inline citations [N] after each claim" : ". Do NOT use [1][2] etc. when no sources are provided."}.",
   "sections": {
-    "summary": "A thorough 4-6 sentence summary with inline citations after each factual claim.",
-    "keyProvisions": ["Provision 1 with citation [N]", "Provision 2 [N]", "Provision 3", "Provision 4", "Provision 5"],
+    "summary": "A thorough 4-6 sentence summary${hasSources ? " with inline citations [N] after each factual claim" : ". Be general; do NOT invent specific statistics or percentages."}.",
+    "keyProvisions": [${hasSources ? '"Provision 1 with citation [N]", "Provision 2 [N]", "Provision 3", "Provision 4", "Provision 5"' : '"Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"'}],
     "localImpact": ${zipCode ? `{ "zipCode": "${zipCode}", "location": "City/region name for this ZIP", "content": "2-3 specific sentences about how this affects people in ZIP ${zipCode}, with citations." }` : "null"},
     "argumentsFor": ["Argument with evidence [N]", "Another argument [N]", "Third argument"],
     "argumentsAgainst": ["Counterargument with evidence [N]", "Another objection [N]", "Third argument"]
@@ -163,10 +171,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fence):
 
 Critical rules:
 - Be NEUTRAL and FACTUAL, but substantive and ANALYTICAL.
-- Include QUANTITATIVE DATA: budget numbers, cost estimates, percentages, timelines.
-- Always return an empty sources array []. Sources are handled separately.${hasContext ? "\n- Use the provided numbered sources as your PRIMARY factual basis. Cite them with [N]." : ""}
-- Arguments for and against should be steel-manned with specific data points.
-- The user chose this app over ChatGPT/Gemini. Deliver citation-backed analysis, not vague summaries.`;
+${hasSources ? "- Include QUANTITATIVE DATA: budget numbers, cost estimates, percentages, timelines.\n- Always return an empty sources array []. Sources are handled separately.\n- Use the provided numbered sources as your PRIMARY factual basis. Cite them with [N].\n- Arguments for and against should be steel-manned with specific data points.\n- Deliver citation-backed analysis, not vague summaries." : "- Do NOT invent specific numbers, percentages, or dates. Be qualitative and general.\n- Always return an empty sources array []. Sources are handled separately.\n- Be honest that we have no verified sources for this query."}`;
 
   try {
     const completion = await client.chat.completions.create({
@@ -174,7 +179,7 @@ Critical rules:
       messages: [
         {
           role: "system",
-          content: "You are a world-class non-partisan policy analyst. Every factual claim must be backed by an inline citation [N] referencing the provided numbered sources. Return only valid JSON.",
+          content: hasSources ? "You are a world-class non-partisan policy analyst. Every factual claim must be backed by an inline citation [N] referencing the provided numbered sources. Return only valid JSON." : "You are a world-class non-partisan policy analyst. We have NO verified sources. Do NOT use [1], [2], etc. Do NOT invent specific statistics or percentages. Be general and qualitative. Return only valid JSON.",
         },
         { role: "user", content: prompt },
       ],
@@ -229,28 +234,29 @@ export async function generateDebateAnswer(
 
   const ctx = sourcesContext || "";
   const srcs = sources || [];
+  const hasSources = srcs.length > 0;
   const zipHint = zipCode ? ` The user is located in ZIP code ${zipCode}. Include how this debate topic specifically affects their area.` : "";
   const hasContext = ctx.length > 0;
 
   const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}
 ${hasContext ? `\n${ctx}\n` : ""}
 Provide a thorough, multi-perspective analysis for informed debate preparation.
-${hasContext ? CITATION_RULES : ""}
+${!hasSources ? NO_SOURCES_RULES : (hasContext ? CITATION_RULES : "")}
 Return ONLY valid JSON:
 {
   "policyName": "Clear title framing the debate",
   "level": "Federal" or "State" or "Local",
   "category": "Short category",
-  "fullTextSummary": "3-4 sentence overview${hasContext ? " with inline citations [N]" : ""}.",
+  "fullTextSummary": "3-4 sentence overview${hasSources && hasContext ? " with inline citations [N]" : ". Be general; do NOT invent specific statistics."}.",
   "thesis": "One clear sentence framing the central question.",
   "perspectives": [
-    { "label": "Progressive", "summary": "3-4 sentences with citations [N].", "thinktank": "CAP or similar" },
-    { "label": "Conservative", "summary": "3-4 sentences with citations [N].", "thinktank": "Heritage or similar" },
-    { "label": "Libertarian", "summary": "3-4 sentences with citations [N].", "thinktank": "Cato or similar" },
-    { "label": "Pragmatic Center", "summary": "3-4 sentences with citations [N].", "thinktank": "Brookings or similar" }
+    { "label": "Progressive", "summary": "3-4 sentences${hasSources ? " with citations [N]" : ""}.", "thinktank": "CAP or similar" },
+    { "label": "Conservative", "summary": "3-4 sentences${hasSources ? " with citations [N]" : ""}.", "thinktank": "Heritage or similar" },
+    { "label": "Libertarian", "summary": "3-4 sentences${hasSources ? " with citations [N]" : ""}.", "thinktank": "Cato or similar" },
+    { "label": "Pragmatic Center", "summary": "3-4 sentences${hasSources ? " with citations [N]" : ""}.", "thinktank": "Brookings or similar" }
   ],
-  "commonGround": ["Area of agreement 1 [N]", "Area of agreement 2"],
-  "keyDisagreements": ["Core disagreement 1 [N]", "Core disagreement 2"],
+  "commonGround": ["Area of agreement 1${hasSources ? " [N]" : ""}", "Area of agreement 2"],
+  "keyDisagreements": ["Core disagreement 1${hasSources ? " [N]" : ""}", "Core disagreement 2"],
   "sources": []
 }
 
@@ -260,7 +266,7 @@ Always return an empty sources array []. Sources are handled separately.`;
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class debate coach. Every factual claim must have inline citations [N]. Present every perspective at its strongest. Return only valid JSON." },
+        { role: "system", content: hasSources ? "You are a world-class debate coach. Every factual claim must have inline citations [N]. Present every perspective at its strongest. Return only valid JSON." : "You are a world-class debate coach. We have no verified sources. Do NOT use citation numbers. Do NOT invent specific statistics. Be general and qualitative. Return only valid JSON." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },

@@ -193,13 +193,16 @@ function knownSummaryToAnswer(query: string, zipCode: string | null): Answer | n
 }
 
 function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string = "general_policy", perspectives?: PerspectiveView[], meta?: Partial<PolicyMeta>): OmniResponse {
+  const hasSources = (answer.sources?.length ?? 0) > 0;
+  const baseConfidence = hasSources ? "verified" : "unverified";
+
   const sections: OmniAnswerSection[] = [];
   if (answer.sections.summary) {
     sections.push({
       heading: "Summary",
       content: answer.sections.summary,
       citations: [],
-      confidence: "verified",
+      confidence: baseConfidence,
     });
   }
   if (answer.sections.keyProvisions?.length) {
@@ -207,7 +210,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
       heading: "Key provisions",
       content: answer.sections.keyProvisions.join("\n\n"),
       citations: [],
-      confidence: "verified",
+      confidence: baseConfidence,
     });
   }
   if (answer.sections.localImpact?.content) {
@@ -215,7 +218,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
       heading: `Local impact (${answer.sections.localImpact.location})`,
       content: answer.sections.localImpact.content,
       citations: [],
-      confidence: "verified",
+      confidence: baseConfidence,
     });
   }
   if (answer.sections.argumentsFor?.length) {
@@ -223,7 +226,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
       heading: "Arguments for",
       content: answer.sections.argumentsFor.map((p) => p.trim()).filter(Boolean).join("\n"),
       citations: [],
-      confidence: "inferred",
+      confidence: hasSources ? "inferred" : "unverified",
     });
   }
   if (answer.sections.argumentsAgainst?.length) {
@@ -231,7 +234,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
       heading: "Arguments against",
       content: answer.sections.argumentsAgainst.map((p) => p.trim()).filter(Boolean).join("\n"),
       citations: [],
-      confidence: "inferred",
+      confidence: hasSources ? "inferred" : "unverified",
     });
   }
   if (sections.length === 0) {
@@ -239,7 +242,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
       heading: "Overview",
       content: answer.fullTextSummary,
       citations: [],
-      confidence: "verified",
+      confidence: baseConfidence,
     });
   }
 

@@ -223,7 +223,8 @@ function SearchResultsContent() {
 
         const verified = result.sections.filter(s => s.confidence === "verified").length;
         const total = result.sections.length;
-        const cardType = total > 0 && verified === total ? "verified" :
+        const hasSources = (result.sources?.length ?? 0) > 0;
+        const cardType = hasSources && total > 0 && verified === total ? "verified" :
                          result.intent === "debate_prep" ? "debate" :
                          result.intent === "document_analysis" ? "document" : "general";
 
@@ -571,6 +572,16 @@ function SearchResultsContent() {
 
           {/* Content dims during persona or reading-level reload */}
           <div className={`transition-opacity duration-300 ${personaLoading || levelLoading ? "opacity-30 pointer-events-none" : ""}`}>
+
+            {/* No-sources warning */}
+            {!loading && cards.length > 0 && sources.length === 0 && (
+              <div className="mb-4 px-4 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5 animate-fade-in">
+                <p className="text-sm text-amber-600 dark:text-amber-400 font-medium flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  No verified sources found for this query. Results are based on general knowledge and may not be specific or up to date.
+                </p>
+              </div>
+            )}
 
             {/* Trust line + Save to My Research */}
             {!loading && cards.length > 0 && (
