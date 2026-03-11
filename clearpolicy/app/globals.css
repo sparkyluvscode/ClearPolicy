@@ -176,6 +176,27 @@ a { color: var(--cp-accent); }
     -webkit-backdrop-filter: blur(20px) saturate(140%);
   }
 
+  /* Liquid glass tab/button: frosted, glossy */
+  .glass-tab {
+    background: rgba(255, 253, 250, 0.35);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-left: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 0 20px rgba(255, 255, 255, 0.06),
+      4px 4px 20px rgba(0, 0, 0, 0.06);
+  }
+  html.dark .glass-tab {
+    background: rgba(37, 37, 35, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 0 20px rgba(255, 255, 255, 0.02),
+      4px 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
   .glass-doc {
     background: var(--cp-doc);
     border: 1px solid var(--cp-border);
@@ -230,6 +251,63 @@ a { color: var(--cp-accent); }
     border: 1px solid var(--cp-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* ── My Research sidebar: LIQUID GLASS (frosted, translucent, glossy) ── */
+  .glass-sidebar {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    /* Translucent so background shows through — key for glass */
+    background: rgba(255, 253, 250, 0.28);
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.35);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    /* Strong blur = frosted glass */
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    /* Specular highlight: light catching top edge like real glass */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 0 40px rgba(255, 255, 255, 0.08),
+      inset -1px 0 0 rgba(255, 255, 255, 0.15),
+      8px 0 32px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+  }
+  /* Liquid gradient overlay: glossy top, subtle tint */
+  .glass-sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.08) 25%,
+      transparent 50%,
+      rgba(74, 123, 186, 0.03) 100%
+    );
+    pointer-events: none;
+  }
+  html.dark .glass-sidebar {
+    background: rgba(30, 30, 28, 0.35);
+    border-top-color: rgba(255, 255, 255, 0.06);
+    border-right-color: rgba(255, 255, 255, 0.12);
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 0 40px rgba(255, 255, 255, 0.02),
+      inset -1px 0 0 rgba(255, 255, 255, 0.06),
+      8px 0 32px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+  html.dark .glass-sidebar::before {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 30%,
+      rgba(123, 163, 212, 0.04) 100%
+    );
   }
 
   /* ─── Answer sections (text-flowing, not chunky cards) ─── */
@@ -344,6 +422,13 @@ body.cp-immersive > div:not([style*="z-index"]) {
 
 /* ─── Shadow elevated utility ─── */
 .shadow-elevated { box-shadow: var(--cp-shadow-elevated); }
+
+/* ─── Clerk UserButton avatar centering ─── */
+.cl-avatarBox img,
+.cl-userButtonTrigger .cl-avatarBox img {
+  object-fit: cover;
+  object-position: center;
+}
 
 /* ─── iOS safe area padding ─── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
