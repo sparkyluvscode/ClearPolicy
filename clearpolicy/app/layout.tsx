@@ -71,14 +71,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   );
 
   const inner = hasClerkKey ? (
-    <>
-      <Header />
+    <LayoutWithSidebar header={<Header />}>
       {warningBanner}
-      <LayoutWithSidebar>
-        {mainContent}
-        <Footer />
-      </LayoutWithSidebar>
-    </>
+      {mainContent}
+      <Footer />
+    </LayoutWithSidebar>
   ) : (
     <>
       <Header />

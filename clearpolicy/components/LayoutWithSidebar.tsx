@@ -10,7 +10,7 @@ type SidebarContextValue = { sidebarOpen: boolean; sidebarWidth: number };
 const SidebarContext = createContext<SidebarContextValue>({ sidebarOpen: false, sidebarWidth: SIDEBAR_WIDTH });
 export const useSidebarContext = () => useContext(SidebarContext);
 
-export default function LayoutWithSidebar({ children }: { children: ReactNode }) {
+export default function LayoutWithSidebar({ header, children }: { header: ReactNode; children: ReactNode }) {
   const { isSignedIn } = useAuthGate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -39,6 +39,7 @@ export default function LayoutWithSidebar({ children }: { children: ReactNode })
       {showSidebar && (
         <ResearchSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
       )}
+      {header}
       <div
         className="transition-all duration-300 ease-out"
         style={{
