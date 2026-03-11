@@ -86,10 +86,12 @@ export default function ResearchSidebar({
 
   return (
     <>
-      {/* Toggle button: always visible */}
+      {/* Toggle button: left edge when closed, right edge of panel when open (avoids overlapping "My Research") */}
       <button
         onClick={onToggle}
-        className="fixed left-0 top-20 z-40 p-2 rounded-r-lg bg-[var(--cp-surface)] border border-l-0 border-[var(--cp-border)] text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all shadow-sm"
+        className={`fixed top-20 z-40 p-2 rounded-r-lg bg-[var(--cp-surface)] border border-l-0 border-[var(--cp-border)] text-[var(--cp-muted)] hover:text-[var(--cp-text)] hover:bg-[var(--cp-hover)] transition-all duration-300 shadow-sm ${
+          isOpen ? "left-[14rem]" : "left-0"
+        }`}
         aria-label={isOpen ? "Close research sidebar" : "Open research sidebar"}
         title="My Research"
       >

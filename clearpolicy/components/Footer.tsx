@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuthGate } from "@/components/AuthGateProvider";
 
-const LINKEDIN_URL = "https://www.linkedin.com/company/clearpolicy";
+const LINKEDIN_URL = "https://www.linkedin.com/company/clearp/";
 
 export default function Footer() {
   const { isSignedIn } = useAuthGate();

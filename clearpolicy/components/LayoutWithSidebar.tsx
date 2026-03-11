@@ -1,8 +1,14 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useAuthGate } from "@/components/AuthGateProvider";
 import ResearchSidebar from "@/components/ResearchSidebar";
+
+export const SIDEBAR_WIDTH = 256;
+
+type SidebarContextValue = { sidebarOpen: boolean; sidebarWidth: number };
+const SidebarContext = createContext<SidebarContextValue>({ sidebarOpen: false, sidebarWidth: SIDEBAR_WIDTH });
+export const useSidebarContext = () => useContext(SidebarContext);
 
 export default function LayoutWithSidebar({ children }: { children: ReactNode }) {
   const { isSignedIn } = useAuthGate();
@@ -26,20 +32,21 @@ export default function LayoutWithSidebar({ children }: { children: ReactNode })
   }
 
   const showSidebar = hydrated && isSignedIn;
+  const contentShift = showSidebar && sidebarOpen ? SIDEBAR_WIDTH : 0;
 
   return (
-    <>
+    <SidebarContext.Provider value={{ sidebarOpen: !!contentShift, sidebarWidth: SIDEBAR_WIDTH }}>
       {showSidebar && (
         <ResearchSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
       )}
       <div
         className="transition-all duration-300 ease-out"
         style={{
-          marginLeft: showSidebar && sidebarOpen ? "256px" : "0",
+          marginLeft: contentShift,
         }}
       >
         {children}
       </div>
-    </>
+    </SidebarContext.Provider>
   );
 }
