@@ -11,7 +11,6 @@ import {
 } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { useAuthGate } from "@/components/AuthGateProvider";
-import { useSidebarContext } from "@/components/LayoutWithSidebar";
 import { useFreeSearchGate } from "@/lib/free-search-gate";
 
 const hasClerkKey =
@@ -26,7 +25,6 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isSignedIn, openSignUp } = useAuthGate();
-  const { sidebarOpen, sidebarWidth } = useSidebarContext();
   const { canSearch, triggerGate, showGate, dismissGate } = useFreeSearchGate(isSignedIn);
 
   useEffect(() => {
@@ -71,10 +69,7 @@ export default function Header() {
           scrolled ? "cp-header--scrolled" : "cp-header--top"
         )}
       >
-        <div
-          className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 transition-all duration-300"
-          style={sidebarOpen ? { paddingLeft: `calc(${sidebarWidth}px + 1rem)` } : undefined}
-        >
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
           <nav className="flex items-center gap-4 h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 focus-ring rounded-lg">
