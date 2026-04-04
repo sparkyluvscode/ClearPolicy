@@ -102,6 +102,14 @@ export interface Source {
   relevance: number;
   /** Jurisdiction level: federal / state / local */
   jurisdiction?: "federal" | "state" | "local";
+  /** Source credibility category (gov, data, legal, news, think_tank, expert, web) */
+  sourceCategory?: string;
+  /** Human-readable label for source category */
+  sourceCategoryLabel?: string;
+  /** Political bias rating (left, center-left, center, center-right, right, libertarian, nonpartisan) */
+  bias?: string | null;
+  /** Human-readable bias label */
+  biasLabel?: string | null;
 }
 
 export interface Citation {
@@ -147,11 +155,19 @@ export interface AnswerSection {
   confidence: "verified" | "inferred" | "unverified";
 }
 
+export interface DebateArgument {
+  title: string;
+  explanation: string;
+  category: "constitutional" | "economic" | "social" | "practical" | "political" | string;
+}
+
 export interface PerspectiveView {
-  label: string; // "Progressive", "Conservative", "Textual"
+  label: string;
+  description?: string;
   summary: string;
+  arguments?: DebateArgument[];
   citations: number[];
-  thinktank?: string; // Source org name
+  thinktank?: string;
 }
 
 export interface LocalContext {
@@ -168,6 +184,8 @@ export interface PolicyMeta {
   govSourceCount: number;
   hasCitations: boolean;
   intent: QueryIntent;
+  /** True when >60% of sources are government or non-partisan research */
+  mostlyGovSources?: boolean;
 }
 
 export interface OmniResponse {

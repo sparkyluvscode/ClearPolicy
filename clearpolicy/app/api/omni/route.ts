@@ -5,11 +5,16 @@ import { matchKnownSummary } from "@/lib/known-summaries";
 import { searchWeb, filterValidResults, formatWebContext } from "@/lib/web-search";
 import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
 import { detectInternationalQuery, fetchIntlData, formatIntlContext, intlSourcesToAnswerSources } from "@/lib/intl-data";
+import { classifySource, getSourcePriorityPrompt } from "@/lib/source-credibility";
 import { prisma, withRetry } from "@/lib/db";
 import type { OmniResponse, AnswerSection as OmniAnswerSection, Source, PerspectiveView, PolicyMeta } from "@/lib/omni-types";
 import type { Answer, AnswerSource as PolicySource } from "@/lib/policy-types";
 
 export const dynamic = "force-dynamic";
+
+function buildQuantitativeHint(query: string): string {
+  return `\nQUANTITATIVE FOCUS: For the query "${query}", include ALL available statistics: polling data with percentages and sample sizes, population figures, economic data (GDP, tax revenue, budget impact in dollars), historical voting records with tallies, demographic breakdowns, comparison statistics with peer entities, fiscal projections from CBO/GAO/state budget offices, and timeline data. Prioritize government sources (CBO, Census Bureau, GAO, BLS) and major polling firms (Gallup, Pew, AP-NORC). Every claim must have at least one hard number.`;
+}
 
 /* ── Conversation persistence (fire-and-forget, never blocks the response) ── */
 async function saveConversation(
@@ -133,7 +138,7 @@ async function saveConversation(
   }
 }
 
-/** Try to get a known summary for CA props/bills so we show verified content instead of AI. */
+/** Try to get a known summary for CA props/bills/policy topics so we show verified content instead of AI. */
 function knownSummaryToAnswer(query: string, zipCode: string | null): Answer | null {
   const yearMatch = query.match(/\b(20\d{2})\b/);
   const year = yearMatch ? yearMatch[1] : undefined;
@@ -169,11 +174,19 @@ function knownSummaryToAnswer(query: string, zipCode: string | null): Answer | n
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const lowerQ = query.toLowerCase();
+  const inferredLevel = /\bfederal\b|congress|supreme court|judge|justice/.test(lowerQ) ? "Federal"
+    : /\bstate\b|virginia|california/.test(lowerQ) ? "State"
+    : "State";
+  const inferredCategory = /data\s+center/i.test(lowerQ) ? "Technology & Energy"
+    : /judge|justice|court|judicial|appointment|term\s+limit/i.test(lowerQ) ? "Constitutional Reform"
+    : "Policy Analysis";
+
   return {
     policyId: `known-${known.year || "summary"}-${Date.now()}`,
     policyName,
-    level: "State",
-    category: "Ballot measure",
+    level: inferredLevel,
+    category: inferredCategory,
     fullTextSummary: level.tldr,
     sections: {
       summary: level.tldr,
@@ -246,19 +259,30 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
     });
   }
 
-  const sources: Source[] = answer.sources.map((s: PolicySource, i: number) => ({
-    id: `src-${i}`,
-    type: s.type === "Federal" ? "federal_bill" : s.type === "State" ? "state_bill" : s.domain === "uploaded" ? "uploaded_document" : "government_site",
-    title: s.title,
-    url: s.url,
-    snippet: s.excerpt || s.title,
-    publisher: s.domain === "uploaded" ? "Uploaded Document" : s.domain,
-    relevance: s.verified ? 1 : 0.8,
-    jurisdiction: (s.type.toLowerCase() as "federal" | "state" | "local") || undefined,
-  }));
+  const sources: Source[] = answer.sources.map((s: PolicySource, i: number) => {
+    const credibility = classifySource(s.url, s.title);
+    return {
+      id: `src-${i}`,
+      type: s.type === "Federal" ? "federal_bill" as const : s.type === "State" ? "state_bill" as const : s.domain === "uploaded" ? "uploaded_document" as const : "government_site" as const,
+      title: s.title,
+      url: s.url,
+      snippet: s.excerpt || s.title,
+      publisher: s.domain === "uploaded" ? "Uploaded Document" : s.domain,
+      relevance: s.verified ? 1 : 0.8,
+      jurisdiction: (s.type.toLowerCase() as "federal" | "state" | "local") || undefined,
+      sourceCategory: credibility.category,
+      sourceCategoryLabel: credibility.categoryLabel,
+      bias: credibility.bias,
+      biasLabel: credibility.biasLabel,
+    };
+  });
 
   const govSourceCount = sources.filter(s => s.type === "federal_bill" || s.type === "state_bill" || s.type === "government_site").length;
+  const govOrResearchCount = sources.filter(s =>
+    s.sourceCategory === "gov" || s.sourceCategory === "data" || s.sourceCategory === "legal"
+  ).length;
   const hasCitations = sections.some(sec => /\[\d+\]/.test(sec.content) || /[Aa]ccording to|[Dd]ata from|[Aa] \d{4} report by|\breport(?:ed|s)? by\b/.test(sec.content));
+  const mostlyGovSources = sources.length > 0 && (govOrResearchCount / sources.length) > 0.6;
 
   const policyMeta: PolicyMeta = {
     level: answer.level || "",
@@ -267,6 +291,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
     govSourceCount,
     hasCitations,
     intent: (intent as PolicyMeta["intent"]) || "general_policy",
+    mostlyGovSources,
     ...meta,
   };
 
@@ -321,8 +346,8 @@ export async function POST(req: NextRequest) {
     const intlDetection = detectInternationalQuery(query);
     const isIntl = intlDetection.isInternational;
 
-    const [govData, webSearchResults, intlData] = await Promise.all([
-      // US gov data (skip heavy fetching for clearly international queries)
+    const statsQuery = `${query} statistics data numbers figures percentage`;
+    const [govData, webSearchResults, statsSearchResults, intlData] = await Promise.all([
       (!isIntl ? fetchGovData({
         query,
         billId: classified.billId,
@@ -339,7 +364,10 @@ export async function POST(req: NextRequest) {
         console.error("[omni] web search failed (non-fatal):", e);
         return null;
       }),
-      // International data (World Bank, EU, UK legislation)
+      searchWeb(statsQuery, { maxResults: 3 }).catch((e) => {
+        console.error("[omni] stats search failed (non-fatal):", e);
+        return null;
+      }),
       (isIntl ? fetchIntlData(query, intlDetection.regions) : Promise.resolve({ sources: [], region: "global" as const }))
         .catch((e) => {
           console.error("[omni] intl data fetch failed (non-fatal):", e);
@@ -352,7 +380,16 @@ export async function POST(req: NextRequest) {
     const intlSources = intlSourcesToAnswerSources(intlData.sources);
     const govSources = govBillsToSources(govData.bills);
     const rawWebResults = webSearchResults?.results ?? [];
-    const validWebResults = filterValidResults(rawWebResults);
+    const rawStatsResults = statsSearchResults?.results ?? [];
+    const seenUrls = new Set<string>();
+    const mergedWebResults = [...rawWebResults];
+    for (const r of rawStatsResults) {
+      if (r.url && !seenUrls.has(r.url) && !mergedWebResults.some(w => w.url === r.url)) {
+        mergedWebResults.push(r);
+      }
+    }
+    for (const r of mergedWebResults) seenUrls.add(r.url);
+    const validWebResults = filterValidResults(mergedWebResults);
 
     const unifiedSources: PolicySource[] = [];
 
@@ -391,7 +428,8 @@ export async function POST(req: NextRequest) {
     const { text: intlContextStr, numberedCount: intlNumberedCount } = formatIntlContext(intlData, 1);
     const { text: govContextStr, numberedCount: govNumberedCount } = formatGovContext(govData, intlNumberedCount + 1);
     const webContextStr = formatWebContext(webSourceEntries, intlNumberedCount + govNumberedCount + 1);
-    const combinedContext = [intlContextStr, govContextStr, webContextStr].filter(Boolean).join("\n\n");
+    const quantHint = buildQuantitativeHint(query);
+    const combinedContext = [intlContextStr, govContextStr, webContextStr, quantHint].filter(Boolean).join("\n\n");
 
     // Step 3: Generate answer with unified sources
     let data: OmniResponse;
@@ -402,7 +440,9 @@ export async function POST(req: NextRequest) {
       answer = result.answer;
       const perspectives: PerspectiveView[] = result.perspectives.map(p => ({
         label: p.label,
+        description: p.description,
         summary: p.summary,
+        arguments: p.arguments,
         citations: [],
         thinktank: p.thinktank,
       }));

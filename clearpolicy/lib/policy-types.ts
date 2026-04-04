@@ -4,6 +4,8 @@ export type AnswerSection = {
   localImpact?: { zipCode: string; location: string; content: string };
   argumentsFor?: string[];
   argumentsAgainst?: string[];
+  /** Extended data/overview section for data-report format follow-ups */
+  overview?: string;
 };
 
 export type AnswerSource = {

@@ -25,6 +25,12 @@ const READING_LEVELS: { level: ReadingLevel; label: string }[] = [
   { level: "12", label: "Detailed" },
 ];
 
+interface FollowUpMeta {
+  intent: string;
+  intentLabel: string;
+  depthLevel: number;
+}
+
 interface ConversationCard {
   id: string;
   userQuery?: string;
@@ -36,6 +42,7 @@ interface ConversationCard {
   rhetoricCheck?: RhetoricCheck;
   cardSources?: Source[];
   policyMeta?: PolicyMeta;
+  followUpMeta?: FollowUpMeta;
 }
 
 interface ConversationMessage {
@@ -78,6 +85,15 @@ function SearchResultsContent() {
   const [mounted, setMounted] = useState(false);
   const [saveRetried, setSaveRetried] = useState(false);
   const [saveInProgress, setSaveInProgress] = useState(false);
+  const [showDebateOnboarding, setShowDebateOnboarding] = useState(false);
+
+  useEffect(() => {
+    const debate = searchParams?.get("debate") === "1";
+    if (debate && typeof window !== "undefined") {
+      const dismissed = localStorage.getItem("cp_debate_onboarding_dismissed");
+      if (!dismissed) setShowDebateOnboarding(true);
+    }
+  }, [searchParams]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -271,7 +287,7 @@ function SearchResultsContent() {
         }),
       });
       const text = await res.text();
-      let data: { success?: boolean; error?: string; data?: { heading: string; cardType?: string; sections: AnswerSection[]; followUpSuggestions?: string[]; sources?: Source[] } };
+      let data: { success?: boolean; error?: string; data?: { heading: string; cardType?: string; sections: AnswerSection[]; followUpSuggestions?: string[]; sources?: Source[]; followUpMeta?: FollowUpMeta } };
       try {
         data = JSON.parse(text);
       } catch {
@@ -281,7 +297,6 @@ function SearchResultsContent() {
       const fd = data.data;
       if (!fd) throw new Error("No data returned");
 
-      // Merge follow-up sources into the global sources panel for reference
       if (fd.sources?.length) {
         setSources(prev => {
           const existingUrls = new Set(prev.map(s => s.url));
@@ -296,12 +311,13 @@ function SearchResultsContent() {
       const cardType = (fd.cardType === "verified" || fd.cardType === "debate" || fd.cardType === "document"
         ? fd.cardType
         : "general") as ConversationCard["cardType"];
-      const newFollowUp = {
+      const newFollowUp: ConversationCard = {
         id: `card-${cards.length}`, userQuery: displayQuery,
         heading: fd.heading, cardType,
         sections: fd.sections,
         followUpSuggestions: fd.followUpSuggestions || [],
         cardSources: fd.sources || [],
+        followUpMeta: fd.followUpMeta,
       };
       setRawCards(prev => [...prev, newFollowUp]);
       setLevelCache({});
@@ -605,6 +621,16 @@ function SearchResultsContent() {
               </div>
             )}
 
+            {/* "Mostly Government Sources" trust badge */}
+            {!loading && cards[0]?.policyMeta?.mostlyGovSources && (
+              <div className="mb-3 animate-fade-in">
+                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--cp-green)] bg-[var(--cp-green)]/8 border border-[var(--cp-green)]/15 px-3 py-1.5 rounded-full">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  This analysis primarily uses government and non-partisan sources
+                </span>
+              </div>
+            )}
+
             {/* Policy Summary Card */}
             {!loading && cards[0]?.policyMeta && (
               <div className="mb-6 animate-fade-up">
@@ -673,31 +699,102 @@ function SearchResultsContent() {
               </div>
             )}
 
-            {/* Perspectives Grid */}
+            {/* Debate Mode Onboarding */}
+            {showDebateOnboarding && !loading && cards[0]?.perspectives && cards[0].perspectives.length > 0 && (
+              <div className="mb-6 rounded-xl border border-[var(--cp-coral)]/20 bg-[var(--cp-coral)]/5 p-5 animate-fade-up">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[var(--cp-text)] flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[var(--cp-coral)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      Welcome to Debate Mode
+                    </p>
+                    <p className="text-[13px] text-[var(--cp-muted)] leading-relaxed">
+                      Debate Mode breaks down a policy topic into distinct political and ideological perspectives, showing you how people with different viewpoints think about this issue. Instead of a single balanced summary, you&apos;ll see separate arguments from multiple positions &mdash; including their strongest points, key evidence, and potential weaknesses. Designed for debate preparation, understanding political divides, or exploring the full spectrum of opinion.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowDebateOnboarding(false);
+                      localStorage.setItem("cp_debate_onboarding_dismissed", "1");
+                    }}
+                    className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--cp-coral)]/10 text-[var(--cp-coral)] hover:bg-[var(--cp-coral)]/20 transition-colors"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Political Perspectives Grid */}
             {cards[0]?.perspectives && cards[0].perspectives.length > 0 && !loading && (
               <div className="mb-8 pb-6 border-b border-[var(--cp-border)] animate-fade-up">
-                <div className="flex items-center gap-2 mb-4">
-                  <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--cp-muted)]">Stakeholder Perspectives</p>
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4 text-[var(--cp-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--cp-muted)]">Political Perspectives</p>
+                  </div>
+                  <p className="text-[12px] text-[var(--cp-tertiary)] ml-6">How different ideological positions argue this issue</p>
                 </div>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2">
                   {cards[0].perspectives.map((p, i) => {
-                    const perspColors = [
-                      { bg: "color-mix(in srgb, var(--cp-accent) 6%, transparent)", border: "color-mix(in srgb, var(--cp-accent) 15%, transparent)", text: "var(--cp-accent)" },
-                      { bg: "color-mix(in srgb, var(--cp-coral) 6%, transparent)", border: "color-mix(in srgb, var(--cp-coral) 15%, transparent)", text: "var(--cp-coral)" },
-                      { bg: "color-mix(in srgb, var(--cp-green) 6%, transparent)", border: "color-mix(in srgb, var(--cp-green) 15%, transparent)", text: "var(--cp-green)" },
+                    const labelColorMap: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+                      "progressive": { bg: "color-mix(in srgb, #3B82F6 6%, transparent)", border: "color-mix(in srgb, #3B82F6 18%, transparent)", text: "#3B82F6", badge: "L" },
+                      "left": { bg: "color-mix(in srgb, #3B82F6 6%, transparent)", border: "color-mix(in srgb, #3B82F6 18%, transparent)", text: "#3B82F6", badge: "L" },
+                      "conservative": { bg: "color-mix(in srgb, #EF4444 6%, transparent)", border: "color-mix(in srgb, #EF4444 18%, transparent)", text: "#EF4444", badge: "R" },
+                      "right": { bg: "color-mix(in srgb, #EF4444 6%, transparent)", border: "color-mix(in srgb, #EF4444 18%, transparent)", text: "#EF4444", badge: "R" },
+                      "libertarian": { bg: "color-mix(in srgb, #F59E0B 6%, transparent)", border: "color-mix(in srgb, #F59E0B 18%, transparent)", text: "#D97706", badge: "Li" },
+                      "centrist": { bg: "color-mix(in srgb, #8B5CF6 6%, transparent)", border: "color-mix(in srgb, #8B5CF6 18%, transparent)", text: "#8B5CF6", badge: "C" },
+                      "moderate": { bg: "color-mix(in srgb, #8B5CF6 6%, transparent)", border: "color-mix(in srgb, #8B5CF6 18%, transparent)", text: "#8B5CF6", badge: "C" },
+                    };
+                    const fallbackColors = [
+                      { bg: "color-mix(in srgb, var(--cp-accent) 6%, transparent)", border: "color-mix(in srgb, var(--cp-accent) 15%, transparent)", text: "var(--cp-accent)", badge: "" },
+                      { bg: "color-mix(in srgb, var(--cp-coral) 6%, transparent)", border: "color-mix(in srgb, var(--cp-coral) 15%, transparent)", text: "var(--cp-coral)", badge: "" },
+                      { bg: "color-mix(in srgb, var(--cp-green) 6%, transparent)", border: "color-mix(in srgb, var(--cp-green) 15%, transparent)", text: "var(--cp-green)", badge: "" },
                     ];
-                    const c = perspColors[i % perspColors.length];
+                    const labelLower = p.label.toLowerCase();
+                    const c = Object.entries(labelColorMap).find(([key]) => labelLower.includes(key))?.[1]
+                      || fallbackColors[i % fallbackColors.length];
+                    const categoryLabels: Record<string, string> = {
+                      constitutional: "Legal",
+                      economic: "Economic",
+                      social: "Social",
+                      practical: "Practical",
+                      political: "Political",
+                    };
                     return (
                       <div
                         key={i}
-                        className="rounded-xl p-4 border transition-all hover:shadow-sm"
+                        className="rounded-xl p-5 border transition-all hover:shadow-sm"
                         style={{ background: c.bg, borderColor: c.border }}
                       >
-                        <p className="text-[12px] font-bold uppercase tracking-wider mb-2" style={{ color: c.text }}>{p.label}</p>
-                        <p className="text-[13px] text-[var(--cp-text)] leading-relaxed">{p.summary}</p>
+                        <div className="flex items-start gap-2.5 mb-3">
+                          <span className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ background: c.text }}>{c.badge}</span>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-bold tracking-wide" style={{ color: c.text }}>{p.label}</p>
+                            {p.description && (
+                              <p className="text-[11px] text-[var(--cp-tertiary)] mt-0.5 leading-snug">{p.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        {p.arguments && p.arguments.length > 0 ? (
+                          <div className="space-y-3 mt-3">
+                            {p.arguments.map((arg, j) => (
+                              <div key={j} className="pl-3 border-l-2" style={{ borderColor: c.border }}>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <p className="text-sm font-semibold text-[var(--cp-text)]">{arg.title}</p>
+                                  {arg.category && categoryLabels[arg.category] && (
+                                    <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ color: c.text, background: c.border }}>{categoryLabels[arg.category]}</span>
+                                  )}
+                                </div>
+                                <p className="text-[13px] text-[var(--cp-muted)] leading-relaxed">{arg.explanation}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[13px] text-[var(--cp-text)] leading-relaxed">{p.summary}</p>
+                        )}
                         {p.thinktank && (
-                          <p className="text-[10px] mt-2 flex items-center gap-1" style={{ color: c.text }}>
+                          <p className="text-[10px] mt-3 pt-2 border-t flex items-center gap-1" style={{ color: c.text, borderColor: c.border }}>
                             <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                             {p.thinktank}
                           </p>
@@ -705,6 +802,25 @@ function SearchResultsContent() {
                       </div>
                     );
                   })}
+                </div>
+                {/* Missing argument feedback */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => {
+                      const msg = prompt("What argument or perspective is missing?");
+                      if (msg && msg.trim()) {
+                        fetch("/api/feedback", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ page: "debate", message: `Missing argument: ${msg.trim()} (Query: ${searchParams?.get("q") || ""})` }),
+                        }).then(() => toast("Thanks for the feedback!")).catch(() => {});
+                      }
+                    }}
+                    className="text-[11px] text-[var(--cp-tertiary)] hover:text-[var(--cp-muted)] transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                    Missing an argument? Let us know
+                  </button>
                 </div>
               </div>
             )}
@@ -721,6 +837,7 @@ function SearchResultsContent() {
                   sections={card.sections}
                   onSourceClick={setActiveSource}
                   sources={card.cardSources || sources}
+                  followUpMeta={card.followUpMeta}
                 />
               ))}
             </div>
@@ -737,9 +854,25 @@ function SearchResultsContent() {
               </div>
             )}
 
-            {/* Follow-up suggestions + Debate shortcut */}
+            {/* Follow-up suggestions + Smart chips + Debate shortcut */}
             {!loading && latestCard && !followUpLoading && (
               <div className="mt-8 flex flex-wrap gap-2 animate-fade-up">
+                {/* Smart follow-up chips (always visible) */}
+                <button
+                  onClick={() => handleFollowUp("I need more numbers and data on this")}
+                  className="text-[13px] px-3.5 py-2 rounded-xl border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/5 hover:border-blue-500/30 transition-all active:scale-[0.97] flex items-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  Show me the numbers
+                </button>
+                <button
+                  onClick={() => handleFollowUp("Go deeper on this topic")}
+                  className="text-[13px] px-3.5 py-2 rounded-xl border border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/5 hover:border-purple-500/30 transition-all active:scale-[0.97] flex items-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  Go deeper
+                </button>
+                {/* Context-specific suggestions from the API */}
                 {latestCard.followUpSuggestions.map((s, i) => (
                   <button
                     key={i}
@@ -892,15 +1025,28 @@ function SearchResultsContent() {
                       <span className="text-[11px] font-bold text-white bg-[var(--cp-accent)] w-5 h-5 flex items-center justify-center rounded flex-shrink-0 mt-0.5">{i + 1}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] text-[var(--cp-text)] leading-snug font-medium">{source.title}</p>
-                        <p className="text-[10px] text-[var(--cp-tertiary)] mt-0.5">
-                          {source.publisher || hostname}
-                          {" · "}
-                          {source.type === "federal_bill" ? "Federal" :
-                           source.type === "state_bill" ? "State" :
-                           source.type === "government_site" ? "Gov" :
-                           source.type === "uploaded_document" ? "Document" :
-                           source.type === "news_article" ? "News" : "Web"}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] text-[var(--cp-tertiary)]">
+                            {source.publisher || hostname}
+                          </span>
+                          {source.sourceCategoryLabel && (
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                              source.sourceCategory === "gov" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" :
+                              source.sourceCategory === "data" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                              source.sourceCategory === "legal" ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" :
+                              source.sourceCategory === "news" ? "bg-gray-500/10 text-gray-600 dark:text-gray-400" :
+                              source.sourceCategory === "think_tank" ? "bg-orange-500/10 text-orange-600 dark:text-orange-400" :
+                              "bg-[var(--cp-surface-2)] text-[var(--cp-muted)]"
+                            }`}>
+                              {source.sourceCategoryLabel}
+                            </span>
+                          )}
+                          {source.biasLabel && source.bias !== "nonpartisan" && (
+                            <span className="text-[9px] text-[var(--cp-tertiary)] italic">
+                              {source.biasLabel}
+                            </span>
+                          )}
+                        </div>
                         {hasExcerpt && (
                           <p className="text-[11px] text-[var(--cp-muted)] mt-1 line-clamp-2 leading-relaxed italic">&ldquo;{source.snippet!.slice(0, 120)}...&rdquo;</p>
                         )}

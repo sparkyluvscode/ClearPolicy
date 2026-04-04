@@ -35,6 +35,16 @@ function isPolicyQuery(query: string): boolean {
   return POLICY_SIGNALS.test(query);
 }
 
+function flattenArguments(args: (string | { claim?: string; data?: string })[]): string[] {
+  return args.map((a) => {
+    if (typeof a === "string") return a;
+    const claim = a.claim || "";
+    const data = a.data || "";
+    if (claim && data) return `${claim} — ${data}`;
+    return claim || data;
+  }).filter(Boolean);
+}
+
 const CITATION_RULES = `
 CITATION & ATTRIBUTION RULES (CRITICAL - this is what makes our tool better than ChatGPT):
 
@@ -111,7 +121,7 @@ Rules:
     messages: [
       {
         role: "system",
-        content: "You are an expert research assistant. You provide thorough, source-attributed answers. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to [Source Name] (Year), ...'). Never use bracketed numeric citations like [1] or [2]. Return only valid JSON.",
+        content: "You are an expert research assistant. You provide thorough, source-attributed answers. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to [Source Name] (Year), ...'). Never use bracketed numeric citations like [1] or [2]. You MUST include specific quantitative data — statistics, dollar figures, percentages, population numbers, vote counts, polling results, budget figures, timelines — with every claim where such data exists. A response without hard numbers is an incomplete response. Aim for 8-10+ distinct data points minimum. Return only valid JSON.",
       },
       { role: "user", content: prompt },
     ],
@@ -168,7 +178,8 @@ export async function generatePolicyAnswer(
   const prompt = `You are a world-class non-partisan civic education assistant. The user asked: "${query}".${zipHint}
 ${hasContext ? `\n${ctx}\n` : ""}${docBlock}
 Your job is to provide the most helpful, insightful, and thorough policy analysis possible - the kind of briefing a journalist, researcher, or debater would find genuinely valuable.
-${hasContext || hasDocument ? CITATION_RULES : ""}${hasDocument ? `
+${hasContext || hasDocument ? CITATION_RULES : ""}
+${QUANTITATIVE_RULES}${hasDocument ? `
 DOCUMENT CITATION RULES:
 - When citing the uploaded document, use [Doc] followed by the section or paragraph reference, e.g. [Doc, Section 3(a)] or [Doc, p.12] or [Doc, paragraph 4].
 - Quote the specific text from the document that supports your claim.
@@ -184,8 +195,16 @@ Return ONLY valid JSON with this exact structure (no markdown, no code fence):
     "summary": "A thorough 4-6 sentence summary where every factual claim names its source inline.",
     "keyProvisions": ["According to [Source], provision 1...", "A report by [Source] found provision 2...", "Provision 3", "Provision 4", "Provision 5"],
     "localImpact": ${zipCode ? `{ "zipCode": "${zipCode}", "location": "City/region name for this ZIP", "content": "2-3 specific sentences about how this affects people in ZIP ${zipCode}, with named source attributions." }` : "null"},
-    "argumentsFor": ["According to [Source], argument with evidence...", "Data from [Source] shows...", "Third argument"],
-    "argumentsAgainst": ["According to [Source], counterargument...", "[Source] argues that...", "Third argument"]
+    "argumentsFor": [
+      { "claim": "According to [Source], argument with evidence...", "data": "$X billion cost estimate according to [Source]" },
+      { "claim": "Data from [Source] shows...", "data": "X% of population affected per [Source]" },
+      { "claim": "Third argument with source", "data": "Relevant statistic with source" }
+    ],
+    "argumentsAgainst": [
+      { "claim": "According to [Source], counterargument...", "data": "X% opposition per polling by [Source]" },
+      { "claim": "[Source] argues that...", "data": "$X million fiscal impact per [Source]" },
+      { "claim": "Third argument with source", "data": "Relevant statistic with source" }
+    ]
   },
   "sources": []
 }
@@ -203,7 +222,7 @@ Critical rules:
       messages: [
         {
           role: "system",
-          content: "You are a world-class non-partisan policy analyst. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to the Congressional Budget Office (2024), ...'). Never use bracketed numeric citations like [1] or [2]. Return only valid JSON.",
+          content: "You are a world-class non-partisan policy analyst. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to the Congressional Budget Office (2024), ...'). Never use bracketed numeric citations like [1] or [2]. You MUST include specific quantitative data — statistics, dollar figures, percentages, population numbers, vote counts, polling results, budget figures, timelines — with every claim where such data exists. A response without hard numbers is an incomplete response. Aim for 8-10+ distinct data points minimum. Return only valid JSON.",
         },
         { role: "user", content: prompt },
       ],
@@ -228,8 +247,8 @@ Critical rules:
       summary: sec.summary || parsed.fullTextSummary || "",
       keyProvisions: Array.isArray(sec.keyProvisions) ? sec.keyProvisions : [],
       localImpact,
-      argumentsFor: Array.isArray(sec.argumentsFor) ? sec.argumentsFor : [],
-      argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? sec.argumentsAgainst : [],
+      argumentsFor: Array.isArray(sec.argumentsFor) ? flattenArguments(sec.argumentsFor) : [],
+      argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? flattenArguments(sec.argumentsAgainst) : [],
     };
 
     return {
@@ -247,12 +266,20 @@ Critical rules:
   }
 }
 
+export interface DebatePerspective {
+  label: string;
+  description: string;
+  summary: string;
+  arguments: { title: string; explanation: string; category: string }[];
+  thinktank?: string;
+}
+
 export async function generateDebateAnswer(
   query: string,
   zipCode?: string | null,
   sourcesContext?: string,
   sources?: AnswerSource[],
-): Promise<{ answer: Answer; perspectives: { label: string; summary: string; thinktank?: string }[] }> {
+): Promise<{ answer: Answer; perspectives: DebatePerspective[] }> {
   const client = getOpenAI();
   if (!client) return { answer: stubAnswer(query, zipCode), perspectives: [] };
 
@@ -261,10 +288,23 @@ export async function generateDebateAnswer(
   const zipHint = zipCode ? ` The user is located in ZIP code ${zipCode}. Include how this debate topic specifically affects their area.` : "";
   const hasContext = ctx.length > 0;
 
-  const prompt = `The user wants a balanced debate briefing on: "${query}".${zipHint}
+  const prompt = `The user wants a comprehensive debate briefing on: "${query}".${zipHint}
 ${hasContext ? `\n${ctx}\n` : ""}
 Provide a thorough, multi-perspective analysis for informed debate preparation.
 ${hasContext ? CITATION_RULES : ""}
+${QUANTITATIVE_RULES}
+
+IMPORTANT INSTRUCTIONS:
+- Label each perspective using simple, widely-understood political terms that a high school student would immediately understand.
+- Include a one-sentence description of each perspective's general philosophy.
+- Do NOT use obscure political science jargon like "Pragmatic Center" or "Progressive Advocate."
+- For each perspective, provide a COMPREHENSIVE set of arguments — at least 5 distinct arguments per viewpoint.
+- Cover multiple dimensions: constitutional/legal, economic/fiscal, social equity/justice, practical implementation, and political/strategic arguments.
+- Do not stop at the most obvious arguments — include nuanced, second-order arguments that an experienced debater would raise.
+- If a perspective has a particularly strong or well-known argument that is central to the public debate, make sure it is included.
+- Each argument must have a clear title, a 2-3 sentence explanation with specific evidence or data points, and a category.
+- Each argument's explanation MUST include at least one specific statistic, dollar figure, percentage, or vote count. Do not provide any argument without a number backing it up.
+
 Return ONLY valid JSON:
 {
   "policyName": "Clear title framing the debate",
@@ -273,10 +313,36 @@ Return ONLY valid JSON:
   "fullTextSummary": "3-4 sentence overview${hasContext ? " with natural-language source attributions" : ""}.",
   "thesis": "One clear sentence framing the central question.",
   "perspectives": [
-    { "label": "Progressive", "summary": "3-4 sentences attributing claims to named sources.", "thinktank": "CAP or similar" },
-    { "label": "Conservative", "summary": "3-4 sentences attributing claims to named sources.", "thinktank": "Heritage or similar" },
-    { "label": "Libertarian", "summary": "3-4 sentences attributing claims to named sources.", "thinktank": "Cato or similar" },
-    { "label": "Pragmatic Center", "summary": "3-4 sentences attributing claims to named sources.", "thinktank": "Brookings or similar" }
+    {
+      "label": "Progressive / Left-Leaning",
+      "description": "Prioritizes social equity, government intervention, and expanded civil rights.",
+      "arguments": [
+        { "title": "Argument title", "explanation": "2-3 sentences with specific statistics, dollar figures, or percentages. E.g. 'According to CBO (2024), this would cost $X billion...'", "category": "constitutional" },
+        { "title": "...", "explanation": "Include at least one specific number per argument", "category": "economic" },
+        { "title": "...", "explanation": "Include polling data with percentages, budget figures, etc.", "category": "social" },
+        { "title": "...", "explanation": "Include implementation costs, timeline data, comparative figures", "category": "practical" },
+        { "title": "...", "explanation": "Include vote counts, election data, polling numbers", "category": "political" }
+      ],
+      "thinktank": "Center for American Progress or similar"
+    },
+    {
+      "label": "Conservative / Right-Leaning",
+      "description": "Prioritizes individual liberty, limited government, and traditional institutions.",
+      "arguments": [ ... at least 5 arguments across categories ... ],
+      "thinktank": "Heritage Foundation or similar"
+    },
+    {
+      "label": "Libertarian",
+      "description": "Prioritizes individual freedom and minimal government involvement.",
+      "arguments": [ ... at least 5 arguments across categories ... ],
+      "thinktank": "Cato Institute or similar"
+    },
+    {
+      "label": "Centrist / Moderate",
+      "description": "Seeks practical compromise, weighing trade-offs from both sides.",
+      "arguments": [ ... at least 5 arguments across categories ... ],
+      "thinktank": "Brookings Institution or similar"
+    }
   ],
   "commonGround": ["According to [Source], area of agreement 1...", "Area of agreement 2"],
   "keyDisagreements": ["According to [Source], core disagreement 1...", "Core disagreement 2"],
@@ -289,7 +355,10 @@ Always return an empty sources array []. Sources are handled separately.`;
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class debate coach. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to [Source Name] (Year), ...'). Never use bracketed numeric citations. Present every perspective at its strongest. Return only valid JSON." },
+        {
+          role: "system",
+          content: "You are a world-class debate coach preparing students for competitive debate. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to [Source Name] (Year), ...'). Never use bracketed numeric citations. Present every perspective at its absolute strongest — an experienced debater from that viewpoint should feel their position is well-represented. Use simple, widely-understood political labels. Provide at least 5 distinct arguments per viewpoint. You MUST include specific quantitative data — statistics, dollar figures, percentages, population numbers, vote counts, polling results, budget figures — in every argument explanation. A debate argument without a number to back it up is a weak argument. Return only valid JSON.",
+        },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -301,14 +370,29 @@ Always return an empty sources array []. Sources are handled separately.`;
 
     const parsed = JSON.parse(content);
 
-    const perspectives: { label: string; summary: string; thinktank?: string }[] =
+    const perspectives: DebatePerspective[] =
       Array.isArray(parsed.perspectives)
-        ? parsed.perspectives.map((p: { label?: string; summary?: string; thinktank?: string }) => ({
+        ? parsed.perspectives.map((p: any) => ({
             label: p.label || "Perspective",
-            summary: p.summary || "",
+            description: p.description || "",
+            summary: p.summary || (Array.isArray(p.arguments) ? p.arguments.map((a: any) => `${a.title}: ${a.explanation}`).join(" ") : ""),
+            arguments: Array.isArray(p.arguments)
+              ? p.arguments.map((a: any) => ({
+                  title: a.title || "",
+                  explanation: a.explanation || "",
+                  category: a.category || "general",
+                }))
+              : [],
             thinktank: p.thinktank,
           }))
         : [];
+
+    // Log warning if any perspective has thin arguments
+    for (const p of perspectives) {
+      if (p.arguments.length < 4) {
+        console.warn(`[Debate] Perspective "${p.label}" has only ${p.arguments.length} arguments (target: 5+)`);
+      }
+    }
 
     const commonGround: string[] = Array.isArray(parsed.commonGround) ? parsed.commonGround : [];
     const keyDisagreements: string[] = Array.isArray(parsed.keyDisagreements) ? parsed.keyDisagreements : [];
@@ -338,14 +422,34 @@ Always return an empty sources array []. Sources are handled separately.`;
   }
 }
 
+export type FollowUpIntent =
+  | "more_data"
+  | "go_deeper"
+  | "different_angle"
+  | "simplify"
+  | "source_specific"
+  | "general_followup";
+
+export interface FollowUpResult {
+  answer: Answer;
+  suggestions: string[];
+  intent: FollowUpIntent;
+  depthLevel: number;
+}
+
 export async function generateFollowUpAnswer(
   message: string,
   history: { role: "user" | "assistant"; content: string }[],
   persona?: string | null,
   sourcesContext?: string,
   sources?: AnswerSource[],
-): Promise<{ answer: Answer; suggestions: string[] }> {
+  followUpIntent?: FollowUpIntent,
+  depthLevel?: number,
+): Promise<FollowUpResult> {
   const client = getOpenAI();
+  const intent: FollowUpIntent = followUpIntent || "general_followup";
+  const depth = depthLevel || 1;
+
   if (!client) {
     return {
       answer: {
@@ -356,49 +460,177 @@ export async function generateFollowUpAnswer(
         sources: [],
       },
       suggestions: ["Try again", "Ask a different question"],
+      intent,
+      depthLevel: depth,
     };
   }
 
   const ctx = sourcesContext || "";
   const srcs = sources || [];
-  const historyBlock = history.slice(-8).map((h) => `${h.role}: ${h.content.slice(0, 400)}`).join("\n");
+  const historyBlock = history.slice(-10).map((h) => `${h.role}: ${h.content.slice(0, 600)}`).join("\n");
   const personaHint = persona && persona !== "general" ? ` Tailor for a ${persona}'s perspective.` : "";
   const hasContext = ctx.length > 0;
 
-  const prompt = `You are a world-class non-partisan civic education assistant answering a follow-up question.
+  const previousResponseSummary = history
+    .filter(h => h.role === "assistant")
+    .map(h => h.content.slice(0, 300))
+    .join("\n---\n");
 
-Previous context:
-${historyBlock}
-${hasContext ? `\n${ctx}\n` : ""}
-Follow-up question: "${message}"${personaHint}
-${hasContext ? CITATION_RULES : ""}
-Return ONLY valid JSON:
-{
-  "policyName": "Clear heading for this follow-up",
-  "fullTextSummary": "4-6 sentence answer${hasContext ? " with natural-language source attributions" : ""}.",
+  const depthInstruction = depth > 1
+    ? `\n\nDEPTH LEVEL: ${depth}. The user has already seen Level ${depth - 1} information. Go SIGNIFICANTLY deeper. Provide information a policy researcher would find in their ${depth === 2 ? "second" : depth === 3 ? "third" : "fourth+"} hour of research, not their first ten minutes. DO NOT rehash the overview.`
+    : "";
+
+  const antiRepetition = `
+ANTI-REPETITION (CRITICAL):
+The user has already received this information:
+---
+${previousResponseSummary}
+---
+Your response MUST contain at least 80% NEW information not present above. Do NOT restate arguments, statistics, or points already made. If you must reference a previous point for context, do so in ONE sentence, then move to entirely new material.`;
+
+  let intentPrompt: string;
+  let jsonSchema: string;
+  let systemMessage: string;
+
+  switch (intent) {
+    case "more_data":
+      systemMessage = "You are a quantitative policy analyst producing structured statistical reports with tables. Every claim must have a number attached. Return only valid JSON.";
+      intentPrompt = `The user wants MORE QUANTITATIVE DATA. Generate a DATA REPORT with NUMBERS: statistics, dollar amounts, percentages, polling data, demographic figures, cost estimates, timelines, vote counts, and comparative data.
+
+MINIMUM REQUIREMENTS:
+- At least 15 distinct, specific statistics/data points
+- At least one structured data table with 5+ rows
+- Economic, demographic, polling/opinion, and historical data sections
+- Each statistic must name its source`;
+      jsonSchema = `{
+  "policyName": "Quantitative Analysis: [Topic]",
+  "fullTextSummary": "Brief intro stating this is a data-focused analysis with key headline figures.",
   "sections": {
-    "summary": "Thorough answer where every factual claim names its source inline.",
-    "keyProvisions": ["According to [Source], point 1...", "Data from [Source] shows point 2...", "Point 3", "Point 4"],
-    "argumentsFor": ["According to [Source], supporting argument...", "A report by [Source] found..."],
-    "argumentsAgainst": ["According to [Source], counterargument...", "[Source] argues that..."]
+    "dataTable": {
+      "headers": ["Metric", "Figure", "Source", "Year"],
+      "rows": [["metric name", "specific figure", "source name", "year"]]
+    },
+    "summary": "2-3 sentences of context with headline statistics.",
+    "economicData": ["According to [Source], $X billion...", "Data from [Source] shows X%..."],
+    "demographicData": ["According to [Source], X million people..."],
+    "pollingData": ["A [Year] poll by [Source] found X%..."],
+    "historicalData": ["Since [Year], [Source] reports X% change..."],
+    "keyProvisions": ["Stat 1 from [Source]", "Stat 2 from [Source]", "Stat 3", "Stat 4", "Stat 5"]
+  },
+  "suggestions": ["Follow-up 1", "Follow-up 2", "Follow-up 3"]
+}`;
+      break;
+
+    case "go_deeper":
+      systemMessage = `You are an expert policy analyst writing a ${depth >= 3 ? "research paper" : "policy brief"}-level deep dive. Go beyond surface arguments to nuanced implications, edge cases, expert opinions, and unintended consequences. Return only valid JSON.`;
+      intentPrompt = `The user wants to GO DEEPER. Provide ${depth >= 3 ? "expert-level" : "second-order"} analysis:
+${depth >= 3 ? "- Primary source references, legislative text excerpts, committee hearing testimony\n- Academic research, international comparisons, scenario modeling" : "- Expanded arguments with granular data, expert quotes, historical context\n- Implementation details, edge cases, unintended consequences"}
+
+Do NOT repeat the overview or basic arguments.`;
+      jsonSchema = `{
+  "policyName": "${depth >= 3 ? "Expert Analysis" : "Deep Dive"}: [Topic]",
+  "fullTextSummary": "4-6 sentences of deep analysis${hasContext ? " with source attributions" : ""}.",
+  "sections": {
+    "summary": "In-depth analysis going beyond the basics.",
+    "keyProvisions": ["Nuanced point 1", "Edge case", "Implementation detail", "Historical parallel", "Expert opinion"],
+    "argumentsFor": ["Deep supporting argument", "Second-order benefit"],
+    "argumentsAgainst": ["Deep counter-argument", "Unintended consequence"]
+  },
+  "suggestions": ["Follow-up 1", "Follow-up 2", "Follow-up 3"]
+}`;
+      break;
+
+    case "different_angle":
+      systemMessage = "You are a policy analyst exploring an alternative angle on the topic. Focus specifically on the perspective the user is asking about. Return only valid JSON.";
+      intentPrompt = `The user wants a DIFFERENT ANGLE: "${message}". Focus your ENTIRE response on this specific dimension with specific data, expert opinions, and examples. Do not repeat the general overview.`;
+      jsonSchema = `{
+  "policyName": "Perspective: [The specific angle]",
+  "fullTextSummary": "4-6 sentences focused on this specific angle.",
+  "sections": {
+    "summary": "Focused analysis of this specific dimension.",
+    "keyProvisions": ["Key finding 1", "Key finding 2", "Key finding 3", "Key finding 4"],
+    "argumentsFor": ["Argument from this angle", "Supporting data"],
+    "argumentsAgainst": ["Counter-argument from this angle", "Opposing data"]
+  },
+  "suggestions": ["Follow-up 1", "Follow-up 2", "Follow-up 3"]
+}`;
+      break;
+
+    case "simplify":
+      systemMessage = "You are a civic educator explaining policy to a general audience. Use plain language, short sentences, everyday analogies. Return only valid JSON.";
+      intentPrompt = `The user wants a SIMPLER explanation. Use plain, everyday language (8th grade level), short sentences, and real-world analogies.`;
+      jsonSchema = `{
+  "policyName": "Simply Explained: [Topic]",
+  "fullTextSummary": "3-4 simple sentences explaining the core idea.",
+  "sections": {
+    "summary": "Simple, clear explanation anyone can understand.",
+    "keyProvisions": ["Simple point 1", "Simple point 2", "Simple point 3"]
+  },
+  "suggestions": ["Follow-up 1", "Follow-up 2", "Follow-up 3"]
+}`;
+      break;
+
+    case "source_specific":
+      systemMessage = "You are a research librarian helping a user understand what a specific source says about a topic. Focus exclusively on that source's publications and analysis. Return only valid JSON.";
+      intentPrompt = `The user wants to know what a SPECIFIC SOURCE says: "${message}". Focus your ENTIRE response on that source's publications, reports, data, and official positions.`;
+      jsonSchema = `{
+  "policyName": "Source Analysis: [Source Name] on [Topic]",
+  "fullTextSummary": "What this source has published and concluded.",
+  "sections": {
+    "summary": "Overview of the source's position and key findings.",
+    "keyProvisions": ["Finding 1", "Report/publication 2", "Data point 3", "Position 4"],
+    "argumentsFor": ["This source's supporting arguments"],
+    "argumentsAgainst": ["This source's concerns or limitations"]
+  },
+  "suggestions": ["Follow-up 1", "Follow-up 2", "Follow-up 3"]
+}`;
+      break;
+
+    default:
+      systemMessage = "You are a world-class policy analyst. Every factual claim must include natural-language attribution. Return only valid JSON.";
+      intentPrompt = "Answer the follow-up question with NEW information beyond what was previously discussed.";
+      jsonSchema = `{
+  "policyName": "Clear heading for this follow-up",
+  "fullTextSummary": "4-6 sentence answer${hasContext ? " with source attributions" : ""}.",
+  "sections": {
+    "summary": "Thorough answer with source attributions.",
+    "keyProvisions": ["Point 1", "Point 2", "Point 3", "Point 4"],
+    "argumentsFor": ["Supporting argument 1", "Supporting argument 2"],
+    "argumentsAgainst": ["Counter-argument 1", "Counter-argument 2"]
   },
   "suggestions": ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3"]
-}
+}`;
+  }
+
+  const prompt = `Previous conversation:
+${historyBlock}
+${hasContext ? `\nSOURCES:\n${ctx}\n` : ""}
+Follow-up question: "${message}"${personaHint}
+${depthInstruction}
+${antiRepetition}
+
+${intentPrompt}
+
+${hasContext ? CITATION_RULES : ""}
+${QUANTITATIVE_RULES}
+
+Return ONLY valid JSON with this structure:
+${jsonSchema}
 
 Rules:
-- Build on previous context, don't repeat.
-- Be specific: real numbers, dollar amounts, statistics, dates.
-- Be ANALYTICAL: identify trade-offs, unintended consequences, loopholes.${hasContext ? "\n- Use the provided numbered sources as your PRIMARY factual basis. Attribute them by name using 'According to...' style. NEVER use [1], [2] style citations." : ""}`;
+- Your response must contain at least 80% NEW information not in previous responses.
+- Be specific: real numbers, dollar amounts, statistics, dates.${hasContext ? "\n- Use the provided numbered sources. Attribute by name using 'According to...' style. NEVER use [1], [2]." : ""}
+${depth >= 3 && hasContext ? "- If you have exhausted available source material, be transparent: 'I have provided the most comprehensive data available. For additional primary data, consult [specific databases] directly.'" : ""}`;
 
   try {
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a world-class policy analyst. Every factual claim must include natural-language attribution naming the specific source (e.g. 'According to [Source Name] (Year), ...'). Never use bracketed numeric citations like [1] or [2]. Return only valid JSON." },
+        { role: "system", content: systemMessage },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.4,
+      temperature: intent === "more_data" ? 0.3 : intent === "simplify" ? 0.5 : 0.4,
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -406,16 +638,40 @@ Rules:
 
     const parsed = JSON.parse(content);
     const sec = parsed.sections || {};
-    const sections: AnswerSection = {
-      summary: sec.summary || parsed.fullTextSummary || "",
-      keyProvisions: Array.isArray(sec.keyProvisions) ? sec.keyProvisions : [],
-      argumentsFor: Array.isArray(sec.argumentsFor) ? sec.argumentsFor : [],
-      argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? sec.argumentsAgainst : [],
-    };
-    const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 3) : [
-      "How does this affect renters?",
+
+    let sections: AnswerSection;
+    if (intent === "more_data" && sec.dataTable) {
+      const tableContent = formatDataTable(sec.dataTable);
+      const dataSections = [sec.economicData, sec.demographicData, sec.pollingData, sec.historicalData]
+        .filter(Boolean)
+        .map((arr: unknown, i: number) => {
+          const labels = ["Economic Data", "Demographic Data", "Polling & Public Opinion", "Historical Trends"];
+          return `### ${labels[i] || "Additional Data"}\n${(Array.isArray(arr) ? arr : []).join("\n")}`;
+        })
+        .join("\n\n");
+
+      sections = {
+        summary: sec.summary || parsed.fullTextSummary || "",
+        keyProvisions: Array.isArray(sec.keyProvisions)
+          ? [tableContent, ...sec.keyProvisions].filter(Boolean)
+          : tableContent ? [tableContent] : [],
+        argumentsFor: Array.isArray(sec.economicData) ? sec.economicData : [],
+        argumentsAgainst: Array.isArray(sec.pollingData) ? sec.pollingData : [],
+        overview: dataSections || undefined,
+      };
+    } else {
+      sections = {
+        summary: sec.summary || parsed.fullTextSummary || "",
+        keyProvisions: Array.isArray(sec.keyProvisions) ? sec.keyProvisions : [],
+        argumentsFor: Array.isArray(sec.argumentsFor) ? flattenArguments(sec.argumentsFor) : [],
+        argumentsAgainst: Array.isArray(sec.argumentsAgainst) ? flattenArguments(sec.argumentsAgainst) : [],
+      };
+    }
+
+    const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 4) : [
+      "Show me the numbers",
+      "Go deeper on this",
       "What are the main criticisms?",
-      "Compare to similar policies",
     ];
 
     return {
@@ -428,6 +684,8 @@ Rules:
         sources: srcs,
       },
       suggestions,
+      intent,
+      depthLevel: depth,
     };
   } catch (error) {
     console.error("Follow-up AI failed:", error);
@@ -440,6 +698,16 @@ Rules:
         sources: [],
       },
       suggestions: ["Try again", "Ask a different question"],
+      intent,
+      depthLevel: depth,
     };
   }
+}
+
+function formatDataTable(dataTable: { headers?: string[]; rows?: string[][] }): string {
+  if (!dataTable?.headers?.length || !dataTable?.rows?.length) return "";
+  const headers = dataTable.headers;
+  const rows = dataTable.rows;
+  const sep = headers.map(() => "---").join(" | ");
+  return `${headers.join(" | ")}\n${sep}\n${rows.map(r => r.join(" | ")).join("\n")}`;
 }

@@ -1,53 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateFollowUpAnswer } from "@/lib/policyEngine";
+import { classifyFollowUpIntent, getDepthLevel, INTENT_LABELS } from "@/lib/followup-intent";
+import { classifySource } from "@/lib/source-credibility";
 import { searchWeb, filterValidResults, formatWebContext } from "@/lib/web-search";
 import { fetchGovData, formatGovContext, govBillsToSources } from "@/lib/gov-data";
 import { classifyQuery } from "@/lib/omni-classifier";
 import type { AnswerSection as OmniAnswerSection, Source } from "@/lib/omni-types";
-import type { AnswerSource as PolicySource } from "@/lib/policy-types";
+import type { AnswerSource as PolicySource, Answer } from "@/lib/policy-types";
 
 export const dynamic = "force-dynamic";
 
-function mapFollowUpToSections(answer: Awaited<ReturnType<typeof generateFollowUpAnswer>>["answer"]): OmniAnswerSection[] {
+function mapFollowUpToSections(answer: Answer, intent: string): OmniAnswerSection[] {
   const sections: OmniAnswerSection[] = [];
-  if (answer.sections.summary) {
-    sections.push({
-      heading: "Summary",
-      content: answer.sections.summary,
-      citations: [],
-      confidence: "verified",
-    });
+  const hasSources = (answer.sources?.length ?? 0) > 0;
+  const baseConfidence = hasSources ? "verified" as const : "unverified" as const;
+
+  if (intent === "more_data" && answer.sections.overview) {
+    if (answer.sections.summary) {
+      sections.push({
+        heading: "Data Overview",
+        content: answer.sections.summary,
+        citations: [],
+        confidence: baseConfidence,
+      });
+    }
+    if (answer.sections.keyProvisions?.length) {
+      sections.push({
+        heading: "Key Statistics",
+        content: answer.sections.keyProvisions.join("\n\n"),
+        citations: [],
+        confidence: baseConfidence,
+      });
+    }
+    if (answer.sections.argumentsFor?.length) {
+      sections.push({
+        heading: "Economic Data",
+        content: answer.sections.argumentsFor.map((p) => p.trim()).filter(Boolean).join("\n"),
+        citations: [],
+        confidence: hasSources ? "inferred" as const : "unverified" as const,
+      });
+    }
+    if (answer.sections.argumentsAgainst?.length) {
+      sections.push({
+        heading: "Polling & Public Opinion",
+        content: answer.sections.argumentsAgainst.map((p) => p.trim()).filter(Boolean).join("\n"),
+        citations: [],
+        confidence: hasSources ? "inferred" as const : "unverified" as const,
+      });
+    }
+    if (answer.sections.overview) {
+      sections.push({
+        heading: "Additional Data Breakdown",
+        content: answer.sections.overview,
+        citations: [],
+        confidence: hasSources ? "inferred" as const : "unverified" as const,
+      });
+    }
+  } else {
+    if (answer.sections.summary) {
+      sections.push({
+        heading: "Summary",
+        content: answer.sections.summary,
+        citations: [],
+        confidence: baseConfidence,
+      });
+    }
+    if (answer.sections.keyProvisions?.length) {
+      sections.push({
+        heading: "Key points",
+        content: answer.sections.keyProvisions.join("\n\n"),
+        citations: [],
+        confidence: baseConfidence,
+      });
+    }
+    if (answer.sections.argumentsFor?.length) {
+      sections.push({
+        heading: "Arguments for",
+        content: answer.sections.argumentsFor.map((p) => p.trim()).filter(Boolean).join("\n"),
+        citations: [],
+        confidence: hasSources ? "inferred" as const : "unverified" as const,
+      });
+    }
+    if (answer.sections.argumentsAgainst?.length) {
+      sections.push({
+        heading: "Arguments against",
+        content: answer.sections.argumentsAgainst.map((p) => p.trim()).filter(Boolean).join("\n"),
+        citations: [],
+        confidence: hasSources ? "inferred" as const : "unverified" as const,
+      });
+    }
   }
-  if (answer.sections.keyProvisions?.length) {
-    sections.push({
-      heading: "Key points",
-      content: answer.sections.keyProvisions.join("\n\n"),
-      citations: [],
-      confidence: "verified",
-    });
-  }
-  if (answer.sections.argumentsFor?.length) {
-    sections.push({
-      heading: "Arguments for",
-      content: answer.sections.argumentsFor.map((p) => p.trim()).filter(Boolean).join("\n"),
-      citations: [],
-      confidence: "inferred",
-    });
-  }
-  if (answer.sections.argumentsAgainst?.length) {
-    sections.push({
-      heading: "Arguments against",
-      content: answer.sections.argumentsAgainst.map((p) => p.trim()).filter(Boolean).join("\n"),
-      citations: [],
-      confidence: "inferred",
-    });
-  }
+
   if (sections.length === 0) {
     sections.push({
       heading: "Follow-up",
       content: answer.fullTextSummary,
       citations: [],
-      confidence: "verified",
+      confidence: baseConfidence,
     });
   }
   return sections;
@@ -63,7 +112,9 @@ export async function POST(req: NextRequest) {
     const history = Array.isArray(body?.conversationHistory) ? body.conversationHistory : [];
     const persona = typeof body?.persona === "string" ? body.persona : null;
 
-    // Gov Data First: classify follow-up and fetch gov data + web in parallel
+    const followUpIntent = classifyFollowUpIntent(query);
+    const depthLevel = getDepthLevel(history.length);
+
     const classified = classifyQuery(query);
     const [govData, webSearchResults] = await Promise.all([
       fetchGovData({
@@ -72,13 +123,12 @@ export async function POST(req: NextRequest) {
         state: classified.state,
         intent: classified.intent,
       }).catch(() => ({ bills: [] as any[], representatives: [] as any[], hadDirectBillLookup: false })),
-      searchWeb(query, { maxResults: 4 }).catch(() => null),
+      searchWeb(query, { maxResults: followUpIntent === "more_data" ? 8 : 4 }).catch(() => null),
     ]);
     const govSources = govBillsToSources(govData.bills);
     const rawWebResults = webSearchResults?.results ?? [];
     const validWebResults = filterValidResults(rawWebResults);
 
-    // Unified sources: gov first, then web
     const unifiedSources: PolicySource[] = [];
     for (let i = 0; i < govSources.length; i++) {
       unifiedSources.push({ ...govSources[i], id: i + 1 });
@@ -99,36 +149,51 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Unified context string with consistent numbering
     const { text: govContextText, numberedCount: govNumberedCount } = formatGovContext(govData, 1);
     const webContextStr = formatWebContext(validWebResults, govNumberedCount + 1);
     const combinedContext = [govContextText, webContextStr].filter(Boolean).join("\n\n");
 
-    const { answer, suggestions } = await generateFollowUpAnswer(
+    const result = await generateFollowUpAnswer(
       query, history, persona,
       combinedContext || undefined,
       unifiedSources,
+      followUpIntent,
+      depthLevel,
     );
-    const sections = mapFollowUpToSections(answer);
+    const sections = mapFollowUpToSections(result.answer, result.intent);
 
-    const sources: Source[] = answer.sources.map((s, i) => ({
-      id: `fu-src-${i}`,
-      type: s.type === "Federal" ? "federal_bill" as const : s.type === "State" ? "state_bill" as const : "government_site" as const,
-      title: s.title,
-      url: s.url,
-      snippet: s.excerpt || s.title,
-      publisher: s.domain,
-      relevance: s.verified ? 1 : 0.8,
-    }));
+    const sources: Source[] = result.answer.sources.map((s, i) => {
+      const credibility = classifySource(s.url, s.title);
+      return {
+        id: `fu-src-${i}`,
+        type: s.type === "Federal" ? "federal_bill" as const : s.type === "State" ? "state_bill" as const : "government_site" as const,
+        title: s.title,
+        url: s.url,
+        snippet: s.excerpt || s.title,
+        publisher: s.domain,
+        relevance: s.verified ? 1 : 0.8,
+        sourceCategory: credibility.category,
+        sourceCategoryLabel: credibility.categoryLabel,
+        bias: credibility.bias,
+        biasLabel: credibility.biasLabel,
+      };
+    });
+
+    const intentLabel = INTENT_LABELS[result.intent] || "Follow-up";
 
     return NextResponse.json({
       success: true,
       data: {
-        heading: answer.policyName,
+        heading: result.answer.policyName,
         cardType: "general",
         sections,
-        followUpSuggestions: suggestions,
+        followUpSuggestions: result.suggestions,
         sources,
+        followUpMeta: {
+          intent: result.intent,
+          intentLabel,
+          depthLevel: result.depthLevel,
+        },
       },
     });
   } catch (e) {
