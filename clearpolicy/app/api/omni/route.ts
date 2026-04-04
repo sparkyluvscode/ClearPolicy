@@ -258,7 +258,7 @@ function mapPolicyAnswerToOmni(answer: Answer, persona: string, intent: string =
   }));
 
   const govSourceCount = sources.filter(s => s.type === "federal_bill" || s.type === "state_bill" || s.type === "government_site").length;
-  const hasCitations = sections.some(sec => /\[\d+\]/.test(sec.content));
+  const hasCitations = sections.some(sec => /\[\d+\]/.test(sec.content) || /[Aa]ccording to|[Dd]ata from|[Aa] \d{4} report by|\breport(?:ed|s)? by\b/.test(sec.content));
 
   const policyMeta: PolicyMeta = {
     level: answer.level || "",

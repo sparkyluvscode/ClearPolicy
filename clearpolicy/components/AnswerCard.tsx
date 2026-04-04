@@ -25,17 +25,73 @@ export default function AnswerCard({
     cardType === "debate" ? "var(--cp-coral)" :
     cardType === "document" ? "var(--cp-gold)" : "var(--cp-accent)";
 
+  function findSourceByName(name: string): Source | undefined {
+    const lower = name.toLowerCase();
+    return sources.find(s => {
+      const titleLower = (s.title || "").toLowerCase();
+      const publisherLower = (s.publisher || "").toLowerCase();
+      const urlLower = (s.url || "").toLowerCase();
+      return titleLower.includes(lower) || lower.includes(titleLower) ||
+        publisherLower.includes(lower) || lower.includes(publisherLower) ||
+        urlLower.includes(lower);
+    });
+  }
+
   function renderCited(content: string) {
-    const parts = content.split(/(\[\d+\](?:\[\d+\])*|\[Doc(?:,\s*[^\]]+)?\]|\(General Knowledge\))/g);
-    return parts.map((part, i) => {
+    const parts = content.split(/(\[([^\]]+)\]\(([^)]+)\)|\[\d+\](?:\[\d+\])*|\[Doc(?:,\s*[^\]]+)?\]|\(General Knowledge\))/g);
+    const result: React.ReactNode[] = [];
+    let idx = 0;
+    while (idx < parts.length) {
+      const part = parts[idx];
+      if (part === undefined || part === "") { idx++; continue; }
+
+      // Markdown link: [Source Name](URL) - from new attribution style
+      const mdLink = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (mdLink) {
+        const linkText = mdLink[1];
+        const linkUrl = mdLink[2];
+        const matchedSrc = sources.find(s => s.url === linkUrl) || findSourceByName(linkText);
+        result.push(
+          matchedSrc ? (
+            <button
+              key={idx}
+              onClick={() => onSourceClick(matchedSrc)}
+              className="inline font-semibold underline decoration-1 underline-offset-2 transition-all cursor-pointer hover:decoration-2"
+              style={{ color: accentColor }}
+              title={`Source: ${matchedSrc.title}${matchedSrc.url ? ` — ${matchedSrc.url}` : ""}`}
+            >
+              {linkText}
+            </button>
+          ) : (
+            linkUrl ? (
+              <a
+                key={idx}
+                href={linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline font-semibold underline decoration-1 underline-offset-2 transition-all hover:decoration-2"
+                style={{ color: accentColor }}
+              >
+                {linkText}
+              </a>
+            ) : (
+              <span key={idx} className="font-semibold" style={{ color: accentColor }}>{linkText}</span>
+            )
+          )
+        );
+        idx += 3; // skip the capture groups
+        continue;
+      }
+
+      // Legacy: bracketed numeric citations [1][2]
       const multiCit = part.match(/^(\[\d+\])+$/);
       if (multiCit) {
         const nums = [...part.matchAll(/\[(\d+)\]/g)];
-        return (
-          <span key={i}>
+        result.push(
+          <span key={idx}>
             {nums.map((m, j) => {
-              const idx = parseInt(m[1], 10) - 1;
-              const src = sources[idx];
+              const srcIdx = parseInt(m[1], 10) - 1;
+              const src = sources[srcIdx];
               if (!src) return <sup key={j} className="text-[10px] text-[var(--cp-tertiary)] mx-0.5">[{m[1]}]</sup>;
               return (
                 <button
@@ -51,31 +107,42 @@ export default function AnswerCard({
             })}
           </span>
         );
+        idx++;
+        continue;
       }
+
+      // Legacy: single [N]
       const singleCit = part.match(/^\[(\d+)\]$/);
       if (singleCit) {
-        const idx = parseInt(singleCit[1], 10) - 1;
-        const src = sources[idx];
-        if (src) return (
-          <button
-            key={i}
-            onClick={() => onSourceClick(src)}
-            className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 hover:scale-110 hover:shadow-sm"
-            style={{ background: `color-mix(in srgb, ${accentColor} 15%, transparent)`, color: accentColor, border: `1px solid color-mix(in srgb, ${accentColor} 25%, transparent)` }}
-            title={`[${singleCit[1]}] ${src.title}`}
-          >
-            {singleCit[1]}
-          </button>
-        );
-        return <sup key={i} className="text-[10px] text-[var(--cp-tertiary)] mx-0.5">[{singleCit[1]}]</sup>;
+        const srcIdx = parseInt(singleCit[1], 10) - 1;
+        const src = sources[srcIdx];
+        if (src) {
+          result.push(
+            <button
+              key={idx}
+              onClick={() => onSourceClick(src)}
+              className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 hover:scale-110 hover:shadow-sm"
+              style={{ background: `color-mix(in srgb, ${accentColor} 15%, transparent)`, color: accentColor, border: `1px solid color-mix(in srgb, ${accentColor} 25%, transparent)` }}
+              title={`[${singleCit[1]}] ${src.title}`}
+            >
+              {singleCit[1]}
+            </button>
+          );
+        } else {
+          result.push(<sup key={idx} className="text-[10px] text-[var(--cp-tertiary)] mx-0.5">[{singleCit[1]}]</sup>);
+        }
+        idx++;
+        continue;
       }
+
+      // Doc citations
       const docCit = part.match(/^\[Doc(?:,\s*([^\]]+))?\]$/);
       if (docCit) {
         const docSrc = sources.find(s => s.type === "uploaded_document");
         const location = docCit[1];
-        return (
+        result.push(
           <button
-            key={i}
+            key={idx}
             onClick={() => docSrc && onSourceClick(docSrc)}
             className="inline-flex items-center gap-0.5 h-[18px] rounded-full text-[10px] font-bold transition-all cursor-pointer align-super ml-0.5 -mt-0.5 px-1.5 hover:scale-105"
             style={{ background: "color-mix(in srgb, var(--cp-gold) 15%, transparent)", color: "var(--cp-gold)", border: "1px solid color-mix(in srgb, var(--cp-gold) 25%, transparent)" }}
@@ -85,14 +152,24 @@ export default function AnswerCard({
             {location || "Doc"}
           </button>
         );
+        idx++;
+        continue;
       }
-      if (part === "(General Knowledge)") return (
-        <span key={i} className="text-[9px] px-1 py-0.5 rounded text-[var(--cp-tertiary)] mx-0.5 opacity-60" title="This claim is based on general knowledge, not a specific source">
-          *
-        </span>
-      );
-      return <span key={i}>{part}</span>;
-    });
+
+      if (part === "(General Knowledge)") {
+        result.push(
+          <span key={idx} className="text-[9px] px-1 py-0.5 rounded text-[var(--cp-tertiary)] mx-0.5 opacity-60" title="This claim is based on general knowledge, not a specific source">
+            *
+          </span>
+        );
+        idx++;
+        continue;
+      }
+
+      result.push(<span key={idx}>{part}</span>);
+      idx++;
+    }
+    return result;
   }
 
   // Detect if we have both "Arguments for" and "Arguments against" sections for table rendering
