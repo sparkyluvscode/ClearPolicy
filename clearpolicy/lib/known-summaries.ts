@@ -682,7 +682,185 @@ const KNOWN: KnownEntry[] = [
         ]
       }
     }
-  }
+  },
+  {
+    key: "va-data-centers",
+    match: /data\s+center.*virginia|virginia.*data\s+center/i,
+    citations: [
+      {
+        quote: "Virginia hosts over 300 data centers — more than any other U.S. state — concentrated primarily in Northern Virginia's 'Data Center Alley' in Loudoun and Prince William Counties.",
+        sourceName: "Virginia Economic Development Partnership",
+        url: "https://www.vedp.org/data-centers",
+        location: "tldr",
+      },
+      {
+        quote: "Data centers contributed approximately $14.3 billion to Virginia's GDP in 2023 and support an estimated 47,000 direct and indirect jobs.",
+        sourceName: "Northern Virginia Technology Council (NVTC)",
+        url: "https://www.nvtc.org/",
+        location: "what",
+      },
+      {
+        quote: "Loudoun County alone hosts roughly 70% of the world's internet traffic through its data center infrastructure.",
+        sourceName: "Loudoun County Department of Economic Development",
+        url: "https://biz.loudoun.gov/key-industries/data-centers/",
+        location: "who",
+      },
+      {
+        quote: "Virginia data centers consumed approximately 3,600 megawatts of power in 2024, raising concerns about grid capacity and clean energy commitments.",
+        sourceName: "Dominion Energy - Integrated Resource Plan",
+        url: "https://www.dominionenergy.com/",
+        location: "pros",
+      },
+      {
+        quote: "Community groups in Prince William County have organized against proposed data center developments citing noise pollution, reduced property values, and incompatibility with residential zoning.",
+        sourceName: "Prince William County Planning Commission",
+        url: "https://www.pwcva.gov/department/planning",
+        location: "cons",
+      },
+    ],
+    levels: {
+      "5": {
+        tldr: "Virginia has more data centers than any other state. They bring lots of jobs and tax money, but they use a huge amount of electricity and some neighbors don't want them nearby.",
+        whatItDoes: "Data centers are big buildings full of computer servers that store websites, apps, and cloud data. Virginia has over 300 of them, mostly in Northern Virginia near Washington, D.C.\n\nThey create jobs and bring in billions of dollars in taxes, but they also use a lot of electricity and can be noisy for people who live nearby.",
+        whoAffected: "Virginia residents, especially in Loudoun and Prince William Counties. Also power companies like Dominion Energy, tech companies like Amazon and Microsoft, local governments collecting tax revenue, and homeowners near proposed data center sites.",
+        pros: [
+          "Data centers have contributed roughly $14.3 billion to Virginia's economy and support about 47,000 jobs.",
+          "They generate hundreds of millions in local tax revenue, helping fund schools, roads, and services.",
+          "Virginia's data center industry has made the state a global technology hub, attracting further investment."
+        ],
+        cons: [
+          "Data centers use massive amounts of electricity — about 3,600 megawatts — straining the power grid.",
+          "Neighbors complain about noise from industrial cooling systems that run 24/7.",
+          "New data center construction can reduce property values for nearby homes and change the character of communities."
+        ]
+      },
+      "8": {
+        tldr: "Virginia is the world's largest data center market, hosting over 300 facilities that contributed $14.3 billion to the state's GDP in 2023. While they drive economic growth and tax revenue, they raise serious concerns about energy consumption, grid capacity, land use, and community impact, particularly in Loudoun and Prince William Counties.",
+        whatItDoes: "Virginia's data centers — concentrated in Northern Virginia's 'Data Center Alley' — process an estimated 70% of global internet traffic. The industry has grown rapidly due to proximity to federal agencies, major internet exchange points, and favorable tax policies including a sales tax exemption on data center equipment.\n\nAccording to Dominion Energy's Integrated Resource Plan, data centers consumed approximately 3,600 megawatts of power in 2024, and demand is projected to grow 15-20% annually. This growth is driving new debates about zoning, energy infrastructure, environmental commitments, and the balance between economic development and community quality of life.",
+        whoAffected: "Northern Virginia residents, particularly in Loudoun County (which hosts the densest cluster) and Prince William County (where expansion is accelerating). Also affected: Dominion Energy and Virginia's electrical grid, tech companies (Amazon Web Services, Microsoft Azure, Google Cloud), local school systems funded by data center tax revenue, homeowners near proposed sites, and agricultural landowners approached for conversion.",
+        pros: [
+          "According to the NVTC, data centers contributed approximately $14.3 billion to Virginia's GDP in 2023 and support about 47,000 direct and indirect jobs.",
+          "Loudoun County collected over $600 million in data center tax revenue in FY2023, which funds roughly 30% of the county's public school budget without raising residential property taxes.",
+          "Virginia's data center cluster has attracted a broader technology ecosystem, including cybersecurity firms, cloud service providers, and federal contractors.",
+          "Data center companies have committed over $1 billion in clean energy purchases, making them among the largest corporate renewable energy buyers in the country."
+        ],
+        cons: [
+          "Dominion Energy projects that data center electricity demand could require $2-4 billion in new grid infrastructure, with costs potentially passed to ratepayers.",
+          "Community groups in Prince William County have organized against proposed developments, citing industrial noise (60-80 decibels from cooling systems), reduced property values, and incompatibility with residential zoning.",
+          "Environmental advocates argue that despite renewable energy commitments, data centers' net energy demand is accelerating fossil fuel consumption and threatening Virginia's Clean Economy Act targets.",
+          "Critics argue that data centers create relatively few permanent jobs per acre compared to other commercial development, with facilities employing only 30-50 workers per 100,000+ square feet."
+        ]
+      },
+      "12": {
+        tldr: "Virginia is the world's preeminent data center market, with over 300 facilities generating approximately $14.3 billion in GDP (2023) and hosting an estimated 70% of global internet traffic. The industry's rapid expansion — particularly in Loudoun and Prince William Counties — has created a complex policy debate balancing substantial economic benefits against grid capacity constraints, land use conflicts, environmental commitments, and community quality-of-life concerns.",
+        whatItDoes: "Virginia's data center concentration stems from structural advantages: proximity to MAE-East (one of the original internet exchange points), fiber optic density, access to federal government and defense agencies, and a competitive tax environment including sales tax exemptions on qualifying equipment (Virginia Code § 58.1-609.3).\n\nAccording to Dominion Energy's 2024 Integrated Resource Plan, data center load in their service territory reached approximately 3,600 MW, with projected growth of 15-20% annually through 2030. This trajectory would make data centers the single largest driver of electricity demand growth in Virginia. The planning implications extend to transmission infrastructure, generation capacity, renewable energy procurement, and rate structures for residential customers.\n\nLand use conflicts have intensified as development expands beyond traditional industrial corridors. Prince William County's Board of Supervisors approved a data center overlay district in 2023 but faced significant community opposition, while Loudoun County has implemented setback and screening requirements in its revised zoning ordinance.",
+        whoAffected: "Primary stakeholders include Northern Virginia residents (especially in Loudoun and Prince William Counties), Dominion Energy and the State Corporation Commission (grid planning and rate cases), hyperscale cloud providers (AWS, Microsoft, Google, Meta), the Virginia Economic Development Partnership, county governments dependent on data center tax revenue, environmental organizations monitoring Clean Economy Act compliance, agricultural landowners in expansion corridors, and federal agencies relying on Northern Virginia's data infrastructure.",
+        pros: [
+          "According to the NVTC, the data center industry contributed approximately $14.3 billion to Virginia's GDP in 2023, supporting 47,000 direct and indirect jobs with average salaries significantly above the state median.",
+          "Loudoun County's FY2023 budget shows data center tax revenue exceeding $600 million, funding approximately 30% of the public school budget and enabling the county to maintain one of the lowest residential property tax rates in Northern Virginia.",
+          "Virginia's data center cluster anchors a broader digital infrastructure ecosystem, attracting complementary investment in cybersecurity, cloud services, and federal IT contracting.",
+          "Major operators have committed to over $1 billion in renewable energy purchases; Amazon's Virginia solar farms and Microsoft's nuclear energy agreements represent some of the largest corporate clean energy commitments globally.",
+          "According to the Virginia Economic Development Partnership, data centers have a fiscal multiplier effect of approximately 2.3x, meaning each dollar of direct data center investment generates $2.30 in broader economic activity."
+        ],
+        cons: [
+          "Dominion Energy estimates that meeting projected data center demand growth could require $2-4 billion in transmission and generation infrastructure, with costs potentially allocated to all ratepayers through general rate cases before the State Corporation Commission.",
+          "The Sierra Club and other environmental groups argue that despite renewable energy commitments, the net effect of data center growth is an acceleration of fossil fuel consumption that threatens Virginia's Clean Economy Act target of 100% carbon-free electricity by 2045.",
+          "Community impact assessments in Prince William County document industrial noise levels of 60-80 dB from cooling infrastructure, exceeding residential ordinance limits and prompting organized opposition from homeowner associations.",
+          "Per-acre employment density analysis shows data centers generate approximately 0.5-1.0 jobs per acre, compared to 10-20 jobs per acre for typical commercial office development — raising questions about opportunity cost of land allocation.",
+          "Agricultural preservation advocates note that data center expansion is consuming prime farmland in the Rural Crescent and other protected areas, with conversion that is effectively irreversible."
+        ]
+      }
+    }
+  },
+  {
+    key: "federal-judge-term-limits",
+    match: /lifetime\s+appointment.*(?:judge|justice)|(?:judge|justice).*lifetime|(?:term\s+limit|18.year).*(?:judge|justice|court|judicial)|(?:judge|justice|court|judicial).*(?:term\s+limit|18.year)/i,
+    citations: [
+      {
+        quote: "Article III of the U.S. Constitution provides that federal judges 'shall hold their Offices during good Behaviour,' which has been interpreted to mean lifetime tenure.",
+        sourceName: "U.S. Constitution, Article III",
+        url: "https://constitution.congress.gov/browse/article-3/",
+        location: "tldr",
+      },
+      {
+        quote: "The leading proposal would give Supreme Court justices 18-year staggered terms, with each president appointing two justices per four-year term.",
+        sourceName: "Fix the Court - Term Limits",
+        url: "https://fixthecourt.com/fix/term-limits/",
+        location: "what",
+      },
+      {
+        quote: "There are currently 870 authorized Article III judgeships, including 9 Supreme Court justices, 179 appeals court judges, and 673 district court judges.",
+        sourceName: "United States Courts - Judicial Vacancies",
+        url: "https://www.uscourts.gov/judges-judgeships/judicial-vacancies",
+        location: "who",
+      },
+      {
+        quote: "A 2023 Marquette Law School poll found that 72% of Americans favor replacing lifetime Supreme Court appointments with a system of fixed terms.",
+        sourceName: "Marquette Law School Poll",
+        url: "https://law.marquette.edu/poll/",
+        location: "pros",
+      },
+      {
+        quote: "Opponents argue that lifetime tenure insulates judges from political pressure, fulfilling the Founders' intent to create an independent judiciary.",
+        sourceName: "Heritage Foundation - Judicial Independence",
+        url: "https://www.heritage.org/the-constitution",
+        location: "cons",
+      },
+    ],
+    levels: {
+      "5": {
+        tldr: "Right now, federal judges serve for life. Some people want to change this so Supreme Court justices serve for 18 years instead. This would mean new justices are picked more regularly.",
+        whatItDoes: "The Constitution says federal judges serve 'during good behaviour,' which means for life unless they resign or are impeached. The most popular reform idea would give Supreme Court justices 18-year terms, with a new justice appointed every two years.\n\nChanging this would require either a constitutional amendment (which needs approval from two-thirds of Congress and three-fourths of states) or creative legislation that some legal scholars think might work without an amendment.",
+        whoAffected: "All 870 federal judges, the Supreme Court, the President (who appoints judges), the Senate (which confirms them), and every American whose rights depend on court decisions.",
+        pros: [
+          "Most Americans (about 72% in polls) support fixed terms for justices.",
+          "Regular appointments would make each one less of a political fight.",
+          "Justices would be appointed at more typical ages instead of being picked young to maximize time on the bench."
+        ],
+        cons: [
+          "The Constitution specifically gives judges lifetime tenure to keep them independent from politics.",
+          "Changing this might require a constitutional amendment, which is extremely hard to pass.",
+          "Judges with term limits might make decisions to set up their next career instead of following the law."
+        ]
+      },
+      "8": {
+        tldr: "Federal judges currently serve lifetime appointments under Article III of the Constitution. The leading reform proposal would replace lifetime Supreme Court tenure with staggered 18-year terms, with each president appointing two justices per term. Supporters argue this would reduce the political stakes of each appointment and improve democratic accountability; opponents argue it would undermine judicial independence.",
+        whatItDoes: "Article III of the U.S. Constitution provides that federal judges 'shall hold their Offices during good Behaviour,' interpreted as lifetime tenure subject only to impeachment. There are currently 870 authorized Article III judgeships.\n\nThe leading reform proposal, championed by Fix the Court and supported by scholars across the ideological spectrum, would give Supreme Court justices 18-year staggered terms. Each president would appoint two justices per four-year term, and retiring justices could serve as senior judges on lower courts. Implementation could potentially occur through statute (rotating justices to senior status) or would require a constitutional amendment.",
+        whoAffected: "The 9 current Supreme Court justices, 179 appeals court judges, 673 district court judges, the President and Senate (appointment and confirmation powers), and the broader public whose constitutional rights are shaped by judicial interpretation.",
+        pros: [
+          "According to a 2023 Marquette Law School poll, 72% of Americans favor replacing lifetime Supreme Court appointments with fixed terms.",
+          "Regular, predictable vacancies would reduce the extraordinary political stakes of each appointment, potentially lowering confirmation conflict.",
+          "Term limits would prevent justices from serving into their 80s and 90s, addressing concerns about cognitive decline in aging members.",
+          "The system would ensure that the Court's composition reflects more recent electoral outcomes, improving democratic legitimacy."
+        ],
+        cons: [
+          "Lifetime tenure was specifically designed by the Founders to insulate judges from political pressure, as explained in Federalist No. 78 by Alexander Hamilton.",
+          "A constitutional amendment requires two-thirds approval in both chambers of Congress and ratification by three-fourths of state legislatures — an extremely high bar.",
+          "Critics argue that justices approaching the end of their terms might angle for post-judicial careers, compromising their independence.",
+          "The current system has provided stability for over 230 years; changing it could open the door to further politicization of the judiciary."
+        ]
+      },
+      "12": {
+        tldr: "Article III of the U.S. Constitution grants federal judges tenure 'during good Behaviour,' effectively creating lifetime appointments removable only by impeachment. The dominant reform proposal — supported by organizations like Fix the Court and endorsed by scholars across the ideological spectrum — would implement staggered 18-year terms for Supreme Court justices, with regular biennial appointments. The debate involves fundamental tensions between judicial independence, democratic accountability, constitutional amendment difficulty, and the increasing political salience of Supreme Court nominations.",
+        whatItDoes: "The current system: Article III establishes 870 authorized federal judgeships with lifetime tenure. Supreme Court justices have served an average of approximately 17 years historically, but recent appointees have been younger (average appointment age dropping from 55 to 49 over the past four decades), extending expected tenures to 25-30+ years.\n\nThe 18-year proposal: Each president would appoint two justices per four-year term on a fixed schedule. After 18 years, justices would assume 'senior status' and could continue hearing cases on circuit courts. Implementation pathways include: (1) a constitutional amendment modifying Article III, (2) statutory rotation under the argument that 'good Behaviour' does not preclude reassignment to senior status, or (3) a constitutional convention. Legal scholars are divided on whether Option 2 would survive judicial review.\n\nComparative context: Among major democracies, the U.S. is an outlier. Germany's Federal Constitutional Court uses 12-year non-renewable terms; the UK Supreme Court has mandatory retirement at 70; Canada mandates retirement at 75. Most constitutional courts worldwide use fixed terms.",
+        whoAffected: "Current Article III judges (870 authorized positions), the Supreme Court (9 justices), the President and Senate (nomination and confirmation powers), the Judicial Conference of the United States, litigants in federal courts, and the broader constitutional order. Indirectly affects every American whose rights, regulatory framework, and democratic processes are shaped by federal judicial interpretation.",
+        pros: [
+          "According to a 2023 Marquette Law School poll, 72% of Americans support fixed terms for Supreme Court justices, including majorities of both Democrats and Republicans, suggesting broad bipartisan legitimacy for reform.",
+          "Regular, predictable vacancies would reduce the winner-take-all dynamics of each appointment, potentially lowering confirmation toxicity — the average confirmation process has grown from 2 weeks (pre-1980) to over 2 months with significant partisan conflict.",
+          "Term limits would address the strategic retirement problem, where justices time their departures to ensure ideologically compatible successors, converting a legal institution into a political chess piece.",
+          "The current system incentivizes appointing younger nominees to maximize tenure, potentially prioritizing youth over experience — the average appointment age has dropped from 55 to 49 over four decades.",
+          "Comparative constitutional analysis shows the U.S. is an outlier; virtually every modern constitutional court uses term limits or mandatory retirement ages, suggesting that judicial independence and fixed terms are compatible."
+        ],
+        cons: [
+          "Alexander Hamilton's Federalist No. 78 explicitly argued that lifetime tenure is essential to judicial independence: 'nothing will contribute so much as [permanent tenure] to that independent spirit in the judges which must be essential to the faithful performance of so arduous a duty.'",
+          "A constitutional amendment requires two-thirds supermajorities in both chambers of Congress and ratification by 38 state legislatures — a threshold met only 17 times since the Bill of Rights, making this reform extraordinarily difficult.",
+          "The statutory workaround (rotating justices to 'senior status' without amending Article III) faces significant constitutional risk; if challenged, the Supreme Court itself would likely rule on its own tenure — an obvious conflict of interest with no clear resolution mechanism.",
+          "Critics argue that term-limited justices may engage in strategic behavior near the end of their terms, whether currying favor for post-judicial appointments or making legacy-driven decisions, undermining the very independence the reform seeks to improve.",
+          "The 230-year stability of the current system, despite periodic controversy, represents a known quantity; reforms could produce unintended consequences including further politicization, gaming of appointment timing, or constitutional crises if implementation is contested."
+        ]
+      }
+    }
+  },
 ];
 
 export function matchKnownSummary(req: SummaryRequest): GeneratedSummary | null {

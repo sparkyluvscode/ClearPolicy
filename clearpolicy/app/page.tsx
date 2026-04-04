@@ -343,10 +343,15 @@ function HomeContent() {
                 <input type="text" value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="ZIP" className="font-user-input w-14 bg-transparent text-xs text-[var(--cp-text)] placeholder:text-[var(--cp-muted)] focus:outline-none border-b border-[var(--cp-border)] focus:border-[var(--cp-accent)]/40 transition-colors pb-0.5" maxLength={5} />
               </div>
 
-              <button onClick={() => setDebateMode(!debateMode)} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${debateMode ? "bg-[var(--cp-accent-soft)] border-[var(--cp-accent)]/25 text-[var(--cp-accent)]" : "border-[var(--cp-border)] text-[var(--cp-muted)] hover:border-[var(--cp-accent)]/20"}`}>
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                Debate
-              </button>
+              <div className="relative group">
+                <button onClick={() => setDebateMode(!debateMode)} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${debateMode ? "bg-[var(--cp-accent-soft)] border-[var(--cp-accent)]/25 text-[var(--cp-accent)]" : "border-[var(--cp-border)] text-[var(--cp-muted)] hover:border-[var(--cp-accent)]/20"}`}>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  Debate
+                </button>
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 w-52 px-3 py-2 rounded-lg bg-[var(--cp-surface)] border border-[var(--cp-border)] shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
+                  <p className="text-[10px] text-[var(--cp-muted)] leading-snug">See how different political perspectives argue this issue</p>
+                </div>
+              </div>
 
               <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--cp-border)] text-[var(--cp-muted)] hover:border-[var(--cp-accent)]/20 hover:text-[var(--cp-text)] transition-all" title="Upload document">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
